@@ -52,6 +52,10 @@ Generates a full-size matchup thumbnail with team colors and logos.
 - `logo` - Show league logo (true/false)
 
 **Examples:**
+```
+GET /nba/lakers/celtics/thumb
+GET /nhl/toronto/montreal/thumb?logo=true
+GET /nfl/chiefs/49ers/thumb?size=1080
 GET /ncaaf/alabama/georgia/thumb?style=1
 ```
 
