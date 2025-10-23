@@ -66,6 +66,25 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league) {
     ctx.closePath();
     ctx.fill();
     
+    // Draw white diagonal line
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 16;
+    ctx.lineCap = 'butt'; // Ensures clean edges
+    ctx.lineJoin = 'miter';
+    ctx.beginPath();
+    // Calculate the direction vector of the diagonal
+    const dx = bottomDiagonalX - topDiagonalX;
+    const dy = height;
+    const length = Math.sqrt(dx * dx + dy * dy);
+    const unitX = dx / length;
+    const unitY = dy / length;
+    const extension = 100;
+    
+    // Extend the line in both directions (shifted 1px to the right)
+    ctx.moveTo(topDiagonalX + 1 - unitX * extension, 0 - unitY * extension);
+    ctx.lineTo(bottomDiagonalX + 1 + unitX * extension, height + unitY * extension);
+    ctx.stroke();
+    
     // Load and draw logos
     try {
         if (teamA.logo) {
@@ -79,19 +98,26 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league) {
             const logoAX = (width / 4) - (logoSize / 2);  // 25% of total width
             const logoAY = (height / 2) - (logoSize / 2);
             
-            // Add drop shadow
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-            ctx.shadowBlur = 20;
-            ctx.shadowOffsetX = 5;
-            ctx.shadowOffsetY = 5;
+            // Check if logo needs white outline (if too close to background color)
+            const logoNeedsOutline = shouldAddOutlineToLogo(logoA, colorA);
             
-            ctx.drawImage(logoA, logoAX, logoAY, logoSize, logoSize);
-            
-            // Reset shadow
-            ctx.shadowColor = 'transparent';
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = 0;
+            if (logoNeedsOutline) {
+                drawLogoWithOutline(ctx, logoA, logoAX, logoAY, logoSize);
+            } else {
+                // Add drop shadow
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+                ctx.shadowBlur = 20;
+                ctx.shadowOffsetX = 5;
+                ctx.shadowOffsetY = 5;
+                
+                ctx.drawImage(logoA, logoAX, logoAY, logoSize, logoSize);
+                
+                // Reset shadow
+                ctx.shadowColor = 'transparent';
+                ctx.shadowBlur = 0;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 0;
+            }
         }
         
         if (teamB.logo) {
@@ -105,19 +131,26 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league) {
             const logoBX = (width * 0.75) - (logoSize / 2);  // 75% of total width
             const logoBY = (height / 2) - (logoSize / 2);
             
-            // Add drop shadow
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-            ctx.shadowBlur = 20;
-            ctx.shadowOffsetX = 5;
-            ctx.shadowOffsetY = 5;
+            // Check if logo needs white outline (if too close to background color)
+            const logoNeedsOutline = shouldAddOutlineToLogo(logoB, colorB);
             
-            ctx.drawImage(logoB, logoBX, logoBY, logoSize, logoSize);
-            
-            // Reset shadow
-            ctx.shadowColor = 'transparent';
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = 0;
+            if (logoNeedsOutline) {
+                drawLogoWithOutline(ctx, logoB, logoBX, logoBY, logoSize);
+            } else {
+                // Add drop shadow
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+                ctx.shadowBlur = 20;
+                ctx.shadowOffsetX = 5;
+                ctx.shadowOffsetY = 5;
+                
+                ctx.drawImage(logoB, logoBX, logoBY, logoSize, logoSize);
+                
+                // Reset shadow
+                ctx.shadowColor = 'transparent';
+                ctx.shadowBlur = 0;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 0;
+            }
         }
     } catch (error) {
         console.error('Error loading team logos:', error.message);
@@ -234,4 +267,133 @@ function colorDistance(color1, color2) {
         Math.pow(rgb1.g - rgb2.g, 2) +
         Math.pow(rgb1.b - rgb2.b, 2)
     );
+}
+
+function getAverageColor(image) {
+    // Create a temporary canvas to analyze the logo
+    const canvas = createCanvas(image.width, image.height);
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(image, 0, 0);
+    
+    const imageData = ctx.getImageData(0, 0, image.width, image.height);
+    const data = imageData.data;
+    
+    let r = 0, g = 0, b = 0, count = 0;
+    
+    // Sample pixels and calculate average (skip transparent pixels)
+    for (let i = 0; i < data.length; i += 4) {
+        const alpha = data[i + 3];
+        
+        // Only count non-transparent pixels
+        if (alpha > 128) {
+            r += data[i];
+            g += data[i + 1];
+            b += data[i + 2];
+            count++;
+        }
+    }
+    
+    if (count === 0) return { r: 0, g: 0, b: 0 };
+    
+    return {
+        r: Math.round(r / count),
+        g: Math.round(g / count),
+        b: Math.round(b / count)
+    };
+}
+
+function rgbToHex(rgb) {
+    const toHex = (n) => {
+        const hex = n.toString(16);
+        return hex.length === 1 ? '0' + hex : hex;
+    };
+    return `#${toHex(rgb.r)}${toHex(rgb.g)}${toHex(rgb.b)}`;
+}
+
+function shouldAddOutlineToLogo(logoImage, backgroundColor) {
+    const threshold = 120; // Colors closer than this need an outline
+    
+    try {
+        const logoAvgColor = getAverageColor(logoImage);
+        const logoHex = rgbToHex(logoAvgColor);
+        const distance = colorDistance(logoHex, backgroundColor);
+        
+        return distance < threshold;
+    } catch (error) {
+        console.error('Error checking logo color:', error.message);
+        return false; // Don't add outline if we can't determine
+    }
+}
+
+// Cache for white logo versions to avoid recreating them
+const whiteLogoCache = new Map();
+
+function getWhiteLogo(logoImage, size) {
+    // Use image source as cache key if available, otherwise use size
+    const cacheKey = logoImage.src || `${size}_${Date.now()}`;
+    
+    if (whiteLogoCache.has(cacheKey)) {
+        return whiteLogoCache.get(cacheKey);
+    }
+    
+    // Create white version
+    const tempCanvas = createCanvas(size, size);
+    const tempCtx = tempCanvas.getContext('2d');
+    
+    tempCtx.drawImage(logoImage, 0, 0, size, size);
+    
+    const imageData = tempCtx.getImageData(0, 0, size, size);
+    const data = imageData.data;
+    
+    for (let j = 0; j < data.length; j += 4) {
+        if (data[j + 3] > 0) {
+            data[j] = 255;     // R = white
+            data[j + 1] = 255; // G = white
+            data[j + 2] = 255; // B = white
+        }
+    }
+    
+    tempCtx.putImageData(imageData, 0, 0);
+    
+    // Cache it (limit cache size to prevent memory issues)
+    if (whiteLogoCache.size > 50) {
+        const firstKey = whiteLogoCache.keys().next().value;
+        whiteLogoCache.delete(firstKey);
+    }
+    whiteLogoCache.set(cacheKey, tempCanvas);
+    
+    return tempCanvas;
+}
+
+function drawLogoWithOutline(ctx, logoImage, x, y, size) {
+    const outlineWidth = size * 0.015; // 1.5% of logo size for outline
+    
+    // Get cached white logo or create it
+    const whiteLogo = getWhiteLogo(logoImage, size);
+    
+    // First draw shadow
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+    ctx.shadowBlur = 20;
+    ctx.shadowOffsetX = 5;
+    ctx.shadowOffsetY = 5;
+    ctx.drawImage(logoImage, x, y, size, size);
+    
+    // Reset shadow
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+    
+    // Draw white outline with more steps for ultra-smooth angles (caching makes this fast!)
+    const steps = 32;
+    for (let i = 0; i < steps; i++) {
+        const angle = (Math.PI * 2 * i) / steps;
+        const offsetX = Math.cos(angle) * outlineWidth;
+        const offsetY = Math.sin(angle) * outlineWidth;
+        
+        ctx.drawImage(whiteLogo, x + offsetX, y + offsetY, size, size);
+    }
+    
+    // Draw actual logo on top
+    ctx.drawImage(logoImage, x, y, size, size);
 }
