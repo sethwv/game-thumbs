@@ -51,8 +51,15 @@ function init(port) {
     fs.readdirSync(routesPath).forEach(file => {
         if (file.endsWith('.js')) {
             const route = require(path.join(routesPath, file));
-            registerRoute(route.path, route.handler, route.method);
-            console.log(`Registered route: [${route.method.toUpperCase()}] ${route.path}`);
+            for (const path of route.paths) {
+                registerRoute(path, route.handler, route.method);
+                console.log(`Registered route: [${route.method.toUpperCase()}] ${path}`);
+            }
+            // Alternatively, if the route exports a single path and handler
+            if (route.path) {
+                registerRoute(route.path, route.handler, route.method);
+                console.log(`Registered route: [${route.method.toUpperCase()}] ${route.path}`);
+            }
         }
     });
 

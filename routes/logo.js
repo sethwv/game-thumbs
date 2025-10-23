@@ -8,7 +8,11 @@ const { generateLogo } = require('../helpers/logoGenerator');
 
 
 module.exports = {
-    path: "/:league/:team1/:team2/logo",
+    // path: "/:league/:team1/:team2/logo",
+    paths: [
+        "/:league/:team1/:team2/logo",
+        "/:league/:team1/:team2/logo.png"
+    ],
     method: "get",
     handler: async (req, res) => {
         const { league, team1, team2 } = req.params;
