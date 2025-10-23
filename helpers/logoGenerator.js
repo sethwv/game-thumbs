@@ -174,7 +174,7 @@ async function generateSideBySide(teamA, teamB, width, height, league) {
     const logoBBuffer = await downloadImage(teamB.logo);
     const logoB = await loadImage(logoBBuffer);
     
-    // Calculate logo size (53% of canvas for each logo)
+    // Calculate logo size (50% of canvas for each logo)
     const logoSize = Math.min(width, height) * 0.50;
     const spacing = width * 0.005; // 0.5% spacing between logos
     
