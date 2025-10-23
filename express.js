@@ -27,11 +27,16 @@ function init(port) {
     app.use(express.urlencoded({ extended: true }));
 
     app.use((req, _, next) => {
-		console.info(`${req.method} ${req.url}\n\t${req.ip}\n\t${req.headers['user-agent']}`);
-		next();
-	});
+        // Get real IP from proxy headers (nginx X-Real-IP)
+        // Priority: X-Real-IP > X-Forwarded-For > req.ip
+        const realIp = req.headers['x-real-ip'] || 
+                    //    req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 
+                       req.ip;
+        req.ip = realIp;
+        console.info(`${req.method} ${req.url}\n\t${realIp}\n\t${req.headers['user-agent']}`);
+        next();
+    });
 
-    // Register image cache middleware, only where route includes thumb or logo
     const { checkCacheMiddleware } = require('./helpers/imageCache');
     app.use((req, res, next) => {
         if (req.path.includes('thumb') || req.path.includes('logo')) {
