@@ -5,7 +5,7 @@
 
 const { createCanvas, loadImage } = require('canvas');
 const https = require('https');
-const crypto = require('crypto');
+const { drawLogoWithShadow, drawLogoWithOutline } = require('./logoOutline');
 
 module.exports = {
     generateThumbnail,
@@ -17,9 +17,7 @@ module.exports = {
 // ------------------------------------------------------------------------------
 
 const COLOR_SIMILARITY_THRESHOLD = 120; // Colors closer than this need an outline
-const OUTLINE_WIDTH_PERCENTAGE = 0.015; // 1.5% of logo size for outline
 const DIAGONAL_LINE_EXTENSION = 100; // Pixels to extend diagonal line beyond canvas
-const MAX_CACHE_SIZE = 50; // Maximum number of cached white logos
 
 // ------------------------------------------------------------------------------
 
@@ -403,107 +401,4 @@ function shouldAddOutlineToLogo(logoImage, backgroundColor) {
         console.error('Error checking logo color:', error.message);
         return false; // Don't add outline if we can't determine
     }
-}
-
-// Cache for white logo versions to avoid recreating them
-const whiteLogoCache = new Map();
-
-function drawLogoWithShadow(ctx, logoImage, x, y, size) {
-    // Add drop shadow
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-    ctx.shadowBlur = 20;
-    ctx.shadowOffsetX = 5;
-    ctx.shadowOffsetY = 5;
-    
-    ctx.drawImage(logoImage, x, y, size, size);
-    
-    // Reset shadow
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
-}
-
-function getWhiteLogo(logoImage, size) {
-    // Use image source as cache key if available, otherwise generate checksum from image data
-    let cacheKey = logoImage.src;
-    
-    if (!cacheKey) {
-        // Create a temporary canvas to extract image data for checksum
-        const tempCanvas = createCanvas(logoImage.width, logoImage.height);
-        const tempCtx = tempCanvas.getContext('2d');
-        tempCtx.drawImage(logoImage, 0, 0);
-        const imageData = tempCtx.getImageData(0, 0, logoImage.width, logoImage.height);
-        
-        // Generate checksum from image data
-        const hash = crypto.createHash('md5');
-        hash.update(Buffer.from(imageData.data.buffer));
-        cacheKey = `${hash.digest('hex')}_${size}`;
-    }
-    
-    if (whiteLogoCache.has(cacheKey)) {
-        return whiteLogoCache.get(cacheKey);
-    }
-    
-    // Create white version
-    const tempCanvas = createCanvas(size, size);
-    const tempCtx = tempCanvas.getContext('2d');
-    
-    tempCtx.drawImage(logoImage, 0, 0, size, size);
-    
-    const imageData = tempCtx.getImageData(0, 0, size, size);
-    const data = imageData.data;
-    
-    for (let j = 0; j < data.length; j += 4) {
-        if (data[j + 3] > 0) {
-            data[j] = 255;     // R = white
-            data[j + 1] = 255; // G = white
-            data[j + 2] = 255; // B = white
-        }
-    }
-    
-    tempCtx.putImageData(imageData, 0, 0);
-    
-    // Cache it (limit cache size to prevent memory issues)
-    // Remove entries until cache size is less than MAX_CACHE_SIZE
-    while (whiteLogoCache.size >= MAX_CACHE_SIZE) {
-        const firstKey = whiteLogoCache.keys().next().value;
-        whiteLogoCache.delete(firstKey);
-    }
-    whiteLogoCache.set(cacheKey, tempCanvas);
-    
-    return tempCanvas;
-}
-
-function drawLogoWithOutline(ctx, logoImage, x, y, size) {
-    const outlineWidth = size * OUTLINE_WIDTH_PERCENTAGE;
-    
-    // Get cached white logo or create it
-    const whiteLogo = getWhiteLogo(logoImage, size);
-    
-    // First draw shadow
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-    ctx.shadowBlur = 20;
-    ctx.shadowOffsetX = 5;
-    ctx.shadowOffsetY = 5;
-    ctx.drawImage(logoImage, x, y, size, size);
-    
-    // Reset shadow
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
-    
-    // Draw white outline with more steps for ultra-smooth angles (caching makes this fast!)
-    const steps = 32;
-    for (let i = 0; i < steps; i++) {
-        const angle = (Math.PI * 2 * i) / steps;
-        const offsetX = Math.cos(angle) * outlineWidth;
-        const offsetY = Math.sin(angle) * outlineWidth;
-        
-        ctx.drawImage(whiteLogo, x + offsetX, y + offsetY, size, size);
-    }
-    
-    // Draw actual logo on top
-    ctx.drawImage(logoImage, x, y, size, size);
 }
