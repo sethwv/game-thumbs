@@ -30,7 +30,6 @@ function init(port) {
         // Get real IP from proxy headers (nginx X-Real-IP)
         // Priority: X-Real-IP > X-Forwarded-For > req.ip
         const realIp = req.headers['x-real-ip'] || 
-                    //    req.headers['x-forwarded-for']?.split(',')[0]?.trim() || 
                        req.ip;
         req.ip = realIp;
         console.info(`${req.method} ${req.url}\n\t${realIp}\n\t${req.headers['user-agent']}`);
