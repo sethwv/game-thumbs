@@ -1,3 +1,5 @@
+### **Note:** This service uses publicly available ESPN APIs and logos. All team names, logos, and trademarks are property of their respective owners.
+
 # Game Thumbs
 
 A simple API that generates and serves various sports matchup thumbnails and logos dynamically.
@@ -85,7 +87,7 @@ Generates a matchup logo with team logos on transparent background.
 GET /nba/lakers/celtics/logo
 GET /nhl/toronto/montreal/logo?style=2
 GET /nfl/chiefs/49ers/logo?style=1&logo=true
-GET /mlb/yankees/red-sox/logo?style=2&logo=true
+GET /mlb/yankees/sox/logo?style=2&logo=true
 ```
 
 **Output:** 800x800 PNG image (transparent background)
@@ -137,7 +139,3 @@ All team data is fetched dynamically from **ESPN's public APIs**:
 - Team data is cached for 24 hours to minimize API calls
 - Generated images are cached for 24 hours based on content hash
 - Expired cache entries are automatically cleaned up
-
----
-
-**Note:** This service uses publicly available ESPN APIs and logos. All team names, logos, and trademarks are property of their respective owners.
