@@ -1,6 +1,6 @@
 // ------------------------------------------------------------------------------
-// thumb.js
-// Route to generate game thumbnail images
+// logo.js
+// Route to generate game logo images
 // ------------------------------------------------------------------------------
 
 const { resolveTeam } = require('../helpers/ESPNTeamResolver');
