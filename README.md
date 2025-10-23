@@ -38,9 +38,11 @@ docker run -p 8080:3000 ghcr.io/sethwv/game-thumbs:latest
 
 ### Thumbnail Generation
 
-**Endpoint:** `/:league/:team1/:team2/thumb`
+**Endpoint:** `/:league/:team1/:team2/thumb[.png]`
 
 Generates a full-size matchup thumbnail with team colors and logos.
+
+*Note: The `.png` extension is optional*
 
 **Parameters:**
 - `league` - Sport league (nba, nfl, mlb, nhl, ncaaf, ncaab)
@@ -67,9 +69,11 @@ GET /ncaaf/alabama/georgia/thumb?style=1
 
 ### Logo Generation
 
-**Endpoint:** `/:league/:team1/:team2/logo`
+**Endpoint:** `/:league/:team1/:team2/logo[.png]`
 
 Generates a matchup logo with team logos on transparent background.
+
+*Note: The `.png` extension is optional*
 
 **Parameters:**
 - `league` - Sport league (nba, nfl, mlb, nhl, ncaaf, ncaab)
