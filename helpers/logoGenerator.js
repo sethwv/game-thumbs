@@ -5,6 +5,7 @@
 
 const { createCanvas, loadImage } = require('canvas');
 const https = require('https');
+const { drawLogoWithShadow, drawLogoWithOutline, hasLightOutline } = require('./logoOutline');
 
 module.exports = {
     generateLogo
@@ -16,7 +17,7 @@ module.exports = {
  * Generates a matchup logo with team logos
  * @param {Object} teamA - First team object from ESPNTeamResolver
  * @param {Object} teamB - Second team object from ESPNTeamResolver
- * @param {Object} options - Optional settings (width, height, style, league)
+ * @param {Object} options - Optional settings (width, height, style, league, outline)
  * @returns {Promise<Buffer>} PNG image buffer
  */
 async function generateLogo(teamA, teamB, options = {}) {
@@ -24,12 +25,13 @@ async function generateLogo(teamA, teamB, options = {}) {
     const height = options.height || 800;
     const style = options.style || 1;
     const league = options.league; // Required for league logo
+    const outline = options.outline || false; // Whether to add white outline to logos
     
     switch (style) {
         case 1:
-            return generateDiagonalSplit(teamA, teamB, width, height, league);
+            return generateDiagonalSplit(teamA, teamB, width, height, league, outline);
         case 2:
-            return generateSideBySide(teamA, teamB, width, height, league);
+            return generateSideBySide(teamA, teamB, width, height, league, outline);
         default:
             throw new Error(`Unknown logo style: ${style}. Valid styles are 1 (split) or 2 (side-by-side)`);
     }
@@ -39,7 +41,7 @@ async function generateLogo(teamA, teamB, options = {}) {
 // Style 1: Diagonal Split
 // ------------------------------------------------------------------------------
 
-async function generateDiagonalSplit(teamA, teamB, width, height, league) {
+async function generateDiagonalSplit(teamA, teamB, width, height, league, outline) {
     // Create canvas with transparent background
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
@@ -77,7 +79,12 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league) {
     const logoX = (width - logoSize) / 2;
     const logoY = (height - logoSize) / 2;
     
-    ctx.drawImage(logoA, logoX, logoY, logoSize, logoSize);
+    // Only add outline if parameter is true AND logo doesn't already have a light outline
+    if (outline && !hasLightOutline(logoA)) {
+        drawLogoWithOutline(ctx, logoA, logoX, logoY, logoSize);
+    } else {
+        drawLogoWithShadow(ctx, logoA, logoX, logoY, logoSize);
+    }
     ctx.restore();
     
     // Draw teamB logo on the right side (clipped to right of diagonal)
@@ -93,7 +100,12 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league) {
     ctx.clip();
     
     // Draw right logo (centered on canvas, but clipped)
-    ctx.drawImage(logoB, logoX, logoY, logoSize, logoSize);
+    // Only add outline if parameter is true AND logo doesn't already have a light outline
+    if (outline && !hasLightOutline(logoB)) {
+        drawLogoWithOutline(ctx, logoB, logoX, logoY, logoSize);
+    } else {
+        drawLogoWithShadow(ctx, logoB, logoX, logoY, logoSize);
+    }
     ctx.restore();
     
     // Draw diagonal line through the middle (shorter, white)
@@ -135,7 +147,7 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league) {
             const leagueLogoX = width - leagueLogoSize - padding;
             const leagueLogoY = height - leagueLogoSize - padding;
             
-            // Add subtle drop shadow for league logo badge
+            // Never add outline to league logo, always use shadow
             ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
             ctx.shadowBlur = 15;
             ctx.shadowOffsetX = 3;
@@ -158,7 +170,7 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league) {
 // Style 2: Side by Side
 // ------------------------------------------------------------------------------
 
-async function generateSideBySide(teamA, teamB, width, height, league) {
+async function generateSideBySide(teamA, teamB, width, height, league, outline) {
     // Create canvas with transparent background
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
@@ -186,22 +198,30 @@ async function generateSideBySide(teamA, teamB, width, height, league) {
     const logoBY = (height - logoSize) / 2;
     
     // Draw teamA logo (left)
-    ctx.save();
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-    ctx.shadowBlur = 15;
-    ctx.shadowOffsetX = 3;
-    ctx.shadowOffsetY = 3;
-    ctx.drawImage(logoA, logoAX, logoAY, logoSize, logoSize);
-    ctx.restore();
+    if (outline && !hasLightOutline(logoA)) {
+        drawLogoWithOutline(ctx, logoA, logoAX, logoAY, logoSize);
+    } else {
+        ctx.save();
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+        ctx.shadowBlur = 15;
+        ctx.shadowOffsetX = 3;
+        ctx.shadowOffsetY = 3;
+        ctx.drawImage(logoA, logoAX, logoAY, logoSize, logoSize);
+        ctx.restore();
+    }
     
     // Draw teamB logo (right)
-    ctx.save();
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-    ctx.shadowBlur = 15;
-    ctx.shadowOffsetX = 3;
-    ctx.shadowOffsetY = 3;
-    ctx.drawImage(logoB, logoBX, logoBY, logoSize, logoSize);
-    ctx.restore();
+    if (outline && !hasLightOutline(logoB)) {
+        drawLogoWithOutline(ctx, logoB, logoBX, logoBY, logoSize);
+    } else {
+        ctx.save();
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+        ctx.shadowBlur = 15;
+        ctx.shadowOffsetX = 3;
+        ctx.shadowOffsetY = 3;
+        ctx.drawImage(logoB, logoBX, logoBY, logoSize, logoSize);
+        ctx.restore();
+    }
     
     // Draw league logo as a badge in the bottom center if league is provided
     if (league) {
@@ -217,7 +237,7 @@ async function generateSideBySide(teamA, teamB, width, height, league) {
             const leagueLogoX = (width - leagueLogoSize) / 2;
             const leagueLogoY = height - leagueLogoSize - (height * 0.05);
             
-            // Add drop shadow
+            // Never add outline to league logo, always use shadow
             ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
             ctx.shadowBlur = 15;
             ctx.shadowOffsetX = 3;
