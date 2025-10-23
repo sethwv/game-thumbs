@@ -48,14 +48,10 @@ Generates a full-size matchup thumbnail with team colors and logos.
 **Query Parameters:**
 - `style` - Style number (default: 1)
   - `1` - Diagonal split with team colors
-- `resolution` - Output resolution (360, 720, 1080, 2160)
+- `size` - Output resolution (360, 720, 1080, 2160)
 - `logo` - Show league logo (true/false)
 
 **Examples:**
-```
-GET /nba/lakers/celtics/thumb
-GET /nhl/toronto/montreal/thumb?logo=true
-GET /nfl/chiefs/49ers/thumb?resolution=1080
 GET /ncaaf/alabama/georgia/thumb?style=1
 ```
 
