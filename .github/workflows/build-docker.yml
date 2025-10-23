@@ -1,0 +1,62 @@
+name: Build & Push Docker Image
+
+on:
+    push:
+        # branches: [ '*' ]
+        tags: [ 'v*' ]
+    workflow_dispatch:
+
+jobs:     
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - id: pre-step
+      name: Image Information
+      run: |
+        release_version=$(echo ${GITHUB_REF:10} | tr -d '/' | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]._-')
+        if [[ "$GITHUB_EVENT_NAME" == "push" || "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            tags+=("$release_version" "latest")
+          else
+            tags+=("$release_version")
+          fi
+        else
+          exit 1
+        fi
+        echo "tags=$(IFS=,; echo "${tags[*]}")" >> $GITHUB_OUTPUT
+        echo This workflow will build and push a Docker image to the following repository:
+        echo ${{ vars.REPO_ADDRESS }}/${{ vars.REPO_USER }}/${{ vars.REPO_NAME }}
+        echo The following tags will be used:
+        for tag in ${tags[@]}; do
+          echo ${{ vars.REPO_ADDRESS }}/${{ vars.REPO_USER }}/${{ vars.REPO_NAME }}:$tag
+        done
+        
+
+    - name: Build Docker Image
+      run: |
+        declare -a tags=($(echo "${{ steps.pre-step.outputs.tags }}" | tr "," " "))
+        tag_cmd=""
+        for tag in "${tags[@]}"; do
+          tag_cmd+="-t ${{ vars.REPO_ADDRESS }}/${{ vars.REPO_USER }}/${{ vars.REPO_NAME }}:$tag "
+        done
+        docker build $tag_cmd --output type=docker --platform linux/amd64 .
+
+
+    - name: Log in to Container Repo
+      uses: docker/login-action@v3
+      with:
+        username: ${{ vars.REPO_USER }}
+        registry: ${{ vars.REPO_ADDRESS }}
+        password: ${{ secrets.REPO_TOKEN }}
+
+
+    - name: Push Docker Image
+      run: |
+        declare -a tags=($(echo "${{ steps.pre-step.outputs.tags }}" | tr "," " "))
+        for tag in ${tags[@]}; do
+            echo "Pushing Docker image with tag: $tag to ${{ vars.REPO_ADDRESS }}"
+            docker push ${{ vars.REPO_ADDRESS }}/${{ vars.REPO_USER }}/${{ vars.REPO_NAME }}:$tag
+            docker rmi ${{ vars.REPO_ADDRESS }}/${{ vars.REPO_USER }}/${{ vars.REPO_NAME }}:$tag || true
+        done
