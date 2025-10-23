@@ -57,8 +57,8 @@ function init(port) {
                     console.log(`Registered route: [${route.method.toUpperCase()}] ${path}`);
                 }
             }
-            // Alternatively, if the route exports a single path and handler
-            if (route.path) {
+            // For backward compatibility with single path routes
+            else if (route.path) {
                 registerRoute(route.path, route.handler, route.method);
                 console.log(`Registered route: [${route.method.toUpperCase()}] ${route.path}`);
             }
