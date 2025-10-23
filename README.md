@@ -58,7 +58,7 @@ All endpoints support:
 
 **Endpoint:** `/:league/:team1/:team2/thumb[.png]`
 
-Generates a horizontal matchup thumbnail with vertical diagonal split.
+Generates a landscape matchup thumbnail with diagonal split layout.
 
 *Note: The `.png` extension is optional*
 

@@ -8,7 +8,7 @@ const { resolveTeam } = require('../helpers/ESPNTeamResolver');
 const { generateCover } = require('../helpers/thumbnailGenerator');
 
 module.exports = {
-    // path: "/:league/:team1/:team2/thumb",
+    // path: "/:league/:team1/:team2/cover",
     paths: [
         "/:league/:team1/:team2/cover",
         "/:league/:team1/:team2/cover.png"
