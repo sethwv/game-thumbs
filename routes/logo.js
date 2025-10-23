@@ -21,7 +21,7 @@ module.exports = {
             league: logo === 'true' ? league : null
         };
 
-        const validSizes = [256, 512, 1024, 2056];
+        const validSizes = [256, 512, 1024, 2048];
         const sizeValue = parseInt(size);
         if (validSizes.includes(sizeValue)) {
             logoOptions.width = sizeValue;
