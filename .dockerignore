@@ -1,0 +1,31 @@
+# Node modules (will be installed in container)
+node_modules
+
+# Cache directory (will be created in container)
+.cache
+
+# Development files
+.git
+.gitignore
+*.md
+README.md
+
+# Test files
+test-thumbnail.png
+helpers/test.js
+
+# IDE files
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

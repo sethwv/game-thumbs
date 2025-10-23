@@ -1,0 +1,17 @@
+{
+  "name": "game-thumbs",
+  "version": "v0.0.1",
+  "description": "A simple API that generates and serves various sports' matchup thumbnails and logos.",
+  "main": "index.js",
+  "author": "Seth",
+  "license": "MIT",
+  "dependencies": {
+    "canvas": "^3.2.0",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "helmet": "^8.1.0"
+  },
+  "scripts": {
+    "start": "node index.js"
+  }
+}
