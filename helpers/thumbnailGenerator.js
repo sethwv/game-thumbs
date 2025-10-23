@@ -5,10 +5,20 @@
 
 const { createCanvas, loadImage } = require('canvas');
 const https = require('https');
+const crypto = require('crypto');
 
 module.exports = {
     generateThumbnail
 };
+
+// ------------------------------------------------------------------------------
+// Constants
+// ------------------------------------------------------------------------------
+
+const COLOR_SIMILARITY_THRESHOLD = 120; // Colors closer than this need an outline
+const OUTLINE_WIDTH_PERCENTAGE = 0.015; // 1.5% of logo size for outline
+const DIAGONAL_LINE_EXTENSION = 100; // Pixels to extend diagonal line beyond canvas
+const MAX_CACHE_SIZE = 50; // Maximum number of cached white logos
 
 // ------------------------------------------------------------------------------
 
@@ -78,11 +88,10 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league) {
     const length = Math.sqrt(dx * dx + dy * dy);
     const unitX = dx / length;
     const unitY = dy / length;
-    const extension = 100;
     
     // Extend the line in both directions (shifted 1px to the right)
-    ctx.moveTo(topDiagonalX + 1 - unitX * extension, 0 - unitY * extension);
-    ctx.lineTo(bottomDiagonalX + 1 + unitX * extension, height + unitY * extension);
+    ctx.moveTo(topDiagonalX + 1 - unitX * DIAGONAL_LINE_EXTENSION, 0 - unitY * DIAGONAL_LINE_EXTENSION);
+    ctx.lineTo(bottomDiagonalX + 1 + unitX * DIAGONAL_LINE_EXTENSION, height + unitY * DIAGONAL_LINE_EXTENSION);
     ctx.stroke();
     
     // Load and draw logos
@@ -311,14 +320,12 @@ function rgbToHex(rgb) {
 }
 
 function shouldAddOutlineToLogo(logoImage, backgroundColor) {
-    const threshold = 120; // Colors closer than this need an outline
-    
     try {
         const logoAvgColor = getAverageColor(logoImage);
         const logoHex = rgbToHex(logoAvgColor);
         const distance = colorDistance(logoHex, backgroundColor);
         
-        return distance < threshold;
+        return distance < COLOR_SIMILARITY_THRESHOLD;
     } catch (error) {
         console.error('Error checking logo color:', error.message);
         return false; // Don't add outline if we can't determine
@@ -329,8 +336,21 @@ function shouldAddOutlineToLogo(logoImage, backgroundColor) {
 const whiteLogoCache = new Map();
 
 function getWhiteLogo(logoImage, size) {
-    // Use image source as cache key if available, otherwise use size
-    const cacheKey = logoImage.src || `${size}_${Date.now()}`;
+    // Use image source as cache key if available, otherwise generate checksum from image data
+    let cacheKey = logoImage.src;
+    
+    if (!cacheKey) {
+        // Create a temporary canvas to extract image data for checksum
+        const tempCanvas = createCanvas(logoImage.width, logoImage.height);
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCtx.drawImage(logoImage, 0, 0);
+        const imageData = tempCtx.getImageData(0, 0, logoImage.width, logoImage.height);
+        
+        // Generate checksum from image data
+        const hash = crypto.createHash('md5');
+        hash.update(Buffer.from(imageData.data.buffer));
+        cacheKey = `${hash.digest('hex')}_${size}`;
+    }
     
     if (whiteLogoCache.has(cacheKey)) {
         return whiteLogoCache.get(cacheKey);
@@ -356,7 +376,8 @@ function getWhiteLogo(logoImage, size) {
     tempCtx.putImageData(imageData, 0, 0);
     
     // Cache it (limit cache size to prevent memory issues)
-    if (whiteLogoCache.size > 50) {
+    // Remove entries until cache size is less than MAX_CACHE_SIZE
+    while (whiteLogoCache.size >= MAX_CACHE_SIZE) {
         const firstKey = whiteLogoCache.keys().next().value;
         whiteLogoCache.delete(firstKey);
     }
@@ -366,7 +387,7 @@ function getWhiteLogo(logoImage, size) {
 }
 
 function drawLogoWithOutline(ctx, logoImage, x, y, size) {
-    const outlineWidth = size * 0.015; // 1.5% of logo size for outline
+    const outlineWidth = size * OUTLINE_WIDTH_PERCENTAGE;
     
     // Get cached white logo or create it
     const whiteLogo = getWhiteLogo(logoImage, size);
