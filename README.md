@@ -109,7 +109,7 @@ The API uses intelligent team matching with weighted scoring:
 ### Examples:
 ```
 /nba/lakers/celtics/thumb          ✓ Team nicknames
-/nba/los-angeles/boston/thumb      ✓ Cities
+/nba/los%20angeles/boston/thumb    ✓ Cities
 /nba/LAL/BOS/thumb                 ✓ Abbreviations
 /nfl/chiefs/49ers/thumb            ✓ Mixed formats
 ```
