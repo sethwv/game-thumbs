@@ -36,11 +36,29 @@ docker run -p 8080:3000 ghcr.io/sethwv/game-thumbs:latest
 
 ## API Routes
 
+### Overview
+
+The API provides three types of image generation for sports matchups:
+
+| Type | Endpoint | Dimensions | Aspect Ratio |
+|------|----------|------------|--------------|
+| **Thumbnail** | `/:league/:team1/:team2/thumb` | 1440x1080 | 4:3 |
+| **Cover** | `/:league/:team1/:team2/cover` | 1080x1440 | 3:4 |
+| **Logo** | `/:league/:team1/:team2/logo` | 1024x1024 | 1:1 |
+
+All endpoints support:
+- Six major sports leagues: NBA, NFL, MLB, NHL, NCAA Football, NCAA Basketball
+- Flexible team matching (names, cities, abbreviations)
+- Optional league logo display
+- Multiple style variations
+
+---
+
 ### Thumbnail Generation
 
 **Endpoint:** `/:league/:team1/:team2/thumb[.png]`
 
-Generates a full-size matchup thumbnail with team colors and logos.
+Generates a landscape matchup thumbnail with diagonal split layout.
 
 *Note: The `.png` extension is optional*
 
@@ -52,18 +70,47 @@ Generates a full-size matchup thumbnail with team colors and logos.
 **Query Parameters:**
 - `style` - Style number (default: 1)
   - `1` - Diagonal split with team colors
-- `size` - Output resolution (360, 720, 1080, 2160)
-- `logo` - Show league logo (true/false)
+- `logo` - Show league logo in center (true/false)
 
 **Examples:**
 ```
 GET /nba/lakers/celtics/thumb
 GET /nhl/toronto/montreal/thumb?logo=true
-GET /nfl/chiefs/49ers/thumb?size=1080
-GET /ncaaf/alabama/georgia/thumb?style=1
+GET /nfl/chiefs/49ers/thumb
+GET /ncaaf/alabama/georgia/thumb?logo=true
 ```
 
-**Output:** 1920x1080 PNG image (default)
+**Output:** 1440x1080 PNG image (4:3 aspect ratio)
+
+---
+
+### Cover Generation
+
+**Endpoint:** `/:league/:team1/:team2/cover[.png]`
+
+Generates a vertical matchup cover with horizontal split.
+
+*Note: The `.png` extension is optional*
+
+**Parameters:**
+- `league` - Sport league (nba, nfl, mlb, nhl, ncaaf, ncaab)
+- `team1` - First team (name, city, or abbreviation)
+- `team2` - Second team (name, city, or abbreviation)
+
+**Query Parameters:**
+- `style` - Style number (default: 1)
+  - `1` - Horizontal split with team colors
+- `logo` - Show league logo in center (true/false)
+
+**Examples:**
+```
+GET /nba/lakers/celtics/cover
+GET /nhl/toronto/montreal/cover?logo=true
+GET /nfl/chiefs/49ers/cover
+GET /mlb/yankees/redsox/cover?logo=true
+```
+
+**Output:** 1080x1440 PNG image (3:4 aspect ratio, default)
 
 ---
 
@@ -84,14 +131,17 @@ Generates a matchup logo with team logos on transparent background.
 - `style` - Style number (default: 1)
   - `1` - Diagonal split with dividing line
   - `2` - Side by side
+- `size` - Output size in pixels (256, 512, 1024, 2048) - generates square image
 - `logo` - Show league logo badge (true/false)
+- `outline` - Add white stroke to team logos without existing outlines (true/false)
 
 **Examples:**
 ```
 GET /nba/lakers/celtics/logo
 GET /nhl/toronto/montreal/logo?style=2
 GET /nfl/chiefs/49ers/logo?style=1&logo=true
-GET /mlb/yankees/sox/logo?style=2&logo=true
+GET /mlb/yankees/redsox/logo?style=2&logo=true&size=2048
+GET /nba/lakers/celtics/logo?outline=true
 ```
 
 **Output:** 800x800 PNG image (transparent background)
