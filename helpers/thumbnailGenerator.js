@@ -15,7 +15,22 @@ module.exports = {
 async function generateThumbnail(teamA, teamB, options = {}) {
     const width = options.width || 1920;
     const height = options.height || 1080;
+    const style = options.style || 1;
+    const league = options.league; // For league logo
     
+    switch (style) {
+        case 1:
+            return generateDiagonalSplit(teamA, teamB, width, height, league);
+        default:
+            throw new Error(`Unknown thumbnail style: ${style}. Valid style is 1 (diagonal split)`);
+    }
+}
+
+// ------------------------------------------------------------------------------
+// Style 1: Diagonal Split
+// ------------------------------------------------------------------------------
+
+async function generateDiagonalSplit(teamA, teamB, width, height, league) {
     // Check if colors are too similar and adjust if needed
     const { colorA, colorB } = adjustColors(teamA, teamB);
     // const colorA = teamA.color || '#000000';
@@ -106,6 +121,37 @@ async function generateThumbnail(teamA, teamB, options = {}) {
         }
     } catch (error) {
         console.error('Error loading team logos:', error.message);
+    }
+    
+    // Draw league logo in the center if league is provided
+    if (league) {
+        try {
+            const leagueLogoUrl = `https://a.espncdn.com/i/teamlogos/leagues/500/${league.toLowerCase()}.png`;
+            const leagueLogoBuffer = await downloadImage(leagueLogoUrl);
+            const leagueLogo = await loadImage(leagueLogoBuffer);
+            
+            // League logo in center (scaled for 1920x1080)
+            const leagueLogoSize = Math.min(width, height) * 0.25;
+            const leagueLogoX = (width - leagueLogoSize) / 2;
+            const leagueLogoY = (height - leagueLogoSize) / 2;
+            
+            // Add drop shadow for league logo
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+            ctx.shadowBlur = 20;
+            ctx.shadowOffsetX = 5;
+            ctx.shadowOffsetY = 5;
+            
+            ctx.drawImage(leagueLogo, leagueLogoX, leagueLogoY, leagueLogoSize, leagueLogoSize);
+            
+            // Reset shadow
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 0;
+        } catch (error) {
+            console.error('Error loading league logo:', error.message);
+            // Continue without league logo if it fails
+        }
     }
     
     // Return PNG buffer
