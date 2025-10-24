@@ -9,6 +9,29 @@ const https = require('https');
 const teamCache = new Map();
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
 
+// Common location abbreviations
+const locationAbbreviations = {
+    'la': ['los angeles', 'la'],
+    'ny': ['new york', 'ny'],
+    'nyc': ['new york', 'nyc'],
+    'sf': ['san francisco', 'sf'],
+    'tb': ['tampa bay', 'tb'],
+    'gc': ['golden state', 'gc'],
+    'gs': ['golden state', 'gs'],
+    'okc': ['oklahoma city', 'okc'],
+    'no': ['new orleans', 'no'],
+    'sa': ['san antonio', 'sa'],
+    'phx': ['phoenix', 'phx'],
+    'por': ['portland', 'por'],
+    'sac': ['sacramento', 'sac'],
+    'min': ['minnesota', 'min'],
+    'nj': ['new jersey', 'nj'],
+    'stl': ['st louis', 'stl'],
+    'kc': ['kansas city', 'kc'],
+    'sd': ['san diego', 'sd'],
+    'sj': ['san jose', 'sj']
+};
+
 async function fetchTeamData(league) {
     const cacheKey = `${league}_teams`;
     const cached = teamCache.get(cacheKey);
@@ -68,13 +91,52 @@ async function fetchTeamData(league) {
 
 function normalize(str) {
     return str.toLowerCase()
-        .replace(/[^a-z0-9\s]/g, '')
-        .replace(/\s+/g, ' ')
+        .replace(/[^a-z0-9\s]/g, ' ')  // Convert dashes, underscores, etc. to spaces
+        .replace(/\s+/g, ' ')           // Collapse multiple spaces
         .trim();
+}
+
+// Create a version without any spaces for more flexible matching
+function normalizeCompact(str) {
+    return str.toLowerCase()
+        .replace(/[^a-z0-9]/g, '');     // Remove all non-alphanumeric chars
+}
+
+// Expand location abbreviations in the input
+function expandLocationAbbreviations(input) {
+    const normalized = normalize(input);
+    const words = normalized.split(' ');
+    
+    // Check if the first word(s) might be a location abbreviation
+    for (let i = Math.min(2, words.length); i > 0; i--) {
+        const possibleAbbrev = words.slice(0, i).join('');
+        if (locationAbbreviations[possibleAbbrev]) {
+            const expansions = locationAbbreviations[possibleAbbrev];
+            const restOfName = words.slice(i).join(' ');
+            // Return all possible variations
+            return expansions.map(loc => restOfName ? `${loc} ${restOfName}` : loc);
+        }
+    }
+    
+    // Also check compact form (e.g., "ladodgers")
+    const compact = normalizeCompact(input);
+    for (const [abbrev, expansions] of Object.entries(locationAbbreviations)) {
+        if (compact.startsWith(abbrev)) {
+            const restOfName = compact.substring(abbrev.length);
+            return expansions.map(loc => {
+                const compactLoc = normalizeCompact(loc);
+                return restOfName ? `${compactLoc}${restOfName}` : compactLoc;
+            });
+        }
+    }
+    
+    return [normalized];
 }
 
 function getMatchScore(input, team) {
     const normalizedInput = normalize(input);
+    const compactInput = normalizeCompact(input);
+    const expandedInputs = expandLocationAbbreviations(input);
     
     // All leagues now use ESPN API format
     const teamObj = team.team || {};
@@ -83,57 +145,97 @@ function getMatchScore(input, team) {
     const abbreviation = normalize(teamObj.abbreviation || '');
     const location = normalize(teamObj.location || '');
     const nickname = normalize(teamObj.nickname || '');
+    
+    // Compact versions for flexible matching
+    const compactDisplayName = normalizeCompact(teamObj.displayName || '');
+    const compactShortDisplayName = normalizeCompact(teamObj.shortDisplayName || '');
+    const compactAbbreviation = normalizeCompact(teamObj.abbreviation || '');
+    const compactLocation = normalizeCompact(teamObj.location || '');
+    const compactNickname = normalizeCompact(teamObj.nickname || '');
 
-    // Weighted scoring: higher score = better match
-    // 1000 = Perfect match (highest priority)
-    // 500-999 = Good match
-    // 100-499 = Partial match
-    // 0 = No match
+    let maxScore = 0;
     
-    // 1. Abbreviation (highest priority - most specific)
-    if (normalizedInput === abbreviation && abbreviation) {
-        return 1000;
+    // Check all expanded variations of the input
+    for (const expandedInput of expandedInputs) {
+        const compactExpanded = normalizeCompact(expandedInput);
+        
+        // Weighted scoring: higher score = better match
+        // 1000 = Perfect match (highest priority)
+        // 500-999 = Good match
+        // 100-499 = Partial match
+        // 0 = No match
+        
+        // 1. Abbreviation (highest priority - most specific)
+        if (expandedInput === abbreviation && abbreviation) {
+            maxScore = Math.max(maxScore, 1000);
+        }
+        if (compactExpanded === compactAbbreviation && compactAbbreviation) {
+            maxScore = Math.max(maxScore, 1000);
+        }
+        
+        // 2. Team nickname (e.g., "Lakers", "Celtics")
+        if (expandedInput === nickname && nickname) {
+            maxScore = Math.max(maxScore, 900);
+        }
+        if (compactExpanded === compactNickname && compactNickname) {
+            maxScore = Math.max(maxScore, 900);
+        }
+        
+        // 3. Short display name (e.g., "LA Lakers")
+        if (expandedInput === shortDisplayName && shortDisplayName) {
+            maxScore = Math.max(maxScore, 850);
+        }
+        if (compactExpanded === compactShortDisplayName && compactShortDisplayName) {
+            maxScore = Math.max(maxScore, 850);
+        }
+        
+        // 4. Full display name (e.g., "Los Angeles Lakers")
+        if (expandedInput === displayName && displayName) {
+            maxScore = Math.max(maxScore, 800);
+        }
+        if (compactExpanded === compactDisplayName && compactDisplayName) {
+            maxScore = Math.max(maxScore, 800);
+        }
+        
+        // 5. Location/City (e.g., "Los Angeles")
+        if (expandedInput === location && location) {
+            maxScore = Math.max(maxScore, 700);
+        }
+        if (compactExpanded === compactLocation && compactLocation) {
+            maxScore = Math.max(maxScore, 700);
+        }
+        
+        // 6. Partial matches (lower priority)
+        if (nickname && expandedInput.includes(nickname)) {
+            maxScore = Math.max(maxScore, 400);
+        }
+        if (compactNickname && compactExpanded.includes(compactNickname)) {
+            maxScore = Math.max(maxScore, 400);
+        }
+        
+        if (nickname && nickname.includes(expandedInput)) {
+            maxScore = Math.max(maxScore, 300);
+        }
+        if (compactNickname && compactNickname.includes(compactExpanded)) {
+            maxScore = Math.max(maxScore, 300);
+        }
+        
+        if (displayName && displayName.includes(expandedInput)) {
+            maxScore = Math.max(maxScore, 200);
+        }
+        if (compactDisplayName && compactDisplayName.includes(compactExpanded)) {
+            maxScore = Math.max(maxScore, 200);
+        }
+        
+        if (location && location.includes(expandedInput)) {
+            maxScore = Math.max(maxScore, 100);
+        }
+        if (compactLocation && compactLocation.includes(compactExpanded)) {
+            maxScore = Math.max(maxScore, 100);
+        }
     }
     
-    // 2. Team nickname (e.g., "Lakers", "Celtics")
-    if (normalizedInput === nickname && nickname) {
-        return 900;
-    }
-    
-    // 3. Short display name (e.g., "LA Lakers")
-    if (normalizedInput === shortDisplayName && shortDisplayName) {
-        return 850;
-    }
-    
-    // 4. Full display name (e.g., "Los Angeles Lakers")
-    if (normalizedInput === displayName && displayName) {
-        return 800;
-    }
-    
-    // 5. Location/City (e.g., "Los Angeles")
-    if (normalizedInput === location && location) {
-        return 700;
-    }
-    
-    // 6. Partial matches (lower priority)
-    if (nickname && normalizedInput.includes(nickname)) {
-        return 400;
-    }
-    
-    if (nickname && nickname.includes(normalizedInput)) {
-        return 300;
-    }
-    
-    if (displayName && displayName.includes(normalizedInput)) {
-        return 200;
-    }
-    
-    if (location && location.includes(normalizedInput)) {
-        return 100;
-    }
-    
-    // No match
-    return 0;
+    return maxScore;
 }
 
 function matchesTeam(input, team) {
