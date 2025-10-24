@@ -268,6 +268,17 @@ async function resolveTeam(league, name) {
 
         // Return standardized format (all leagues now use ESPN API format)
         const teamObj = bestMatch.team;
+        
+        // Find logo with rel: ["full", "default"]
+        const defaultLogo = teamObj.logos?.find(logo => 
+            logo.rel?.includes('full') && logo.rel?.includes('default')
+        );
+        
+        // Find logo with rel: ["full", "dark"]
+        const darkLogo = teamObj.logos?.find(logo => 
+            logo.rel?.includes('full') && logo.rel?.includes('dark')
+        );
+        
         return {
             id: teamObj.id,
             city: teamObj.location,
@@ -276,7 +287,8 @@ async function resolveTeam(league, name) {
             abbreviation: teamObj.abbreviation,
             conference: teamObj.groups?.find(g => g.id)?.name,
             division: teamObj.groups?.find(g => g.parent?.id)?.name,
-            logo: teamObj.logos?.[0]?.href,
+            logo: defaultLogo?.href || teamObj.logos?.[0]?.href,
+            logoAlt: darkLogo?.href,
             color: teamObj.color ? `#${teamObj.color}` : null,
             alternateColor: teamObj.alternateColor ? `#${teamObj.alternateColor}` : null
         };
