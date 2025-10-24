@@ -38,7 +38,7 @@ function init(port) {
 
     const { checkCacheMiddleware } = require('./helpers/imageCache');
     app.use((req, res, next) => {
-        if (req.path.includes('thumb') || req.path.includes('logo')) {
+        if (['thumb', 'logo', 'cover'].some(path => req.path.includes(path))) {
             return checkCacheMiddleware(req, res, next);
         }
         next();
