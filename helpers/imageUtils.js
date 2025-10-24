@@ -1,9 +1,10 @@
 // ------------------------------------------------------------------------------
-// logoOutline.js
-// Shared helper for adding white outlines to logos
+// imageUtils.js
+// Shared utilities for image manipulation and logo processing
 // ------------------------------------------------------------------------------
 
-const { createCanvas } = require('canvas');
+const { createCanvas, loadImage } = require('canvas');
+const https = require('https');
 const crypto = require('crypto');
 
 // ------------------------------------------------------------------------------
@@ -13,6 +14,7 @@ const crypto = require('crypto');
 const OUTLINE_WIDTH_PERCENTAGE = 0.015; // 1.5% of logo size for outline
 const MAX_CACHE_SIZE = 50; // Maximum number of cached white logos
 const EDGE_BRIGHTNESS_THRESHOLD = 200; // Average edge brightness above this means logo likely has white/light outline
+const COLOR_SIMILARITY_THRESHOLD = 120; // Colors closer than this need special handling
 
 // ------------------------------------------------------------------------------
 // Cache
@@ -26,9 +28,21 @@ const whiteLogoCache = new Map();
 // ------------------------------------------------------------------------------
 
 module.exports = {
+    // Drawing functions
     drawLogoWithShadow,
     drawLogoWithOutline,
-    hasLightOutline
+    hasLightOutline,
+    
+    // Image utilities
+    downloadImage,
+    selectBestLogo,
+    
+    // Color utilities
+    hexToRgb,
+    rgbToHex,
+    colorDistance,
+    adjustColors,
+    getAverageColor
 };
 
 // ------------------------------------------------------------------------------
@@ -196,4 +210,168 @@ function getWhiteLogo(logoImage, size) {
     whiteLogoCache.set(cacheKey, tempCanvas);
     
     return tempCanvas;
+}
+
+// ------------------------------------------------------------------------------
+// Image utilities
+// ------------------------------------------------------------------------------
+
+function downloadImage(url) {
+    return new Promise((resolve, reject) => {
+        https.get(url, (response) => {
+            const chunks = [];
+            response.on('data', (chunk) => chunks.push(chunk));
+            response.on('end', () => resolve(Buffer.concat(chunks)));
+            response.on('error', reject);
+        }).on('error', reject);
+    });
+}
+
+async function selectBestLogo(team, backgroundColor) {
+    try {
+        // If no logoAlt, use the primary logo
+        if (!team.logoAlt) {
+            return team.logo;
+        }
+        
+        // Load both logos and check contrast
+        const [primaryBuffer, altBuffer] = await Promise.all([
+            downloadImage(team.logo),
+            downloadImage(team.logoAlt)
+        ]);
+        
+        const [primaryImage, altImage] = await Promise.all([
+            loadImage(primaryBuffer),
+            loadImage(altBuffer)
+        ]);
+        
+        // Calculate color distances for both logos
+        const primaryAvgColor = getAverageColor(primaryImage);
+        const primaryHex = rgbToHex(primaryAvgColor);
+        const primaryDistance = colorDistance(primaryHex, backgroundColor);
+        
+        const altAvgColor = getAverageColor(altImage);
+        const altHex = rgbToHex(altAvgColor);
+        const altDistance = colorDistance(altHex, backgroundColor);
+        
+        // If primary logo is a bad fit, use logoAlt instead
+        if (primaryDistance < COLOR_SIMILARITY_THRESHOLD && altDistance > primaryDistance) {
+            return team.logoAlt;
+        }
+        
+        // Otherwise use primary logo
+        return team.logo;
+    } catch (error) {
+        console.error('Error selecting best logo:', error.message);
+        // Fallback to primary logo on error
+        return team.logo;
+    }
+}
+
+// ------------------------------------------------------------------------------
+// Color utilities
+// ------------------------------------------------------------------------------
+
+function hexToRgb(hex) {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+    } : null;
+}
+
+function rgbToHex(rgb) {
+    const toHex = (n) => {
+        const hex = n.toString(16);
+        return hex.length === 1 ? '0' + hex : hex;
+    };
+    return `#${toHex(rgb.r)}${toHex(rgb.g)}${toHex(rgb.b)}`;
+}
+
+function colorDistance(color1, color2) {
+    const rgb1 = hexToRgb(color1);
+    const rgb2 = hexToRgb(color2);
+    
+    if (!rgb1 || !rgb2) return 0;
+    
+    return Math.sqrt(
+        Math.pow(rgb1.r - rgb2.r, 2) +
+        Math.pow(rgb1.g - rgb2.g, 2) +
+        Math.pow(rgb1.b - rgb2.b, 2)
+    );
+}
+
+function adjustColors(teamA, teamB) {
+    const threshold = 100; // Colors closer than this are considered too similar
+    
+    let colorA = teamA.color || '#000000';
+    let colorB = teamB.color || '#000000';
+    
+    const distance = colorDistance(colorA, colorB);
+    
+    // If colors are too similar, try using alternate colors
+    if (distance < threshold) {
+        // Try teamB's alternate color first
+        if (teamB.alternateColor) {
+            const distanceWithAltB = colorDistance(colorA, teamB.alternateColor);
+            if (distanceWithAltB > distance) {
+                colorB = teamB.alternateColor;
+                return { colorA, colorB };
+            }
+        }
+        
+        // If that didn't work, try teamA's alternate color
+        if (teamA.alternateColor) {
+            const distanceWithAltA = colorDistance(teamA.alternateColor, colorB);
+            if (distanceWithAltA > distance) {
+                colorA = teamA.alternateColor;
+                return { colorA, colorB };
+            }
+        }
+        
+        // If both teams have alternate colors, try both alternates
+        if (teamA.alternateColor && teamB.alternateColor) {
+            const distanceBothAlts = colorDistance(teamA.alternateColor, teamB.alternateColor);
+            if (distanceBothAlts > distance) {
+                colorA = teamA.alternateColor;
+                colorB = teamB.alternateColor;
+            }
+        }
+    }
+    
+    return { colorA, colorB };
+}
+
+function getAverageColor(image) {
+    // Create a temporary canvas to analyze the logo
+    const canvas = createCanvas(image.width, image.height);
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(image, 0, 0);
+    
+    const imageData = ctx.getImageData(0, 0, image.width, image.height);
+    const data = imageData.data;
+    
+    let r = 0, g = 0, b = 0, count = 0;
+    
+    // Sample pixels and calculate average (skip transparent pixels)
+    for (let i = 0; i < data.length; i += 4) {
+        const alpha = data[i + 3];
+        
+        // Only count non-transparent pixels
+        if (alpha > 128) {
+            r += data[i];
+            g += data[i + 1];
+            b += data[i + 2];
+            count++;
+        }
+    }
+    
+    if (count === 0) return { r: 0, g: 0, b: 0 };
+    
+    return {
+        r: Math.round(r / count),
+        g: Math.round(g / count),
+        b: Math.round(b / count)
+    };
 }

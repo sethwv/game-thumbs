@@ -4,8 +4,16 @@
 // ------------------------------------------------------------------------------
 
 const { createCanvas, loadImage } = require('canvas');
-const https = require('https');
-const { drawLogoWithShadow, drawLogoWithOutline } = require('./logoOutline');
+const { 
+    drawLogoWithShadow, 
+    downloadImage, 
+    selectBestLogo,
+    adjustColors,
+    colorDistance,
+    hexToRgb,
+    rgbToHex,
+    getAverageColor
+} = require('./imageUtils');
 
 module.exports = {
     generateThumbnail,
@@ -20,231 +28,161 @@ const COLOR_SIMILARITY_THRESHOLD = 120; // Colors closer than this need an outli
 const DIAGONAL_LINE_EXTENSION = 100; // Pixels to extend diagonal line beyond canvas
 
 // ------------------------------------------------------------------------------
+// Helper Functions
+// ------------------------------------------------------------------------------
+
+function blendColors(color1, color2) {
+    const rgb1 = hexToRgb(color1);
+    const rgb2 = hexToRgb(color2);
+    
+    if (!rgb1 || !rgb2) return color1;
+    
+    const blended = {
+        r: Math.round((rgb1.r + rgb2.r) / 2),
+        g: Math.round((rgb1.g + rgb2.g) / 2),
+        b: Math.round((rgb1.b + rgb2.b) / 2)
+    };
+    
+    return rgbToHex(blended);
+}
+
+// ------------------------------------------------------------------------------
 
 async function generateThumbnail(teamA, teamB, options = {}) {
     const width = options.width || 1440;
     const height = options.height || 1080;
     const style = options.style || 1;
-    const league = options.league; // For league logo
+    const league = options.league;
     
-    switch (style) {
-        case 1:
-            return generateDiagonalSplit(teamA, teamB, width, height, league);
-        default:
-            throw new Error(`Unknown thumbnail style: ${style}. Valid style is 1 (diagonal split)`);
-    }
+    return generateImage(teamA, teamB, { ...options, width, height, style, league, orientation: 'landscape' });
 }
 
 async function generateCover(teamA, teamB, options = {}) {
     const width = options.width || 1080;
     const height = options.height || 1440;
     const style = options.style || 1;
-    const league = options.league; // For league logo
+    const league = options.league;
+    
+    return generateImage(teamA, teamB, { ...options, width, height, style, league, orientation: 'portrait' });
+}
+
+async function generateImage(teamA, teamB, options) {
+    const { width, height, style, league, orientation } = options;
     
     switch (style) {
         case 1:
-            return generateHorizontalSplit(teamA, teamB, width, height, league);
+            return generateSplit(teamA, teamB, width, height, league, orientation);
+        case 2:
+            return generateGradient(teamA, teamB, width, height, league, orientation);
+        case 3:
+            return generateMinimalist(teamA, teamB, width, height, league, orientation, false);
+        case 4:
+            return generateMinimalist(teamA, teamB, width, height, league, orientation, true);
         default:
-            throw new Error(`Unknown cover style: ${style}. Valid style is 1 (horizontal split)`);
+            throw new Error(`Unknown style: ${style}. Valid styles are 1 (split), 2 (gradient), 3 (minimalist badge), 4 (minimalist badge dark)`);
     }
 }
 
 // ------------------------------------------------------------------------------
-// Style 1: Diagonal Split (for thumbnails)
+// Style 1: Split (diagonal for landscape, horizontal for portrait)
 // ------------------------------------------------------------------------------
 
-async function generateDiagonalSplit(teamA, teamB, width, height, league) {
-    // Check if colors are too similar and adjust if needed
+async function generateSplit(teamA, teamB, width, height, league, orientation) {
     const { colorA, colorB } = adjustColors(teamA, teamB);
-    // const colorA = teamA.color || '#000000';
-    // const colorB = teamB.color || '#000000';
-    
-    // Create canvas
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
     
-    // Calculate diagonal split points for exactly 50/50 area
-    // Diagonal goes from 66% width at top to 33% width at bottom (pointing right)
-    const topDiagonalX = width * 0.66;
-    const bottomDiagonalX = width * 0.33;
-    
-    // Draw diagonal split background
-    // Left side (teamA)
-    ctx.fillStyle = colorA;
-    ctx.beginPath();
-    ctx.moveTo(0, 0);                    // Top-left corner
-    ctx.lineTo(topDiagonalX, 0);         // Top diagonal point (66% width)
-    ctx.lineTo(bottomDiagonalX, height); // Bottom diagonal point (33% width)
-    ctx.lineTo(0, height);               // Bottom-left corner
-    ctx.closePath();
-    ctx.fill();
-    
-    // Right side (teamB)
-    ctx.fillStyle = colorB;
-    ctx.beginPath();
-    ctx.moveTo(topDiagonalX, 0);         // Top diagonal point (66% width)
-    ctx.lineTo(width, 0);                // Top-right corner
-    ctx.lineTo(width, height);           // Bottom-right corner
-    ctx.lineTo(bottomDiagonalX, height); // Bottom diagonal point (33% width)
-    ctx.closePath();
-    ctx.fill();
-    
-    // Draw white diagonal line
-    ctx.strokeStyle = 'white';
-    ctx.lineWidth = 16;
-    ctx.lineCap = 'butt'; // Ensures clean edges
-    ctx.lineJoin = 'miter';
-    ctx.beginPath();
-    // Calculate the direction vector of the diagonal
-    const dx = bottomDiagonalX - topDiagonalX;
-    const dy = height;
-    const length = Math.sqrt(dx * dx + dy * dy);
-    const unitX = dx / length;
-    const unitY = dy / length;
-    
-    // Extend the line in both directions (shifted 1px to the right)
-    ctx.moveTo(topDiagonalX + 1 - unitX * DIAGONAL_LINE_EXTENSION, 0 - unitY * DIAGONAL_LINE_EXTENSION);
-    ctx.lineTo(bottomDiagonalX + 1 + unitX * DIAGONAL_LINE_EXTENSION, height + unitY * DIAGONAL_LINE_EXTENSION);
-    ctx.stroke();
+    if (orientation === 'landscape') {
+        // Diagonal split for thumbnails
+        const topDiagonalX = width * 0.66;
+        const bottomDiagonalX = width * 0.33;
+        
+        // Left side (teamA)
+        ctx.fillStyle = colorA;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(topDiagonalX, 0);
+        ctx.lineTo(bottomDiagonalX, height);
+        ctx.lineTo(0, height);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Right side (teamB)
+        ctx.fillStyle = colorB;
+        ctx.beginPath();
+        ctx.moveTo(topDiagonalX, 0);
+        ctx.lineTo(width, 0);
+        ctx.lineTo(width, height);
+        ctx.lineTo(bottomDiagonalX, height);
+        ctx.closePath();
+        ctx.fill();
+        
+        // Draw white diagonal line
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = 16;
+        ctx.lineCap = 'butt';
+        ctx.lineJoin = 'miter';
+        ctx.beginPath();
+        const dx = bottomDiagonalX - topDiagonalX;
+        const dy = height;
+        const length = Math.sqrt(dx * dx + dy * dy);
+        const unitX = dx / length;
+        const unitY = dy / length;
+        ctx.moveTo(topDiagonalX + 1 - unitX * DIAGONAL_LINE_EXTENSION, 0 - unitY * DIAGONAL_LINE_EXTENSION);
+        ctx.lineTo(bottomDiagonalX + 1 + unitX * DIAGONAL_LINE_EXTENSION, height + unitY * DIAGONAL_LINE_EXTENSION);
+        ctx.stroke();
+    } else {
+        // Horizontal split for covers
+        const midpointY = height / 2;
+        
+        ctx.fillStyle = colorA;
+        ctx.fillRect(0, 0, width, midpointY);
+        
+        ctx.fillStyle = colorB;
+        ctx.fillRect(0, midpointY, width, height - midpointY);
+        
+        // Draw white horizontal line
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = 16;
+        ctx.lineCap = 'butt';
+        ctx.beginPath();
+        ctx.moveTo(0, midpointY);
+        ctx.lineTo(width, midpointY);
+        ctx.stroke();
+    }
     
     // Load and draw logos
     try {
+        const logoSize = orientation === 'landscape' 
+            ? Math.min(width * 0.325, height * 0.52)
+            : Math.min(width * 0.5, height * 0.32);
+        
         if (teamA.logo) {
-            const logoABuffer = await downloadImage(teamA.logo);
-            const logoA = await loadImage(logoABuffer);
+            const finalLogoA = await selectBestLogo(teamA, colorA);
+            const finalLogoImageA = await loadImage(await downloadImage(finalLogoA));
             
-            // Calculate logo size (30% bigger than before)
-            const logoSize = Math.min(width * 0.325, height * 0.52);
+            const logoAX = orientation === 'landscape'
+                ? (width / 5) - (logoSize / 2)
+                : (width - logoSize) / 2;
+            const logoAY = orientation === 'landscape'
+                ? (height / 2) - (logoSize / 2)
+                : (height * 0.25) - (logoSize / 2);
             
-            // Center on left half of canvas, moved slightly from center
-            const logoAX = (width / 5) - (logoSize / 2);  // 20% of total width
-            const logoAY = (height / 2) - (logoSize / 2);
-            
-            // Check if logo needs white outline (if too close to background color)
-            const logoNeedsOutline = shouldAddOutlineToLogo(logoA, colorA);
-            
-            if (logoNeedsOutline) {
-                drawLogoWithOutline(ctx, logoA, logoAX, logoAY, logoSize);
-            } else {
-                drawLogoWithShadow(ctx, logoA, logoAX, logoAY, logoSize);
-            }
+            drawLogoWithShadow(ctx, finalLogoImageA, logoAX, logoAY, logoSize);
         }
         
         if (teamB.logo) {
-            const logoBBuffer = await downloadImage(teamB.logo);
-            const logoB = await loadImage(logoBBuffer);
+            const finalLogoB = await selectBestLogo(teamB, colorB);
+            const finalLogoImageB = await loadImage(await downloadImage(finalLogoB));
             
-            // Calculate logo size (30% bigger than before)
-            const logoSize = Math.min(width * 0.325, height * 0.52);
+            const logoBX = orientation === 'landscape'
+                ? (width * 0.8) - (logoSize / 2)
+                : (width - logoSize) / 2;
+            const logoBY = orientation === 'landscape'
+                ? (height / 2) - (logoSize / 2)
+                : (height * 0.75) - (logoSize / 2);
             
-            // Center on right half of canvas, moved slightly from center
-            const logoBX = (width * 0.8) - (logoSize / 2);  // 80% of total width
-            const logoBY = (height / 2) - (logoSize / 2);
-            
-            // Check if logo needs white outline (if too close to background color)
-            const logoNeedsOutline = shouldAddOutlineToLogo(logoB, colorB);
-            
-            if (logoNeedsOutline) {
-                drawLogoWithOutline(ctx, logoB, logoBX, logoBY, logoSize);
-            } else {
-                drawLogoWithShadow(ctx, logoB, logoBX, logoBY, logoSize);
-            }
-        }
-    } catch (error) {
-        console.error('Error loading team logos:', error.message);
-    }
-    
-    // Draw league logo in the center if league is provided
-    if (league) {
-        try {
-            const leagueLogoUrl = `https://a.espncdn.com/i/teamlogos/leagues/500/${league.toLowerCase()}.png`;
-            const leagueLogoBuffer = await downloadImage(leagueLogoUrl);
-            const leagueLogo = await loadImage(leagueLogoBuffer);
-            
-            // League logo in center (scaled for 1920x1080)
-            const leagueLogoSize = Math.min(width, height) * 0.25;
-            const leagueLogoX = (width - leagueLogoSize) / 2;
-            const leagueLogoY = (height - leagueLogoSize) / 2;
-            
-            drawLogoWithShadow(ctx, leagueLogo, leagueLogoX, leagueLogoY, leagueLogoSize);
-        } catch (error) {
-            console.error('Error loading league logo:', error.message);
-            // Continue without league logo if it fails
-        }
-    }
-    
-    // Return PNG buffer
-    return canvas.toBuffer('image/png');
-}
-
-// ------------------------------------------------------------------------------
-// Style 1: Horizontal Split (for covers)
-// ------------------------------------------------------------------------------
-
-async function generateHorizontalSplit(teamA, teamB, width, height, league) {
-    // Check if colors are too similar and adjust if needed
-    const { colorA, colorB } = adjustColors(teamA, teamB);
-    
-    // Create canvas
-    const canvas = createCanvas(width, height);
-    const ctx = canvas.getContext('2d');
-    
-    // Draw horizontal split background (50/50)
-    const midpointY = height / 2;
-    
-    // Top half (teamA)
-    ctx.fillStyle = colorA;
-    ctx.fillRect(0, 0, width, midpointY);
-    
-    // Bottom half (teamB)
-    ctx.fillStyle = colorB;
-    ctx.fillRect(0, midpointY, width, height - midpointY);
-    
-    // Draw white horizontal line
-    ctx.strokeStyle = 'white';
-    ctx.lineWidth = 16;
-    ctx.lineCap = 'butt';
-    ctx.beginPath();
-    ctx.moveTo(0, midpointY);
-    ctx.lineTo(width, midpointY);
-    ctx.stroke();
-    
-    // Load and draw logos
-    try {
-        const logoSize = Math.min(width * 0.5, height * 0.32);
-        
-        if (teamA.logo) {
-            const logoABuffer = await downloadImage(teamA.logo);
-            const logoA = await loadImage(logoABuffer);
-            
-            // Position in top half, moved further from center
-            const logoAX = (width - logoSize) / 2;
-            const logoAY = (midpointY - logoSize) / 2.5;  // Moved up (divided by 2.5 instead of 2)
-            
-            const logoNeedsOutline = shouldAddOutlineToLogo(logoA, colorA);
-            
-            if (logoNeedsOutline) {
-                drawLogoWithOutline(ctx, logoA, logoAX, logoAY, logoSize);
-            } else {
-                drawLogoWithShadow(ctx, logoA, logoAX, logoAY, logoSize);
-            }
-        }
-        
-        if (teamB.logo) {
-            const logoBBuffer = await downloadImage(teamB.logo);
-            const logoB = await loadImage(logoBBuffer);
-            
-            // Position in bottom half, moved further from center
-            const logoBX = (width - logoSize) / 2;
-            const logoBY = midpointY + (height - midpointY - logoSize) / 1.67;  // Moved down (divided by 1.67 instead of 2)
-            
-            const logoNeedsOutline = shouldAddOutlineToLogo(logoB, colorB);
-            
-            if (logoNeedsOutline) {
-                drawLogoWithOutline(ctx, logoB, logoBX, logoBY, logoSize);
-            } else {
-                drawLogoWithShadow(ctx, logoB, logoBX, logoBY, logoSize);
-            }
+            drawLogoWithShadow(ctx, finalLogoImageB, logoBX, logoBY, logoSize);
         }
     } catch (error) {
         console.error('Error loading team logos:', error.message);
@@ -267,138 +205,227 @@ async function generateHorizontalSplit(teamA, teamB, width, height, league) {
         }
     }
     
-    // Return PNG buffer
     return canvas.toBuffer('image/png');
 }
 
 // ------------------------------------------------------------------------------
-// utilities
+// Style 2: Gradient
 // ------------------------------------------------------------------------------
 
-function downloadImage(url) {
-    return new Promise((resolve, reject) => {
-        https.get(url, (response) => {
-            const chunks = [];
-            response.on('data', (chunk) => chunks.push(chunk));
-            response.on('end', () => resolve(Buffer.concat(chunks)));
-            response.on('error', reject);
-        }).on('error', reject);
-    });
-}
-
-function adjustColors(teamA, teamB) {
-    const threshold = 100; // Colors closer than this are considered too similar
-    
-    let colorA = teamA.color || '#000000';
-    let colorB = teamB.color || '#000000';
-    
-    const distance = colorDistance(colorA, colorB);
-    
-    // If colors are too similar, try using alternate colors
-    if (distance < threshold) {
-        // Try teamB's alternate color first
-        if (teamB.alternateColor) {
-            const distanceWithAltB = colorDistance(colorA, teamB.alternateColor);
-            if (distanceWithAltB > distance) {
-                colorB = teamB.alternateColor;
-                return { colorA, colorB };
-            }
-        }
-        
-        // If that didn't work, try teamA's alternate color
-        if (teamA.alternateColor) {
-            const distanceWithAltA = colorDistance(teamA.alternateColor, colorB);
-            if (distanceWithAltA > distance) {
-                colorA = teamA.alternateColor;
-                return { colorA, colorB };
-            }
-        }
-        
-        // If both teams have alternate colors, try both alternates
-        if (teamA.alternateColor && teamB.alternateColor) {
-            const distanceBothAlts = colorDistance(teamA.alternateColor, teamB.alternateColor);
-            if (distanceBothAlts > distance) {
-                colorA = teamA.alternateColor;
-                colorB = teamB.alternateColor;
-            }
-        }
-    }
-    
-    return { colorA, colorB };
-}
-
-function hexToRgb(hex) {
-    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16)
-    } : null;
-}
-
-function colorDistance(color1, color2) {
-    const rgb1 = hexToRgb(color1);
-    const rgb2 = hexToRgb(color2);
-    
-    if (!rgb1 || !rgb2) return 0;
-    
-    return Math.sqrt(
-        Math.pow(rgb1.r - rgb2.r, 2) +
-        Math.pow(rgb1.g - rgb2.g, 2) +
-        Math.pow(rgb1.b - rgb2.b, 2)
-    );
-}
-
-function getAverageColor(image) {
-    // Create a temporary canvas to analyze the logo
-    const canvas = createCanvas(image.width, image.height);
+async function generateGradient(teamA, teamB, width, height, league, orientation) {
+    const { colorA, colorB } = adjustColors(teamA, teamB);
+    const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
-    ctx.drawImage(image, 0, 0);
     
-    const imageData = ctx.getImageData(0, 0, image.width, image.height);
-    const data = imageData.data;
+    // Create smooth gradient
+    const gradient = orientation === 'landscape'
+        ? ctx.createLinearGradient(0, 0, width, 0)
+        : ctx.createLinearGradient(0, 0, 0, height);
     
-    let r = 0, g = 0, b = 0, count = 0;
+    gradient.addColorStop(0, colorA);
+    gradient.addColorStop(0.2, colorA);
+    gradient.addColorStop(0.5, blendColors(colorA, colorB));
+    gradient.addColorStop(0.8, colorB);
+    gradient.addColorStop(1, colorB);
     
-    // Sample pixels and calculate average (skip transparent pixels)
-    for (let i = 0; i < data.length; i += 4) {
-        const alpha = data[i + 3];
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, width, height);
+    
+    // Load and draw logos
+    try {
+        const logoSize = orientation === 'landscape'
+            ? Math.min(width * 0.325, height * 0.52)
+            : Math.min(width * 0.5, height * 0.32);
         
-        // Only count non-transparent pixels
-        if (alpha > 128) {
-            r += data[i];
-            g += data[i + 1];
-            b += data[i + 2];
-            count++;
+        if (teamA.logo) {
+            const finalLogoA = await selectBestLogo(teamA, colorA);
+            const finalLogoImageA = await loadImage(await downloadImage(finalLogoA));
+            
+            const logoAX = orientation === 'landscape'
+                ? (width / 5) - (logoSize / 2)
+                : (width - logoSize) / 2;
+            const logoAY = orientation === 'landscape'
+                ? (height / 2) - (logoSize / 2)
+                : (height * 0.25) - (logoSize / 2);
+            
+            drawLogoWithShadow(ctx, finalLogoImageA, logoAX, logoAY, logoSize);
+        }
+        
+        if (teamB.logo) {
+            const finalLogoB = await selectBestLogo(teamB, colorB);
+            const finalLogoImageB = await loadImage(await downloadImage(finalLogoB));
+            
+            const logoBX = orientation === 'landscape'
+                ? (width * 0.8) - (logoSize / 2)
+                : (width - logoSize) / 2;
+            const logoBY = orientation === 'landscape'
+                ? (height / 2) - (logoSize / 2)
+                : (height * 0.75) - (logoSize / 2);
+            
+            drawLogoWithShadow(ctx, finalLogoImageB, logoBX, logoBY, logoSize);
+        }
+    } catch (error) {
+        console.error('Error loading team logos:', error.message);
+    }
+    
+    // Draw league logo in the center if league is provided
+    if (league) {
+        try {
+            const leagueLogoUrl = `https://a.espncdn.com/i/teamlogos/leagues/500/${league.toLowerCase()}.png`;
+            const leagueLogoBuffer = await downloadImage(leagueLogoUrl);
+            const leagueLogo = await loadImage(leagueLogoBuffer);
+            
+            const leagueLogoSize = Math.min(width, height) * 0.25;
+            const leagueLogoX = (width - leagueLogoSize) / 2;
+            const leagueLogoY = (height - leagueLogoSize) / 2;
+            
+            drawLogoWithShadow(ctx, leagueLogo, leagueLogoX, leagueLogoY, leagueLogoSize);
+        } catch (error) {
+            console.error('Error loading league logo:', error.message);
         }
     }
     
-    if (count === 0) return { r: 0, g: 0, b: 0 };
+    return canvas.toBuffer('image/png');
+}
+
+// ------------------------------------------------------------------------------
+// Style 3/4: Minimalist Badge (light/dark)
+// ------------------------------------------------------------------------------
+
+async function generateMinimalist(teamA, teamB, width, height, league, orientation, dark = false) {
+    const { colorA, colorB } = adjustColors(teamA, teamB);
+    const canvas = createCanvas(width, height);
+    const ctx = canvas.getContext('2d');
     
-    return {
-        r: Math.round(r / count),
-        g: Math.round(g / count),
-        b: Math.round(b / count)
-    };
-}
-
-function rgbToHex(rgb) {
-    const toHex = (n) => {
-        const hex = n.toString(16);
-        return hex.length === 1 ? '0' + hex : hex;
-    };
-    return `#${toHex(rgb.r)}${toHex(rgb.g)}${toHex(rgb.b)}`;
-}
-
-function shouldAddOutlineToLogo(logoImage, backgroundColor) {
-    try {
-        const logoAvgColor = getAverageColor(logoImage);
-        const logoHex = rgbToHex(logoAvgColor);
-        const distance = colorDistance(logoHex, backgroundColor);
-        
-        return distance < COLOR_SIMILARITY_THRESHOLD;
-    } catch (error) {
-        console.error('Error checking logo color:', error.message);
-        return false; // Don't add outline if we can't determine
+    // Subtle gradient background
+    const bgGradient = ctx.createLinearGradient(0, 0, 0, height);
+    if (dark) {
+        bgGradient.addColorStop(0, '#1a1d23');
+        bgGradient.addColorStop(1, '#0f1114');
+    } else {
+        bgGradient.addColorStop(0, '#f8f9fa');
+        bgGradient.addColorStop(1, '#e9ecef');
     }
+    ctx.fillStyle = bgGradient;
+    ctx.fillRect(0, 0, width, height);
+    
+    // Calculate sizes based on orientation
+    const badgeSize = Math.min(width, height) * (orientation === 'landscape' ? 0.3 : 0.35);
+    const centerX = width / 2;
+    const centerY = height / 2;
+    
+    // Position circles further from center (at 1/5 and 4/5 positions instead of 1/4 and 3/4)
+    const circleACenter = orientation === 'landscape' ? width / 5 : height / 5;
+    const circleBCenter = orientation === 'landscape' ? (width * 4) / 5 : (height * 4) / 5;
+    
+    // Load and draw logos as badges
+    try {
+        if (teamA.logo) {
+            const finalLogoA = await selectBestLogo(teamA, colorA);
+            const finalLogoImageA = await loadImage(await downloadImage(finalLogoA));
+            
+            const badgeAX = orientation === 'landscape'
+                ? circleACenter - (badgeSize / 2)
+                : centerX - (badgeSize / 2);
+            const badgeAY = orientation === 'landscape'
+                ? centerY - (badgeSize / 2)
+                : circleACenter - (badgeSize / 2);
+            
+            // Draw colored circle behind logo
+            ctx.fillStyle = colorA;
+            ctx.beginPath();
+            ctx.arc(badgeAX + badgeSize / 2, badgeAY + badgeSize / 2, badgeSize * 0.6, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
+            ctx.shadowBlur = 20;
+            ctx.shadowOffsetY = 10;
+            
+            const logoSize = badgeSize * 0.95;
+            const logoX = badgeAX + (badgeSize - logoSize) / 2;
+            const logoY = badgeAY + (badgeSize - logoSize) / 2;
+            
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetY = 0;
+            
+            ctx.drawImage(finalLogoImageA, logoX, logoY, logoSize, logoSize);
+        }
+        
+        if (teamB.logo) {
+            const finalLogoB = await selectBestLogo(teamB, colorB);
+            const finalLogoImageB = await loadImage(await downloadImage(finalLogoB));
+            
+            const badgeBX = orientation === 'landscape'
+                ? circleBCenter - (badgeSize / 2)
+                : centerX - (badgeSize / 2);
+            const badgeBY = orientation === 'landscape'
+                ? centerY - (badgeSize / 2)
+                : circleBCenter - (badgeSize / 2);
+            
+            // Draw colored circle behind logo
+            ctx.fillStyle = colorB;
+            ctx.beginPath();
+            ctx.arc(badgeBX + badgeSize / 2, badgeBY + badgeSize / 2, badgeSize * 0.6, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
+            ctx.shadowBlur = 20;
+            ctx.shadowOffsetY = 10;
+            
+            const logoSize = badgeSize * 0.95;
+            const logoX = badgeBX + (badgeSize - logoSize) / 2;
+            const logoY = badgeBY + (badgeSize - logoSize) / 2;
+            
+            ctx.shadowColor = 'transparent';
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetY = 0;
+            
+            ctx.drawImage(finalLogoImageB, logoX, logoY, logoSize, logoSize);
+        }
+    } catch (error) {
+        console.error('Error loading team logos:', error.message);
+    }
+    
+    // Draw "VS" text in center
+    ctx.fillStyle = dark ? '#e9ecef' : '#495057';
+    const fontSize = orientation === 'landscape' ? height * 0.18 : width * 0.22;
+    ctx.font = `bold ${fontSize}px Arial, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    
+    // Measure text to get accurate vertical centering
+    const textMetrics = ctx.measureText('VS');
+    const textHeight = textMetrics.actualBoundingBoxAscent + textMetrics.actualBoundingBoxDescent;
+    const textY = centerY + (textMetrics.actualBoundingBoxAscent / 2) - (textMetrics.actualBoundingBoxDescent / 2);
+    
+    ctx.fillText('VS', centerX, textY);
+    
+    // Draw league logo at bottom if provided
+    if (league) {
+        try {
+            const leagueLogoUrl = `https://a.espncdn.com/i/teamlogos/leagues/500/${league.toLowerCase()}.png`;
+            const leagueLogoBuffer = await downloadImage(leagueLogoUrl);
+            const leagueLogo = await loadImage(leagueLogoBuffer);
+            
+            // Smaller logo for portrait orientation
+            const leagueLogoSize = orientation === 'landscape' 
+                ? Math.min(width, height) * 0.25
+                : Math.min(width, height) * 0.15;
+            
+            // Position in bottom right corner for portrait, bottom center for landscape
+            const leagueLogoX = orientation === 'landscape' 
+                ? (width - leagueLogoSize) / 2
+                : width - leagueLogoSize - (width * 0.03);
+            const leagueLogoY = orientation === 'landscape'
+                ? height - leagueLogoSize - (height * 0.08)
+                : height - leagueLogoSize - (height * 0.02);
+            
+            ctx.drawImage(leagueLogo, leagueLogoX, leagueLogoY, leagueLogoSize, leagueLogoSize);
+        } catch (error) {
+            console.error('Error loading league logo:', error.message);
+        }
+    }
+    
+    return canvas.toBuffer('image/png');
 }
