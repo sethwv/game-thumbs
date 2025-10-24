@@ -8,7 +8,6 @@ const { generateLogo } = require('../helpers/logoGenerator');
 
 
 module.exports = {
-    // path: "/:league/:team1/:team2/logo",
     paths: [
         "/:league/:team1/:team2/logo",
         "/:league/:team1/:team2/logo.png"
@@ -16,14 +15,14 @@ module.exports = {
     method: "get",
     handler: async (req, res) => {
         const { league, team1, team2 } = req.params;
-        const { size, logo, style, outline } = req.query;
+        const { size, logo, style, useLight } = req.query;
 
         const logoOptions = {
             width: 1024,
             height: 1024,
             style: parseInt(style) || 1,
             league: logo === 'true' ? league : null,
-            outline: outline === 'true'
+            useLight: useLight === 'true'
         };
 
         const validSizes = [256, 512, 1024, 2048];

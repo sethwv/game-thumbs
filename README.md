@@ -70,14 +70,18 @@ Generates a landscape matchup thumbnail with diagonal split layout.
 **Query Parameters:**
 - `style` - Style number (default: 1)
   - `1` - Diagonal split with team colors
-- `logo` - Show league logo in center (true/false)
+  - `2` - Gradient blend between team colors
+  - `3` - Minimalist badge with team circles and VS text (light background)
+  - `4` - Minimalist badge with team circles and VS text (dark background)
+- `logo` - Show league logo (true/false)
 
 **Examples:**
 ```
 GET /nba/lakers/celtics/thumb
 GET /nhl/toronto/montreal/thumb?logo=true
-GET /nfl/chiefs/49ers/thumb
-GET /ncaaf/alabama/georgia/thumb?logo=true
+GET /nfl/chiefs/49ers/thumb?style=2
+GET /ncaaf/alabama/georgia/thumb?style=3&logo=true
+GET /mlb/yankees/redsox/thumb?style=4
 ```
 
 **Output:** 1440x1080 PNG image (4:3 aspect ratio)
@@ -100,14 +104,18 @@ Generates a vertical matchup cover with horizontal split.
 **Query Parameters:**
 - `style` - Style number (default: 1)
   - `1` - Horizontal split with team colors
-- `logo` - Show league logo in center (true/false)
+  - `2` - Gradient blend between team colors
+  - `3` - Minimalist badge with team circles and VS text (light background)
+  - `4` - Minimalist badge with team circles and VS text (dark background)
+- `logo` - Show league logo (true/false)
 
 **Examples:**
 ```
 GET /nba/lakers/celtics/cover
 GET /nhl/toronto/montreal/cover?logo=true
-GET /nfl/chiefs/49ers/cover
-GET /mlb/yankees/redsox/cover?logo=true
+GET /nfl/chiefs/49ers/cover?style=2
+GET /mlb/yankees/redsox/cover?style=3&logo=true
+GET /ncaab/duke/unc/cover?style=4
 ```
 
 **Output:** 1080x1440 PNG image (3:4 aspect ratio, default)
@@ -133,7 +141,7 @@ Generates a matchup logo with team logos on transparent background.
   - `2` - Side by side
 - `size` - Output size in pixels (256, 512, 1024, 2048) - generates square image
 - `logo` - Show league logo badge (true/false)
-- `outline` - Add white stroke to team logos without existing outlines (true/false)
+- `useLight` - Use primary (light) logos instead of dark variants (true/false, default: false)
 
 **Examples:**
 ```
@@ -141,10 +149,12 @@ GET /nba/lakers/celtics/logo
 GET /nhl/toronto/montreal/logo?style=2
 GET /nfl/chiefs/49ers/logo?style=1&logo=true
 GET /mlb/yankees/redsox/logo?style=2&logo=true&size=2048
-GET /nba/lakers/celtics/logo?outline=true
+GET /nba/lakers/celtics/logo?useLight=true
 ```
 
 **Output:** 800x800 PNG image (transparent background)
+
+**Note:** By default, dark logo variants are used for better visibility on light backgrounds. Use `useLight=true` to display the primary (light) logo variants instead.
 
 ---
 

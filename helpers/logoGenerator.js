@@ -4,8 +4,7 @@
 // ------------------------------------------------------------------------------
 
 const { createCanvas, loadImage } = require('canvas');
-const https = require('https');
-const { drawLogoWithShadow, drawLogoWithOutline, hasLightOutline } = require('./logoOutline');
+const { drawLogoWithShadow, downloadImage } = require('./imageUtils');
 
 module.exports = {
     generateLogo
@@ -17,7 +16,7 @@ module.exports = {
  * Generates a matchup logo with team logos
  * @param {Object} teamA - First team object from ESPNTeamResolver
  * @param {Object} teamB - Second team object from ESPNTeamResolver
- * @param {Object} options - Optional settings (width, height, style, league, outline)
+ * @param {Object} options - Optional settings (width, height, style, league, useLight)
  * @returns {Promise<Buffer>} PNG image buffer
  */
 async function generateLogo(teamA, teamB, options = {}) {
@@ -25,13 +24,13 @@ async function generateLogo(teamA, teamB, options = {}) {
     const height = options.height || 800;
     const style = options.style || 1;
     const league = options.league; // Required for league logo
-    const outline = options.outline || false; // Whether to add white outline to logos
+    const useLight = options.useLight || false; // Whether to use primary (light) logos instead of dark variants
     
     switch (style) {
         case 1:
-            return generateDiagonalSplit(teamA, teamB, width, height, league, outline);
+            return generateDiagonalSplit(teamA, teamB, width, height, league, useLight);
         case 2:
-            return generateSideBySide(teamA, teamB, width, height, league, outline);
+            return generateSideBySide(teamA, teamB, width, height, league, useLight);
         default:
             throw new Error(`Unknown logo style: ${style}. Valid styles are 1 (split) or 2 (side-by-side)`);
     }
@@ -41,20 +40,24 @@ async function generateLogo(teamA, teamB, options = {}) {
 // Style 1: Diagonal Split
 // ------------------------------------------------------------------------------
 
-async function generateDiagonalSplit(teamA, teamB, width, height, league, outline) {
+async function generateDiagonalSplit(teamA, teamB, width, height, league, useLight) {
     // Create canvas with transparent background
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
+    
+    // Select which logo to use (logoAlt by default, unless useLight is true)
+    const teamALogoUrl = useLight ? teamA.logo : (teamA.logoAlt || teamA.logo);
+    const teamBLogoUrl = useLight ? teamB.logo : (teamB.logoAlt || teamB.logo);
     
     // Load both logos
     if (!teamA.logo || !teamB.logo) {
         throw new Error('Both teams must have logos');
     }
     
-    const logoABuffer = await downloadImage(teamA.logo);
+    const logoABuffer = await downloadImage(teamALogoUrl);
     const logoA = await loadImage(logoABuffer);
     
-    const logoBBuffer = await downloadImage(teamB.logo);
+    const logoBBuffer = await downloadImage(teamBLogoUrl);
     const logoB = await loadImage(logoBBuffer);
     
     // Calculate diagonal split points (same as thumbnail)
@@ -79,12 +82,8 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league, outlin
     const logoX = (width - logoSize) / 2;
     const logoY = (height - logoSize) / 2;
     
-    // Only add outline if parameter is true AND logo doesn't already have a light outline
-    if (outline && !hasLightOutline(logoA)) {
-        drawLogoWithOutline(ctx, logoA, logoX, logoY, logoSize);
-    } else {
-        drawLogoWithShadow(ctx, logoA, logoX, logoY, logoSize);
-    }
+    // Outlines disabled - always use shadow
+    drawLogoWithShadow(ctx, logoA, logoX, logoY, logoSize);
     ctx.restore();
     
     // Draw teamB logo on the right side (clipped to right of diagonal)
@@ -100,12 +99,8 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league, outlin
     ctx.clip();
     
     // Draw right logo (centered on canvas, but clipped)
-    // Only add outline if parameter is true AND logo doesn't already have a light outline
-    if (outline && !hasLightOutline(logoB)) {
-        drawLogoWithOutline(ctx, logoB, logoX, logoY, logoSize);
-    } else {
-        drawLogoWithShadow(ctx, logoB, logoX, logoY, logoSize);
-    }
+    // Outlines disabled - always use shadow
+    drawLogoWithShadow(ctx, logoB, logoX, logoY, logoSize);
     ctx.restore();
     
     // Draw diagonal line through the middle (shorter, white)
@@ -170,20 +165,24 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league, outlin
 // Style 2: Side by Side
 // ------------------------------------------------------------------------------
 
-async function generateSideBySide(teamA, teamB, width, height, league, outline) {
+async function generateSideBySide(teamA, teamB, width, height, league, useLight) {
     // Create canvas with transparent background
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
+    
+    // Select which logo to use (logoAlt by default, unless useLight is true)
+    const teamALogoUrl = useLight ? teamA.logo : (teamA.logoAlt || teamA.logo);
+    const teamBLogoUrl = useLight ? teamB.logo : (teamB.logoAlt || teamB.logo);
     
     // Load both logos
     if (!teamA.logo || !teamB.logo) {
         throw new Error('Both teams must have logos');
     }
     
-    const logoABuffer = await downloadImage(teamA.logo);
+    const logoABuffer = await downloadImage(teamALogoUrl);
     const logoA = await loadImage(logoABuffer);
     
-    const logoBBuffer = await downloadImage(teamB.logo);
+    const logoBBuffer = await downloadImage(teamBLogoUrl);
     const logoB = await loadImage(logoBBuffer);
     
     // Calculate logo size (50% of canvas for each logo)
@@ -197,31 +196,23 @@ async function generateSideBySide(teamA, teamB, width, height, league, outline) 
     const logoBX = (width / 2) + (spacing / 2);
     const logoBY = (height - logoSize) / 2;
     
-    // Draw teamA logo (left)
-    if (outline && !hasLightOutline(logoA)) {
-        drawLogoWithOutline(ctx, logoA, logoAX, logoAY, logoSize);
-    } else {
-        ctx.save();
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-        ctx.shadowBlur = 15;
-        ctx.shadowOffsetX = 3;
-        ctx.shadowOffsetY = 3;
-        ctx.drawImage(logoA, logoAX, logoAY, logoSize, logoSize);
-        ctx.restore();
-    }
+    // Draw teamA logo (left) - outlines disabled, always use shadow
+    ctx.save();
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+    ctx.shadowBlur = 15;
+    ctx.shadowOffsetX = 3;
+    ctx.shadowOffsetY = 3;
+    ctx.drawImage(logoA, logoAX, logoAY, logoSize, logoSize);
+    ctx.restore();
     
-    // Draw teamB logo (right)
-    if (outline && !hasLightOutline(logoB)) {
-        drawLogoWithOutline(ctx, logoB, logoBX, logoBY, logoSize);
-    } else {
-        ctx.save();
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-        ctx.shadowBlur = 15;
-        ctx.shadowOffsetX = 3;
-        ctx.shadowOffsetY = 3;
-        ctx.drawImage(logoB, logoBX, logoBY, logoSize, logoSize);
-        ctx.restore();
-    }
+    // Draw teamB logo (right) - outlines disabled, always use shadow
+    ctx.save();
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+    ctx.shadowBlur = 15;
+    ctx.shadowOffsetX = 3;
+    ctx.shadowOffsetY = 3;
+    ctx.drawImage(logoB, logoBX, logoBY, logoSize, logoSize);
+    ctx.restore();
     
     // Draw league logo as a badge in the bottom center if league is provided
     if (league) {
@@ -253,19 +244,4 @@ async function generateSideBySide(teamA, teamB, width, height, league, outline) 
     
     // Return PNG buffer with transparency
     return canvas.toBuffer('image/png');
-}
-
-// ------------------------------------------------------------------------------
-// Utilities
-// ------------------------------------------------------------------------------
-
-function downloadImage(url) {
-    return new Promise((resolve, reject) => {
-        https.get(url, (response) => {
-            const chunks = [];
-            response.on('data', (chunk) => chunks.push(chunk));
-            response.on('end', () => resolve(Buffer.concat(chunks)));
-            response.on('error', reject);
-        }).on('error', reject);
-    });
 }

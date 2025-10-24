@@ -10,7 +10,8 @@ RUN apk add --no-cache \
     jpeg-dev \
     pango-dev \
     giflib-dev \
-    pixman-dev
+    pixman-dev \
+    ttf-dejavu
 
 # Set working directory
 WORKDIR /app
