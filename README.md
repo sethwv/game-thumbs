@@ -70,14 +70,18 @@ Generates a landscape matchup thumbnail with diagonal split layout.
 **Query Parameters:**
 - `style` - Style number (default: 1)
   - `1` - Diagonal split with team colors
-- `logo` - Show league logo in center (true/false)
+  - `2` - Gradient blend between team colors
+  - `3` - Minimalist badge with team circles and VS text (light background)
+  - `4` - Minimalist badge with team circles and VS text (dark background)
+- `logo` - Show league logo (true/false)
 
 **Examples:**
 ```
 GET /nba/lakers/celtics/thumb
 GET /nhl/toronto/montreal/thumb?logo=true
-GET /nfl/chiefs/49ers/thumb
-GET /ncaaf/alabama/georgia/thumb?logo=true
+GET /nfl/chiefs/49ers/thumb?style=2
+GET /ncaaf/alabama/georgia/thumb?style=3&logo=true
+GET /mlb/yankees/redsox/thumb?style=4
 ```
 
 **Output:** 1440x1080 PNG image (4:3 aspect ratio)
@@ -100,14 +104,18 @@ Generates a vertical matchup cover with horizontal split.
 **Query Parameters:**
 - `style` - Style number (default: 1)
   - `1` - Horizontal split with team colors
-- `logo` - Show league logo in center (true/false)
+  - `2` - Gradient blend between team colors
+  - `3` - Minimalist badge with team circles and VS text (light background)
+  - `4` - Minimalist badge with team circles and VS text (dark background)
+- `logo` - Show league logo (true/false)
 
 **Examples:**
 ```
 GET /nba/lakers/celtics/cover
 GET /nhl/toronto/montreal/cover?logo=true
-GET /nfl/chiefs/49ers/cover
-GET /mlb/yankees/redsox/cover?logo=true
+GET /nfl/chiefs/49ers/cover?style=2
+GET /mlb/yankees/redsox/cover?style=3&logo=true
+GET /ncaab/duke/unc/cover?style=4
 ```
 
 **Output:** 1080x1440 PNG image (3:4 aspect ratio, default)

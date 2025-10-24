@@ -223,9 +223,9 @@ async function generateGradient(teamA, teamB, width, height, league, orientation
         : ctx.createLinearGradient(0, 0, 0, height);
     
     gradient.addColorStop(0, colorA);
-    gradient.addColorStop(0.3, colorA);
+    gradient.addColorStop(0.2, colorA);
     gradient.addColorStop(0.5, blendColors(colorA, colorB));
-    gradient.addColorStop(0.7, colorB);
+    gradient.addColorStop(0.8, colorB);
     gradient.addColorStop(1, colorB);
     
     ctx.fillStyle = gradient;
@@ -311,9 +311,12 @@ async function generateMinimalist(teamA, teamB, width, height, league, orientati
     
     // Calculate sizes based on orientation
     const badgeSize = Math.min(width, height) * (orientation === 'landscape' ? 0.3 : 0.35);
-    const spacing = orientation === 'landscape' ? width * 0.18 : height * 0.15;
     const centerX = width / 2;
     const centerY = height / 2;
+    
+    // Position circles further from center (at 1/5 and 4/5 positions instead of 1/4 and 3/4)
+    const circleACenter = orientation === 'landscape' ? width / 5 : height / 5;
+    const circleBCenter = orientation === 'landscape' ? (width * 4) / 5 : (height * 4) / 5;
     
     // Load and draw logos as badges
     try {
@@ -322,11 +325,11 @@ async function generateMinimalist(teamA, teamB, width, height, league, orientati
             const finalLogoImageA = await loadImage(await downloadImage(finalLogoA));
             
             const badgeAX = orientation === 'landscape'
-                ? centerX - spacing - badgeSize
+                ? circleACenter - (badgeSize / 2)
                 : centerX - (badgeSize / 2);
             const badgeAY = orientation === 'landscape'
                 ? centerY - (badgeSize / 2)
-                : centerY - spacing - badgeSize;
+                : circleACenter - (badgeSize / 2);
             
             // Draw colored circle behind logo
             ctx.fillStyle = colorA;
@@ -338,7 +341,7 @@ async function generateMinimalist(teamA, teamB, width, height, league, orientati
             ctx.shadowBlur = 20;
             ctx.shadowOffsetY = 10;
             
-            const logoSize = badgeSize * 0.85;
+            const logoSize = badgeSize * 0.95;
             const logoX = badgeAX + (badgeSize - logoSize) / 2;
             const logoY = badgeAY + (badgeSize - logoSize) / 2;
             
@@ -354,11 +357,11 @@ async function generateMinimalist(teamA, teamB, width, height, league, orientati
             const finalLogoImageB = await loadImage(await downloadImage(finalLogoB));
             
             const badgeBX = orientation === 'landscape'
-                ? centerX + spacing
+                ? circleBCenter - (badgeSize / 2)
                 : centerX - (badgeSize / 2);
             const badgeBY = orientation === 'landscape'
                 ? centerY - (badgeSize / 2)
-                : centerY + spacing;
+                : circleBCenter - (badgeSize / 2);
             
             // Draw colored circle behind logo
             ctx.fillStyle = colorB;
@@ -370,7 +373,7 @@ async function generateMinimalist(teamA, teamB, width, height, league, orientati
             ctx.shadowBlur = 20;
             ctx.shadowOffsetY = 10;
             
-            const logoSize = badgeSize * 0.85;
+            const logoSize = badgeSize * 0.95;
             const logoX = badgeBX + (badgeSize - logoSize) / 2;
             const logoY = badgeBY + (badgeSize - logoSize) / 2;
             
@@ -387,10 +390,16 @@ async function generateMinimalist(teamA, teamB, width, height, league, orientati
     // Draw "VS" text in center
     ctx.fillStyle = dark ? '#e9ecef' : '#495057';
     const fontSize = orientation === 'landscape' ? height * 0.18 : width * 0.22;
-    ctx.font = `bold ${fontSize}px sans-serif`;
+    ctx.font = `bold ${fontSize}px Arial, sans-serif`;
     ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('VS', centerX, centerY);
+    ctx.textBaseline = 'alphabetic';
+    
+    // Measure text to get accurate vertical centering
+    const textMetrics = ctx.measureText('VS');
+    const textHeight = textMetrics.actualBoundingBoxAscent + textMetrics.actualBoundingBoxDescent;
+    const textY = centerY + (textMetrics.actualBoundingBoxAscent / 2) - (textMetrics.actualBoundingBoxDescent / 2);
+    
+    ctx.fillText('VS', centerX, textY);
     
     // Draw league logo at bottom if provided
     if (league) {
@@ -399,13 +408,20 @@ async function generateMinimalist(teamA, teamB, width, height, league, orientati
             const leagueLogoBuffer = await downloadImage(leagueLogoUrl);
             const leagueLogo = await loadImage(leagueLogoBuffer);
             
-            const leagueLogoSize = Math.min(width, height) * 0.25;
-            const leagueLogoX = (width - leagueLogoSize) / 2;
-            const leagueLogoY = height - leagueLogoSize - (height * (orientation === 'landscape' ? 0.08 : 0.05));
+            // Smaller logo for portrait orientation
+            const leagueLogoSize = orientation === 'landscape' 
+                ? Math.min(width, height) * 0.25
+                : Math.min(width, height) * 0.15;
             
-            ctx.globalAlpha = 0.6;
+            // Position in bottom right corner for portrait, bottom center for landscape
+            const leagueLogoX = orientation === 'landscape' 
+                ? (width - leagueLogoSize) / 2
+                : width - leagueLogoSize - (width * 0.03);
+            const leagueLogoY = orientation === 'landscape'
+                ? height - leagueLogoSize - (height * 0.08)
+                : height - leagueLogoSize - (height * 0.02);
+            
             ctx.drawImage(leagueLogo, leagueLogoX, leagueLogoY, leagueLogoSize, leagueLogoSize);
-            ctx.globalAlpha = 1.0;
         } catch (error) {
             console.error('Error loading league logo:', error.message);
         }
