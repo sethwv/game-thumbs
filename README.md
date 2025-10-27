@@ -6,7 +6,7 @@ A simple API that generates and serves various sports matchup thumbnails and log
 
 ## Features
 
-- 🏀 **Multi-Sport Support**: NBA, NFL, MLB, NHL, NCAA Football, NCAA Basketball
+-- 🏀 **Multi-Sport Support**: NBA, WNBA, NFL, UFL, MLB, NHL, EPL, MLS, UEFA Champions League, NCAA Football, NCAA Men's Basketball, NCAA Women's Basketball
 - 🎨 **Dynamic Generation**: Creates thumbnails and logos on-the-fly with team colors and branding
 - 🖼️ **Multiple Styles**: Choose from different visual styles for logos and thumbnails
 - 💾 **Smart Caching**: Automatically caches generated images for 24 hours
@@ -46,11 +46,22 @@ The API provides three types of image generation for sports matchups:
 | **Cover** | `/:league/:team1/:team2/cover` | 1080x1440 | 3:4 |
 | **Logo** | `/:league/:team1/:team2/logo` | 1024x1024 | 1:1 |
 
-All endpoints support:
-- Six major sports leagues: NBA, NFL, MLB, NHL, NCAA Football, NCAA Basketball
-- Flexible team matching (names, cities, abbreviations)
-- Optional league logo display
-- Multiple style variations
+**Supported Leagues:**
+
+| Long Name                        | API League Parameter |
+|----------------------------------|----------------------|
+| National Basketball Association  | nba                  |
+| Women's National Basketball Association | wnba         |
+| National Football League         | nfl                  |
+| United Football League           | ufl                  |
+| Major League Baseball            | mlb                  |
+| National Hockey League           | nhl                  |
+| English Premier League           | epl                  |
+| Major League Soccer              | mls                  |
+| UEFA Champions League            | uefa                 |
+| NCAA Football                    | ncaaf                |
+| NCAA Men's Basketball            | ncaam                |
+| NCAA Women's Basketball          | naacw                |
 
 ---
 
@@ -73,15 +84,15 @@ Generates a landscape matchup thumbnail with diagonal split layout.
   - `2` - Gradient blend between team colors
   - `3` - Minimalist badge with team circles and VS text (light background)
   - `4` - Minimalist badge with team circles and VS text (dark background)
-- `logo` - Show league logo (true/false)
+- `logo` - Show league logo (default: true, set to false to hide)
 
 **Examples:**
 ```
 GET /nba/lakers/celtics/thumb
-GET /nhl/toronto/montreal/thumb?logo=true
+GET /nhl/toronto/montreal/thumb?logo=false
 GET /nfl/chiefs/49ers/thumb?style=2
-GET /ncaaf/alabama/georgia/thumb?style=3&logo=true
-GET /mlb/yankees/redsox/thumb?style=4
+GET /ncaaf/alabama/georgia/thumb?style=3
+GET /mlb/yankees/redsox/thumb?style=4&logo=false
 ```
 
 **Output:** 1440x1080 PNG image (4:3 aspect ratio)
@@ -107,15 +118,15 @@ Generates a vertical matchup cover with horizontal split.
   - `2` - Gradient blend between team colors
   - `3` - Minimalist badge with team circles and VS text (light background)
   - `4` - Minimalist badge with team circles and VS text (dark background)
-- `logo` - Show league logo (true/false)
+- `logo` - Show league logo (default: true, set to false to hide)
 
 **Examples:**
 ```
 GET /nba/lakers/celtics/cover
-GET /nhl/toronto/montreal/cover?logo=true
+GET /nhl/toronto/montreal/cover?logo=false
 GET /nfl/chiefs/49ers/cover?style=2
-GET /mlb/yankees/redsox/cover?style=3&logo=true
-GET /ncaab/duke/unc/cover?style=4
+GET /mlb/yankees/redsox/cover?style=3
+GET /ncaab/duke/unc/cover?style=4&logo=false
 ```
 
 **Output:** 1080x1440 PNG image (3:4 aspect ratio, default)
@@ -139,22 +150,24 @@ Generates a matchup logo with team logos on transparent background.
 - `style` - Style number (default: 1)
   - `1` - Diagonal split with dividing line
   - `2` - Side by side
+  - `3` - Circle badges with team colors
+  - `4` - Square badges with team colors
 - `size` - Output size in pixels (256, 512, 1024, 2048) - generates square image
-- `logo` - Show league logo badge (true/false)
+- `logo` - Show league logo badge (default: true, set to false to hide)
 - `useLight` - Use primary (light) logos instead of dark variants (true/false, default: false)
 
 **Examples:**
 ```
 GET /nba/lakers/celtics/logo
 GET /nhl/toronto/montreal/logo?style=2
-GET /nfl/chiefs/49ers/logo?style=1&logo=true
-GET /mlb/yankees/redsox/logo?style=2&logo=true&size=2048
-GET /nba/lakers/celtics/logo?useLight=true
+GET /nfl/chiefs/49ers/logo?style=3
+GET /mlb/yankees/redsox/logo?style=2&size=2048
+GET /nba/lakers/celtics/logo?useLight=true&logo=false
 ```
 
 **Output:** 800x800 PNG image (transparent background)
 
-**Note:** By default, dark logo variants are used for better visibility on light backgrounds. Use `useLight=true` to display the primary (light) logo variants instead.
+**Note:** For styles 3 and 4, the logo variant (regular or alternate) is automatically selected for best contrast against the background color of its badge (circle or square). The `useLight` parameter is ignored for these styles.
 
 ---
 
