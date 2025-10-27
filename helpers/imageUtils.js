@@ -7,6 +7,8 @@ const { createCanvas, loadImage } = require('canvas');
 const https = require('https');
 const crypto = require('crypto');
 
+const { fetchLeagueData } = require('./ESPNTeamResolver');
+
 // ------------------------------------------------------------------------------
 // Constants
 // ------------------------------------------------------------------------------
@@ -32,11 +34,12 @@ module.exports = {
     drawLogoWithShadow,
     drawLogoWithOutline,
     hasLightOutline,
-    
+
     // Image utilities
     downloadImage,
     selectBestLogo,
-    
+    getLeagueLogoUrl,
+
     // Color utilities
     hexToRgb,
     rgbToHex,
@@ -44,6 +47,31 @@ module.exports = {
     adjustColors,
     getAverageColor
 };
+// ------------------------------------------------------------------------------
+// League logo URL resolver
+// ------------------------------------------------------------------------------
+
+async function getLeagueLogoUrl(league, darkLogoPreferred = true) {
+    if (!league) {
+        throw new Error(`Unsupported league: ${league}`);
+    }
+    const leagueData = await fetchLeagueData(league);
+    const defaultLogo = leagueData.logos?.find(logo =>
+        logo.rel?.includes('full') && logo.rel?.includes('default')
+    )?.href;
+    const darkLogo = leagueData.logos?.find(logo =>
+        logo.rel?.includes('full') && logo.rel?.includes('dark')
+    )?.href;
+
+    switch (league.toLowerCase()) {
+        case 'ncaaf':
+        case 'ncaam':
+        case 'ncaaw':
+            return require('path').resolve(__dirname, '../assets/ncaa.png');
+        default:
+            return darkLogoPreferred ? (darkLogo || defaultLogo) : (defaultLogo || darkLogo) ?? `https://a.espncdn.com/i/teamlogos/leagues/500/${league.toLowerCase()}.png`;
+    }
+}
 
 // ------------------------------------------------------------------------------
 // Functions
@@ -55,9 +83,9 @@ function drawLogoWithShadow(ctx, logoImage, x, y, size) {
     ctx.shadowBlur = 20;
     ctx.shadowOffsetX = 5;
     ctx.shadowOffsetY = 5;
-    
+
     ctx.drawImage(logoImage, x, y, size, size);
-    
+
     // Reset shadow
     ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
@@ -67,33 +95,33 @@ function drawLogoWithShadow(ctx, logoImage, x, y, size) {
 
 function drawLogoWithOutline(ctx, logoImage, x, y, size) {
     const outlineWidth = size * OUTLINE_WIDTH_PERCENTAGE;
-    
+
     // Get cached white logo or create it
     const whiteLogo = getWhiteLogo(logoImage, size);
-    
+
     // First draw shadow
     ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
     ctx.shadowBlur = 20;
     ctx.shadowOffsetX = 5;
     ctx.shadowOffsetY = 5;
     ctx.drawImage(logoImage, x, y, size, size);
-    
+
     // Reset shadow
     ctx.shadowColor = 'transparent';
     ctx.shadowBlur = 0;
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 0;
-    
+
     // Draw white outline with more steps for ultra-smooth angles
     const steps = 32;
     for (let i = 0; i < steps; i++) {
         const angle = (Math.PI * 2 * i) / steps;
         const offsetX = Math.cos(angle) * outlineWidth;
         const offsetY = Math.sin(angle) * outlineWidth;
-        
+
         ctx.drawImage(whiteLogo, x + offsetX, y + offsetY, size, size);
     }
-    
+
     // Draw actual logo on top
     ctx.drawImage(logoImage, x, y, size, size);
 }
@@ -104,14 +132,14 @@ function hasLightOutline(logoImage) {
         const canvas = createCanvas(logoImage.width, logoImage.height);
         const ctx = canvas.getContext('2d');
         ctx.drawImage(logoImage, 0, 0);
-        
+
         const imageData = ctx.getImageData(0, 0, logoImage.width, logoImage.height);
         const data = imageData.data;
-        
+
         // Sample pixels around the edge (perimeter)
         let edgeBrightness = 0;
         let edgePixelCount = 0;
-        
+
         // Sample top and bottom edges
         for (let x = 0; x < logoImage.width; x += 2) {
             // Top edge
@@ -121,7 +149,7 @@ function hasLightOutline(logoImage) {
                 edgeBrightness += (data[topIdx] + data[topIdx + 1] + data[topIdx + 2]) / 3;
                 edgePixelCount++;
             }
-            
+
             // Bottom edge
             const bottomIdx = ((logoImage.height - 1) * logoImage.width + x) * 4;
             const bottomAlpha = data[bottomIdx + 3];
@@ -130,7 +158,7 @@ function hasLightOutline(logoImage) {
                 edgePixelCount++;
             }
         }
-        
+
         // Sample left and right edges
         for (let y = 0; y < logoImage.height; y += 2) {
             // Left edge
@@ -140,7 +168,7 @@ function hasLightOutline(logoImage) {
                 edgeBrightness += (data[leftIdx] + data[leftIdx + 1] + data[leftIdx + 2]) / 3;
                 edgePixelCount++;
             }
-            
+
             // Right edge
             const rightIdx = (y * logoImage.width + logoImage.width - 1) * 4;
             const rightAlpha = data[rightIdx + 3];
@@ -149,11 +177,11 @@ function hasLightOutline(logoImage) {
                 edgePixelCount++;
             }
         }
-        
+
         if (edgePixelCount === 0) return false;
-        
+
         const avgEdgeBrightness = edgeBrightness / edgePixelCount;
-        
+
         // If average edge brightness is above threshold, logo likely has white/light outline
         return avgEdgeBrightness > EDGE_BRIGHTNESS_THRESHOLD;
     } catch (error) {
@@ -165,33 +193,33 @@ function hasLightOutline(logoImage) {
 function getWhiteLogo(logoImage, size) {
     // Use image source as cache key if available, otherwise generate checksum from image data
     let cacheKey = logoImage.src;
-    
+
     if (!cacheKey) {
         // Create a temporary canvas to extract image data for checksum
         const tempCanvas = createCanvas(logoImage.width, logoImage.height);
         const tempCtx = tempCanvas.getContext('2d');
         tempCtx.drawImage(logoImage, 0, 0);
         const imageData = tempCtx.getImageData(0, 0, logoImage.width, logoImage.height);
-        
+
         // Generate checksum from image data
         const hash = crypto.createHash('md5');
         hash.update(Buffer.from(imageData.data.buffer));
         cacheKey = `${hash.digest('hex')}_${size}`;
     }
-    
+
     if (whiteLogoCache.has(cacheKey)) {
         return whiteLogoCache.get(cacheKey);
     }
-    
+
     // Create white version
     const tempCanvas = createCanvas(size, size);
     const tempCtx = tempCanvas.getContext('2d');
-    
+
     tempCtx.drawImage(logoImage, 0, 0, size, size);
-    
+
     const imageData = tempCtx.getImageData(0, 0, size, size);
     const data = imageData.data;
-    
+
     for (let j = 0; j < data.length; j += 4) {
         if (data[j + 3] > 0) {
             data[j] = 255;     // R = white
@@ -199,16 +227,16 @@ function getWhiteLogo(logoImage, size) {
             data[j + 2] = 255; // B = white
         }
     }
-    
+
     tempCtx.putImageData(imageData, 0, 0);
-    
+
     // Cache it (limit cache size to prevent memory issues)
     while (whiteLogoCache.size >= MAX_CACHE_SIZE) {
         const firstKey = whiteLogoCache.keys().next().value;
         whiteLogoCache.delete(firstKey);
     }
     whiteLogoCache.set(cacheKey, tempCanvas);
-    
+
     return tempCanvas;
 }
 
@@ -216,9 +244,22 @@ function getWhiteLogo(logoImage, size) {
 // Image utilities
 // ------------------------------------------------------------------------------
 
-function downloadImage(url) {
+const fs = require('fs');
+const path = require('path');
+
+function downloadImage(urlOrPath) {
+    // If it's a local file path, load from filesystem
+    if (typeof urlOrPath === 'string' && (urlOrPath.startsWith('/') || urlOrPath.startsWith('./') || urlOrPath.startsWith('../'))) {
+        return new Promise((resolve, reject) => {
+            fs.readFile(path.resolve(urlOrPath), (err, data) => {
+                if (err) return reject(err);
+                resolve(data);
+            });
+        });
+    }
+    // Otherwise, treat as URL
     return new Promise((resolve, reject) => {
-        https.get(url, (response) => {
+        https.get(urlOrPath, (response) => {
             const chunks = [];
             response.on('data', (chunk) => chunks.push(chunk));
             response.on('end', () => resolve(Buffer.concat(chunks)));
@@ -233,32 +274,32 @@ async function selectBestLogo(team, backgroundColor) {
         if (!team.logoAlt) {
             return team.logo;
         }
-        
+
         // Load both logos and check contrast
         const [primaryBuffer, altBuffer] = await Promise.all([
             downloadImage(team.logo),
             downloadImage(team.logoAlt)
         ]);
-        
+
         const [primaryImage, altImage] = await Promise.all([
             loadImage(primaryBuffer),
             loadImage(altBuffer)
         ]);
-        
+
         // Calculate color distances for both logos
         const primaryAvgColor = getAverageColor(primaryImage);
         const primaryHex = rgbToHex(primaryAvgColor);
         const primaryDistance = colorDistance(primaryHex, backgroundColor);
-        
+
         const altAvgColor = getAverageColor(altImage);
         const altHex = rgbToHex(altAvgColor);
         const altDistance = colorDistance(altHex, backgroundColor);
-        
+
         // If primary logo is a bad fit, use logoAlt instead
         if (primaryDistance < COLOR_SIMILARITY_THRESHOLD && altDistance > primaryDistance) {
             return team.logoAlt;
         }
-        
+
         // Otherwise use primary logo
         return team.logo;
     } catch (error) {
@@ -292,9 +333,9 @@ function rgbToHex(rgb) {
 function colorDistance(color1, color2) {
     const rgb1 = hexToRgb(color1);
     const rgb2 = hexToRgb(color2);
-    
+
     if (!rgb1 || !rgb2) return 0;
-    
+
     return Math.sqrt(
         Math.pow(rgb1.r - rgb2.r, 2) +
         Math.pow(rgb1.g - rgb2.g, 2) +
@@ -304,12 +345,12 @@ function colorDistance(color1, color2) {
 
 function adjustColors(teamA, teamB) {
     const threshold = 100; // Colors closer than this are considered too similar
-    
+
     let colorA = teamA.color || '#000000';
     let colorB = teamB.color || '#000000';
-    
+
     const distance = colorDistance(colorA, colorB);
-    
+
     // If colors are too similar, try using alternate colors
     if (distance < threshold) {
         // Try teamB's alternate color first
@@ -320,7 +361,7 @@ function adjustColors(teamA, teamB) {
                 return { colorA, colorB };
             }
         }
-        
+
         // If that didn't work, try teamA's alternate color
         if (teamA.alternateColor) {
             const distanceWithAltA = colorDistance(teamA.alternateColor, colorB);
@@ -329,7 +370,7 @@ function adjustColors(teamA, teamB) {
                 return { colorA, colorB };
             }
         }
-        
+
         // If both teams have alternate colors, try both alternates
         if (teamA.alternateColor && teamB.alternateColor) {
             const distanceBothAlts = colorDistance(teamA.alternateColor, teamB.alternateColor);
@@ -339,7 +380,7 @@ function adjustColors(teamA, teamB) {
             }
         }
     }
-    
+
     return { colorA, colorB };
 }
 
@@ -348,16 +389,16 @@ function getAverageColor(image) {
     const canvas = createCanvas(image.width, image.height);
     const ctx = canvas.getContext('2d');
     ctx.drawImage(image, 0, 0);
-    
+
     const imageData = ctx.getImageData(0, 0, image.width, image.height);
     const data = imageData.data;
-    
+
     let r = 0, g = 0, b = 0, count = 0;
-    
+
     // Sample pixels and calculate average (skip transparent pixels)
     for (let i = 0; i < data.length; i += 4) {
         const alpha = data[i + 3];
-        
+
         // Only count non-transparent pixels
         if (alpha > 128) {
             r += data[i];
@@ -366,9 +407,9 @@ function getAverageColor(image) {
             count++;
         }
     }
-    
+
     if (count === 0) return { r: 0, g: 0, b: 0 };
-    
+
     return {
         r: Math.round(r / count),
         g: Math.round(g / count),

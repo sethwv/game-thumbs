@@ -21,7 +21,7 @@ module.exports = {
             width: 1080,
             height: 1440,
             style: parseInt(style) || 1,
-            league: logo === 'true' ? league : null
+            league: logo === 'false' ? null : league
         };
 
         try {

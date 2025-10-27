@@ -5,6 +5,7 @@
 // ------------------------------------------------------------------------------
 
 const https = require('https');
+const { leagues, findLeague, getEndpoint } = require('../leagues');
 
 const teamCache = new Map();
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
@@ -33,31 +34,23 @@ const locationAbbreviations = {
 };
 
 async function fetchTeamData(league) {
-    const cacheKey = `${league}_teams`;
+    league = findLeague(league);
+    if (!league) {
+        throw new Error(`Unsupported league: ${league}`);
+    }
+
+    if (!teamCache) teamCache = new Map();
+    const cacheKey = `${league.shortName}_teams`;
     const cached = teamCache.get(cacheKey);
-    
+
     // Return cached data if still valid
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
         return cached.data;
     }
 
-    // API endpoints for different leagues (using ESPN API for consistent logo support)
-    const apiEndpoints = {
-        nba: 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams',
-        nfl: 'https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams',
-        mlb: 'https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/teams',
-        nhl: 'https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/teams',
-        ncaaf: 'https://site.api.espn.com/apis/site/v2/sports/football/college-football/teams?limit=200',
-        ncaab: 'https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/teams?limit=400'
-    };
-
-    const endpoint = apiEndpoints[league.toLowerCase()];
-    if (!endpoint) {
-        throw new Error(`Unsupported league: ${league}`);
-    }
-
+    const teamApiUrl = `https://site.api.espn.com/apis/site/v2/sports/${league.espnSport}/${league.espnSlug}/teams?limit=500`;
     return new Promise((resolve, reject) => {
-        https.get(endpoint, (response) => {
+        https.get(teamApiUrl, (response) => {
             let data = '';
 
             response.on('data', (chunk) => {
@@ -89,6 +82,51 @@ async function fetchTeamData(league) {
     });
 }
 
+async function fetchLeagueData(league) {
+    league = findLeague(league);
+    if (!league) {
+        throw new Error(`Unsupported league: ${league}`);
+    }
+
+    if (!teamCache) teamCache = new Map();
+    const cacheKey = `${league.shortName}_league`;
+    const cached = teamCache.get(cacheKey);
+
+    // Return cached data if still valid
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+        return cached.data;
+    }
+
+    const leagueApiUrl = `https://sports.core.api.espn.com/v2/sports/${league.espnSport}/leagues/${league.espnSlug}`;
+    return new Promise((resolve, reject) => {
+        https.get(leagueApiUrl, (response) => {
+            let data = '';
+
+            response.on('data', (chunk) => {
+                data += chunk;
+            });
+
+            response.on('end', () => {
+                try {
+                    const parsed = JSON.parse(data);
+
+                    // Cache the data
+                    teamCache.set(cacheKey, {
+                        data: parsed,
+                        timestamp: Date.now()
+                    });
+
+                    resolve(parsed);
+                } catch (error) {
+                    reject(new Error(`Failed to parse league API response: ${error.message}`));
+                }
+            });
+        }).on('error', (error) => {
+            reject(new Error(`League API request failed: ${error.message}`));
+        });
+    });
+}
+
 function normalize(str) {
     return str.toLowerCase()
         .replace(/[^a-z0-9\s]/g, ' ')  // Convert dashes, underscores, etc. to spaces
@@ -106,7 +144,7 @@ function normalizeCompact(str) {
 function expandLocationAbbreviations(input) {
     const normalized = normalize(input);
     const words = normalized.split(' ');
-    
+
     // Check if the first word(s) might be a location abbreviation
     for (let i = Math.min(2, words.length); i > 0; i--) {
         const possibleAbbrev = words.slice(0, i).join('');
@@ -117,7 +155,7 @@ function expandLocationAbbreviations(input) {
             return expansions.map(loc => restOfName ? `${loc} ${restOfName}` : loc);
         }
     }
-    
+
     // Also check compact form (e.g., "ladodgers")
     const compact = normalizeCompact(input);
     for (const [abbrev, expansions] of Object.entries(locationAbbreviations)) {
@@ -129,15 +167,13 @@ function expandLocationAbbreviations(input) {
             });
         }
     }
-    
+
     return [normalized];
 }
 
 function getMatchScore(input, team) {
-    const normalizedInput = normalize(input);
-    const compactInput = normalizeCompact(input);
     const expandedInputs = expandLocationAbbreviations(input);
-    
+
     // All leagues now use ESPN API format
     const teamObj = team.team || {};
     const displayName = normalize(teamObj.displayName || '');
@@ -145,7 +181,7 @@ function getMatchScore(input, team) {
     const abbreviation = normalize(teamObj.abbreviation || '');
     const location = normalize(teamObj.location || '');
     const nickname = normalize(teamObj.nickname || '');
-    
+
     // Compact versions for flexible matching
     const compactDisplayName = normalizeCompact(teamObj.displayName || '');
     const compactShortDisplayName = normalizeCompact(teamObj.shortDisplayName || '');
@@ -154,17 +190,17 @@ function getMatchScore(input, team) {
     const compactNickname = normalizeCompact(teamObj.nickname || '');
 
     let maxScore = 0;
-    
+
     // Check all expanded variations of the input
     for (const expandedInput of expandedInputs) {
         const compactExpanded = normalizeCompact(expandedInput);
-        
+
         // Weighted scoring: higher score = better match
         // 1000 = Perfect match (highest priority)
         // 500-999 = Good match
         // 100-499 = Partial match
         // 0 = No match
-        
+
         // 1. Abbreviation (highest priority - most specific)
         if (expandedInput === abbreviation && abbreviation) {
             maxScore = Math.max(maxScore, 1000);
@@ -172,7 +208,7 @@ function getMatchScore(input, team) {
         if (compactExpanded === compactAbbreviation && compactAbbreviation) {
             maxScore = Math.max(maxScore, 1000);
         }
-        
+
         // 2. Team nickname (e.g., "Lakers", "Celtics")
         if (expandedInput === nickname && nickname) {
             maxScore = Math.max(maxScore, 900);
@@ -180,7 +216,7 @@ function getMatchScore(input, team) {
         if (compactExpanded === compactNickname && compactNickname) {
             maxScore = Math.max(maxScore, 900);
         }
-        
+
         // 3. Short display name (e.g., "LA Lakers")
         if (expandedInput === shortDisplayName && shortDisplayName) {
             maxScore = Math.max(maxScore, 850);
@@ -188,7 +224,7 @@ function getMatchScore(input, team) {
         if (compactExpanded === compactShortDisplayName && compactShortDisplayName) {
             maxScore = Math.max(maxScore, 850);
         }
-        
+
         // 4. Full display name (e.g., "Los Angeles Lakers")
         if (expandedInput === displayName && displayName) {
             maxScore = Math.max(maxScore, 800);
@@ -196,7 +232,7 @@ function getMatchScore(input, team) {
         if (compactExpanded === compactDisplayName && compactDisplayName) {
             maxScore = Math.max(maxScore, 800);
         }
-        
+
         // 5. Location/City (e.g., "Los Angeles")
         if (expandedInput === location && location) {
             maxScore = Math.max(maxScore, 700);
@@ -204,7 +240,7 @@ function getMatchScore(input, team) {
         if (compactExpanded === compactLocation && compactLocation) {
             maxScore = Math.max(maxScore, 700);
         }
-        
+
         // 6. Partial matches (lower priority)
         if (nickname && expandedInput.includes(nickname)) {
             maxScore = Math.max(maxScore, 400);
@@ -212,21 +248,21 @@ function getMatchScore(input, team) {
         if (compactNickname && compactExpanded.includes(compactNickname)) {
             maxScore = Math.max(maxScore, 400);
         }
-        
+
         if (nickname && nickname.includes(expandedInput)) {
             maxScore = Math.max(maxScore, 300);
         }
         if (compactNickname && compactNickname.includes(compactExpanded)) {
             maxScore = Math.max(maxScore, 300);
         }
-        
+
         if (displayName && displayName.includes(expandedInput)) {
             maxScore = Math.max(maxScore, 200);
         }
         if (compactDisplayName && compactDisplayName.includes(compactExpanded)) {
             maxScore = Math.max(maxScore, 200);
         }
-        
+
         if (location && location.includes(expandedInput)) {
             maxScore = Math.max(maxScore, 100);
         }
@@ -234,13 +270,44 @@ function getMatchScore(input, team) {
             maxScore = Math.max(maxScore, 100);
         }
     }
-    
+
     return maxScore;
 }
 
-function matchesTeam(input, team) {
-    return getMatchScore(input, team) > 0;
-}
+// async function resolveLeague(league) {
+//     if (!league) {
+//         throw new Error('League is required');
+//     }
+//     const leagueObj = findLeague(league);
+//     if (!leagueObj) {
+//         throw new Error(`Unsupported league: ${league}`);
+//     }
+
+//     try {
+//         const leagueData = await fetchLeagueData(leagueObj);
+
+//         // Find logo with rel: ["full", "default"]
+//         const defaultLogo = leagueData.logos?.find(logo =>
+//             logo.rel?.includes('full') && logo.rel?.includes('default')
+//         );
+
+//         // Find logo with rel: ["full", "dark"]
+//         const darkLogo = leagueData.logos?.find(logo =>
+//             logo.rel?.includes('full') && logo.rel?.includes('dark')
+//         );
+
+//         return {
+//             id: leagueData.id,
+//             name: leagueData.name,
+//             abbreviation: leagueData.abbreviation,
+//             slug: leagueData.slug,
+//             logo: defaultLogo?.href || leagueData.logos?.[0]?.href,
+//             logoAlt: darkLogo?.href
+//         };
+//     } catch (error) {
+//         throw new Error(`Failed to resolve league: ${error.message}`);
+//     }
+// }
 
 async function resolveTeam(league, name) {
     if (!league || !name) {
@@ -249,11 +316,11 @@ async function resolveTeam(league, name) {
 
     try {
         const teams = await fetchTeamData(league);
-        
+
         // Find best matching team using weighted scoring
         let bestMatch = null;
         let bestScore = 0;
-        
+
         for (const team of teams) {
             const score = getMatchScore(name, team);
             if (score > bestScore) {
@@ -268,17 +335,17 @@ async function resolveTeam(league, name) {
 
         // Return standardized format (all leagues now use ESPN API format)
         const teamObj = bestMatch.team;
-        
+
         // Find logo with rel: ["full", "default"]
-        const defaultLogo = teamObj.logos?.find(logo => 
+        const defaultLogo = teamObj.logos?.find(logo =>
             logo.rel?.includes('full') && logo.rel?.includes('default')
         );
-        
+
         // Find logo with rel: ["full", "dark"]
-        const darkLogo = teamObj.logos?.find(logo => 
+        const darkLogo = teamObj.logos?.find(logo =>
             logo.rel?.includes('full') && logo.rel?.includes('dark')
         );
-        
+
         return {
             id: teamObj.id,
             city: teamObj.location,
@@ -303,5 +370,8 @@ function clearCache() {
 
 module.exports = {
     resolveTeam,
-    clearCache
+    clearCache,
+
+    fetchLeagueData,
+    fetchTeamData
 };
