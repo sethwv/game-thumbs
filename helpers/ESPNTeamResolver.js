@@ -5,6 +5,7 @@
 // ------------------------------------------------------------------------------
 
 const https = require('https');
+const { leagues, findLeague, getEndpoint } = require('../leagues');
 
 const teamCache = new Map();
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
@@ -33,7 +34,13 @@ const locationAbbreviations = {
 };
 
 async function fetchTeamData(league) {
-    const cacheKey = `${league}_teams`;
+    league = findLeague(league);
+    if (!league) {
+        throw new Error(`Unsupported league: ${league}`);
+    }
+
+    if (!teamCache) teamCache = new Map();
+    const cacheKey = `${league.shortName}_teams`;
     const cached = teamCache.get(cacheKey);
     
     // Return cached data if still valid
@@ -41,17 +48,7 @@ async function fetchTeamData(league) {
         return cached.data;
     }
 
-    // API endpoints for different leagues (using ESPN API for consistent logo support)
-    const apiEndpoints = {
-        nba: 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/teams',
-        nfl: 'https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams',
-        mlb: 'https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/teams',
-        nhl: 'https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/teams',
-        ncaaf: 'https://site.api.espn.com/apis/site/v2/sports/football/college-football/teams?limit=200',
-        ncaab: 'https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/teams?limit=400'
-    };
-
-    const endpoint = apiEndpoints[league.toLowerCase()];
+    const endpoint = getEndpoint(league);
     if (!endpoint) {
         throw new Error(`Unsupported league: ${league}`);
     }
@@ -85,6 +82,51 @@ async function fetchTeamData(league) {
             });
         }).on('error', (error) => {
             reject(new Error(`API request failed: ${error.message}`));
+        });
+    });
+}
+
+async function fetchLeagueData(league) {
+    league = findLeague(league);
+    if (!league) {
+        throw new Error(`Unsupported league: ${league}`);
+    }
+
+    if (!teamCache) teamCache = new Map();
+    const cacheKey = `${league.shortName}_league`;
+    const cached = teamCache.get(cacheKey);
+    
+    // Return cached data if still valid
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+        return cached.data;
+    }
+
+    const leagueApiUrl = `https://sports.core.api.espn.com/v2/sports/${league.espnSport}/leagues/${league.espnSlug}`;
+    return new Promise((resolve, reject) => {
+        https.get(leagueApiUrl, (response) => {
+            let data = '';
+
+            response.on('data', (chunk) => {
+                data += chunk;
+            });
+
+            response.on('end', () => {
+                try {
+                    const parsed = JSON.parse(data);
+
+                    // Cache the data
+                    teamCache.set(cacheKey, {
+                        data: parsed,
+                        timestamp: Date.now()
+                    });
+
+                    resolve(parsed);
+                } catch (error) {
+                    reject(new Error(`Failed to parse league API response: ${error.message}`));
+                }
+            });
+        }).on('error', (error) => {
+            reject(new Error(`League API request failed: ${error.message}`));
         });
     });
 }
@@ -303,5 +345,8 @@ function clearCache() {
 
 module.exports = {
     resolveTeam,
-    clearCache
+    clearCache,
+
+    fetchLeagueData,
+    fetchTeamData
 };

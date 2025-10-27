@@ -134,7 +134,7 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league, useLig
     if (league) {
         try {
             const { getLeagueLogoUrl } = require('./imageUtils');
-            const leagueLogoUrl = getLeagueLogoUrl(league);
+            const leagueLogoUrl = await getLeagueLogoUrl(league);
             const leagueLogoBuffer = await downloadImage(leagueLogoUrl);
             const leagueLogo = await loadImage(leagueLogoBuffer);
             
@@ -223,7 +223,7 @@ async function generateSideBySide(teamA, teamB, width, height, league, useLight)
     if (league) {
         try {
             const { getLeagueLogoUrl } = require('./imageUtils');
-            const leagueLogoUrl = getLeagueLogoUrl(league);
+            const leagueLogoUrl = await getLeagueLogoUrl(league);
             const leagueLogoBuffer = await downloadImage(leagueLogoUrl);
             const leagueLogo = await loadImage(leagueLogoBuffer);
             
@@ -336,7 +336,7 @@ async function generateCircleBadges(teamA, teamB, width, height, league, useLigh
     if (league) {
         try {
             const { getLeagueLogoUrl } = require('./imageUtils');
-            const leagueLogoUrl = getLeagueLogoUrl(league);
+            const leagueLogoUrl = await getLeagueLogoUrl(league);
             const leagueLogoBuffer = await downloadImage(leagueLogoUrl);
             const leagueLogo = await loadImage(leagueLogoBuffer);
             
@@ -437,7 +437,7 @@ async function generateSquareBadges(teamA, teamB, width, height, league, useLigh
     if (league) {
         try {
             const { getLeagueLogoUrl } = require('./imageUtils');
-            const leagueLogoUrl = getLeagueLogoUrl(league);
+            const leagueLogoUrl = await getLeagueLogoUrl(league);
             const leagueLogoBuffer = await downloadImage(leagueLogoUrl);
             const leagueLogo = await loadImage(leagueLogoBuffer);
             

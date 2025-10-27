@@ -192,7 +192,7 @@ async function generateSplit(teamA, teamB, width, height, league, orientation) {
     if (league) {
         try {
             const { getLeagueLogoUrl } = require('./imageUtils');
-            const leagueLogoUrl = getLeagueLogoUrl(league);
+            const leagueLogoUrl = await getLeagueLogoUrl(league);
             const leagueLogoBuffer = await downloadImage(leagueLogoUrl);
             const leagueLogo = await loadImage(leagueLogoBuffer);
             const leagueLogoSize = Math.min(width, height) * 0.25;
@@ -271,7 +271,7 @@ async function generateGradient(teamA, teamB, width, height, league, orientation
     if (league) {
         try {
             const { getLeagueLogoUrl } = require('./imageUtils');
-            const leagueLogoUrl = getLeagueLogoUrl(league);
+            const leagueLogoUrl = await getLeagueLogoUrl(league);
             const leagueLogoBuffer = await downloadImage(leagueLogoUrl);
             const leagueLogo = await loadImage(leagueLogoBuffer);
             const leagueLogoSize = Math.min(width, height) * 0.25;
@@ -403,7 +403,7 @@ async function generateMinimalist(teamA, teamB, width, height, league, orientati
     if (league) {
         try {
             const { getLeagueLogoUrl } = require('./imageUtils');
-            const leagueLogoUrl = getLeagueLogoUrl(league);
+            const leagueLogoUrl = await getLeagueLogoUrl(league);
             const leagueLogoBuffer = await downloadImage(leagueLogoUrl);
             const leagueLogo = await loadImage(leagueLogoBuffer);
             // Smaller logo for portrait orientation
