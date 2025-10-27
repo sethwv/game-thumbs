@@ -416,7 +416,7 @@ async function generateMinimalist(teamA, teamB, width, height, league, orientati
             // Position in bottom right corner for portrait, bottom center for landscape
             const leagueLogoX = orientation === 'landscape' 
                 ? (width - leagueLogoSize) / 2
-                : width - leagueLogoSize - (width * 0.03);
+                : width - leagueLogoSize - (width * 0.08);
             const leagueLogoY = orientation === 'landscape'
                 ? height - leagueLogoSize - (height * 0.08)
                 : height - leagueLogoSize - (height * 0.02);
