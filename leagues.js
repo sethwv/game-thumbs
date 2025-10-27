@@ -20,7 +20,6 @@ function getEndpoint(league) {
         return null;
     }
     const url = `https://site.api.espn.com/apis/site/v2/sports/${league.espnSport}/${league.espnSlug}/teams?limit=500`;
-    console.log(url); // --- IGNORE ---
     return url;
 }
 

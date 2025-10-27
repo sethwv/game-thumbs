@@ -6,7 +6,7 @@ A simple API that generates and serves various sports matchup thumbnails and log
 
 ## Features
 
-- 🏀 **Multi-Sport Support**: NBA, NFL, MLB, NHL, NCAA Football, NCAA Basketball
+-- 🏀 **Multi-Sport Support**: NBA, WNBA, NFL, UFL, MLB, NHL, EPL, MLS, UEFA Champions League, NCAA Football, NCAA Men's Basketball, NCAA Women's Basketball
 - 🎨 **Dynamic Generation**: Creates thumbnails and logos on-the-fly with team colors and branding
 - 🖼️ **Multiple Styles**: Choose from different visual styles for logos and thumbnails
 - 💾 **Smart Caching**: Automatically caches generated images for 24 hours
@@ -46,11 +46,22 @@ The API provides three types of image generation for sports matchups:
 | **Cover** | `/:league/:team1/:team2/cover` | 1080x1440 | 3:4 |
 | **Logo** | `/:league/:team1/:team2/logo` | 1024x1024 | 1:1 |
 
-All endpoints support:
-- Six major sports leagues: NBA, NFL, MLB, NHL, NCAA Football, NCAA Basketball
-- Flexible team matching (names, cities, abbreviations)
-- Optional league logo display
-- Multiple style variations
+**Supported Leagues:**
+
+| Long Name                        | API League Parameter |
+|----------------------------------|----------------------|
+| National Basketball Association  | nba                  |
+| Women's National Basketball Association | wnba         |
+| National Football League         | nfl                  |
+| United Football League           | ufl                  |
+| Major League Baseball            | mlb                  |
+| National Hockey League           | nhl                  |
+| English Premier League           | epl                  |
+| Major League Soccer              | mls                  |
+| UEFA Champions League            | uefa                 |
+| NCAA Football                    | ncaaf                |
+| NCAA Men's Basketball            | ncaam                |
+| NCAA Women's Basketball          | naacw                |
 
 ---
 
