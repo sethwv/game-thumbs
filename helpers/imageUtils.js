@@ -36,6 +36,7 @@ module.exports = {
     // Image utilities
     downloadImage,
     selectBestLogo,
+    getLeagueLogoUrl,
     
     // Color utilities
     hexToRgb,
@@ -44,6 +45,25 @@ module.exports = {
     adjustColors,
     getAverageColor
 };
+// ------------------------------------------------------------------------------
+// League logo URL resolver
+// ------------------------------------------------------------------------------
+
+function getLeagueLogoUrl(league) {
+    switch (league.toLowerCase()) {
+        case 'nba':
+        case 'nfl':
+        case 'mlb':
+        case 'nhl':
+            return `https://a.espncdn.com/i/teamlogos/leagues/500/${league.toLowerCase()}.png`;
+        case 'ncaaf':
+            return require('path').resolve(__dirname, '../assets/ncaaf.png');
+        case 'ncaab':
+            return require('path').resolve(__dirname, '../assets/ncaab.png');
+        default:
+            return null;
+    }
+}
 
 // ------------------------------------------------------------------------------
 // Functions
@@ -216,9 +236,22 @@ function getWhiteLogo(logoImage, size) {
 // Image utilities
 // ------------------------------------------------------------------------------
 
-function downloadImage(url) {
+const fs = require('fs');
+const path = require('path');
+
+function downloadImage(urlOrPath) {
+    // If it's a local file path, load from filesystem
+    if (typeof urlOrPath === 'string' && (urlOrPath.startsWith('/') || urlOrPath.startsWith('./') || urlOrPath.startsWith('../'))) {
+        return new Promise((resolve, reject) => {
+            fs.readFile(path.resolve(urlOrPath), (err, data) => {
+                if (err) return reject(err);
+                resolve(data);
+            });
+        });
+    }
+    // Otherwise, treat as URL
     return new Promise((resolve, reject) => {
-        https.get(url, (response) => {
+        https.get(urlOrPath, (response) => {
             const chunks = [];
             response.on('data', (chunk) => chunks.push(chunk));
             response.on('end', () => resolve(Buffer.concat(chunks)));

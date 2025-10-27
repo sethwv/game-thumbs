@@ -133,7 +133,8 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league, useLig
     // This is drawn LAST so it appears on top
     if (league) {
         try {
-            const leagueLogoUrl = `https://a.espncdn.com/i/teamlogos/leagues/500/${league.toLowerCase()}.png`;
+            const { getLeagueLogoUrl } = require('./imageUtils');
+            const leagueLogoUrl = getLeagueLogoUrl(league);
             const leagueLogoBuffer = await downloadImage(leagueLogoUrl);
             const leagueLogo = await loadImage(leagueLogoBuffer);
             
@@ -221,7 +222,8 @@ async function generateSideBySide(teamA, teamB, width, height, league, useLight)
     // Draw league logo as a badge in the bottom center if league is provided
     if (league) {
         try {
-            const leagueLogoUrl = `https://a.espncdn.com/i/teamlogos/leagues/500/${league.toLowerCase()}.png`;
+            const { getLeagueLogoUrl } = require('./imageUtils');
+            const leagueLogoUrl = getLeagueLogoUrl(league);
             const leagueLogoBuffer = await downloadImage(leagueLogoUrl);
             const leagueLogo = await loadImage(leagueLogoBuffer);
             
@@ -333,7 +335,8 @@ async function generateCircleBadges(teamA, teamB, width, height, league, useLigh
     // Draw league logo at bottom center if provided
     if (league) {
         try {
-            const leagueLogoUrl = `https://a.espncdn.com/i/teamlogos/leagues/500/${league.toLowerCase()}.png`;
+            const { getLeagueLogoUrl } = require('./imageUtils');
+            const leagueLogoUrl = getLeagueLogoUrl(league);
             const leagueLogoBuffer = await downloadImage(leagueLogoUrl);
             const leagueLogo = await loadImage(leagueLogoBuffer);
             
@@ -433,7 +436,8 @@ async function generateSquareBadges(teamA, teamB, width, height, league, useLigh
     // Draw league logo at bottom center if provided
     if (league) {
         try {
-            const leagueLogoUrl = `https://a.espncdn.com/i/teamlogos/leagues/500/${league.toLowerCase()}.png`;
+            const { getLeagueLogoUrl } = require('./imageUtils');
+            const leagueLogoUrl = getLeagueLogoUrl(league);
             const leagueLogoBuffer = await downloadImage(leagueLogoUrl);
             const leagueLogo = await loadImage(leagueLogoBuffer);
             

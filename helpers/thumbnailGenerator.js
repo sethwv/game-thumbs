@@ -191,14 +191,13 @@ async function generateSplit(teamA, teamB, width, height, league, orientation) {
     // Draw league logo in the center if league is provided
     if (league) {
         try {
-            const leagueLogoUrl = `https://a.espncdn.com/i/teamlogos/leagues/500/${league.toLowerCase()}.png`;
+            const { getLeagueLogoUrl } = require('./imageUtils');
+            const leagueLogoUrl = getLeagueLogoUrl(league);
             const leagueLogoBuffer = await downloadImage(leagueLogoUrl);
             const leagueLogo = await loadImage(leagueLogoBuffer);
-            
             const leagueLogoSize = Math.min(width, height) * 0.25;
             const leagueLogoX = (width - leagueLogoSize) / 2;
             const leagueLogoY = (height - leagueLogoSize) / 2;
-            
             drawLogoWithShadow(ctx, leagueLogo, leagueLogoX, leagueLogoY, leagueLogoSize);
         } catch (error) {
             console.error('Error loading league logo:', error.message);
@@ -271,14 +270,13 @@ async function generateGradient(teamA, teamB, width, height, league, orientation
     // Draw league logo in the center if league is provided
     if (league) {
         try {
-            const leagueLogoUrl = `https://a.espncdn.com/i/teamlogos/leagues/500/${league.toLowerCase()}.png`;
+            const { getLeagueLogoUrl } = require('./imageUtils');
+            const leagueLogoUrl = getLeagueLogoUrl(league);
             const leagueLogoBuffer = await downloadImage(leagueLogoUrl);
             const leagueLogo = await loadImage(leagueLogoBuffer);
-            
             const leagueLogoSize = Math.min(width, height) * 0.25;
             const leagueLogoX = (width - leagueLogoSize) / 2;
             const leagueLogoY = (height - leagueLogoSize) / 2;
-            
             drawLogoWithShadow(ctx, leagueLogo, leagueLogoX, leagueLogoY, leagueLogoSize);
         } catch (error) {
             console.error('Error loading league logo:', error.message);
@@ -404,15 +402,14 @@ async function generateMinimalist(teamA, teamB, width, height, league, orientati
     // Draw league logo at bottom if provided
     if (league) {
         try {
-            const leagueLogoUrl = `https://a.espncdn.com/i/teamlogos/leagues/500/${league.toLowerCase()}.png`;
+            const { getLeagueLogoUrl } = require('./imageUtils');
+            const leagueLogoUrl = getLeagueLogoUrl(league);
             const leagueLogoBuffer = await downloadImage(leagueLogoUrl);
             const leagueLogo = await loadImage(leagueLogoBuffer);
-            
             // Smaller logo for portrait orientation
             const leagueLogoSize = orientation === 'landscape' 
                 ? Math.min(width, height) * 0.25
                 : Math.min(width, height) * 0.15;
-            
             // Position in bottom right corner for portrait, bottom center for landscape
             const leagueLogoX = orientation === 'landscape' 
                 ? (width - leagueLogoSize) / 2
@@ -420,7 +417,6 @@ async function generateMinimalist(teamA, teamB, width, height, league, orientati
             const leagueLogoY = orientation === 'landscape'
                 ? height - leagueLogoSize - (height * 0.08)
                 : height - leagueLogoSize - (height * 0.02);
-            
             ctx.drawImage(leagueLogo, leagueLogoX, leagueLogoY, leagueLogoSize, leagueLogoSize);
         } catch (error) {
             console.error('Error loading league logo:', error.message);
