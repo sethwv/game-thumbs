@@ -15,14 +15,6 @@ function findLeague(identifier) {
     return null;
 }
 
-function getEndpoint(league) {
-    if (!league.usesESPN) {
-        return null;
-    }
-    const url = `https://site.api.espn.com/apis/site/v2/sports/${league.espnSport}/${league.espnSlug}/teams?limit=500`;
-    return url;
-}
-
 // ------------------------------------------------------------------------------
 
 // https://sports.core.api.espn.com/v2/sports/?limit=999
@@ -140,7 +132,6 @@ const leagues = {
 module.exports = {
     leagues,
     findLeague,
-    getEndpoint
 };
 
 // ------------------------------------------------------------------------------
