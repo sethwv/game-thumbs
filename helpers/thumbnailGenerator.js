@@ -389,7 +389,7 @@ async function generateMinimalist(teamA, teamB, width, height, league, orientati
     
     // Draw "VS" text in center
     ctx.fillStyle = dark ? '#e9ecef' : '#495057';
-    const fontSize = orientation === 'landscape' ? height * 0.18 : width * 0.22;
+    const fontSize = (orientation === 'landscape' ? height * 0.18 : width * 0.22) * 0.75;
     ctx.font = `bold ${fontSize}px Arial, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'alphabetic';
