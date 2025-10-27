@@ -139,22 +139,24 @@ Generates a matchup logo with team logos on transparent background.
 - `style` - Style number (default: 1)
   - `1` - Diagonal split with dividing line
   - `2` - Side by side
+  - `3` - Circle badges with team colors
+  - `4` - Square badges with team colors
 - `size` - Output size in pixels (256, 512, 1024, 2048) - generates square image
-- `logo` - Show league logo badge (true/false)
+- `logo` - Show league logo badge (default: true, set to false to hide)
 - `useLight` - Use primary (light) logos instead of dark variants (true/false, default: false)
 
 **Examples:**
 ```
 GET /nba/lakers/celtics/logo
 GET /nhl/toronto/montreal/logo?style=2
-GET /nfl/chiefs/49ers/logo?style=1&logo=true
-GET /mlb/yankees/redsox/logo?style=2&logo=true&size=2048
-GET /nba/lakers/celtics/logo?useLight=true
+GET /nfl/chiefs/49ers/logo?style=3
+GET /mlb/yankees/redsox/logo?style=2&size=2048
+GET /nba/lakers/celtics/logo?useLight=true&logo=false
 ```
 
 **Output:** 800x800 PNG image (transparent background)
 
-**Note:** By default, dark logo variants are used for better visibility on light backgrounds. Use `useLight=true` to display the primary (light) logo variants instead.
+**Note:** For styles 3 and 4, the logo variant (regular or alternate) is automatically selected for best contrast against the background color of its badge (circle or square). The `useLight` parameter is ignored for these styles.
 
 ---
 
