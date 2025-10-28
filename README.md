@@ -61,7 +61,7 @@ The API provides three types of image generation for sports matchups:
 | UEFA Champions League            | uefa                 |
 | NCAA Football                    | ncaaf                |
 | NCAA Men's Basketball            | ncaam                |
-| NCAA Women's Basketball          | naacw                |
+| NCAA Women's Basketball          | ncaaw                |
 
 ---
 

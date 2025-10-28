@@ -2,7 +2,7 @@ name: Build & Push Docker Image
 
 on:
     push:
-        branches: [ 'dev' ]
+        branches: [ 'dev', 'test/.*' ]
         tags: [ 'v*' ]
     workflow_dispatch:
 
@@ -17,8 +17,11 @@ jobs:
       run: |
         release_version=$(echo ${GITHUB_REF:10} | tr -d '/' | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]._-')
         if [[ "$GITHUB_EVENT_NAME" == "push" || "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+          # v-prefixed tag push
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             tags+=("$release_version" "latest")
+          
+          # dev branch push
           else
             tags+=("$release_version")
           fi
