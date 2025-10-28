@@ -188,12 +188,10 @@ async function generateSplit(teamA, teamB, width, height, league, orientation) {
         console.error('Error loading team logos:', error.message);
     }
     
-    // Draw league logo in the center if league is provided
-    if (league) {
+    // Draw league logo in the center if league logo URL is provided
+    if (league && league.logoUrl) {
         try {
-            const { getLeagueLogoUrl } = require('./imageUtils');
-            const leagueLogoUrl = await getLeagueLogoUrl(league);
-            const leagueLogoBuffer = await downloadImage(leagueLogoUrl);
+            const leagueLogoBuffer = await downloadImage(league.logoUrl);
             const leagueLogo = await loadImage(leagueLogoBuffer);
             const leagueLogoSize = Math.min(width, height) * 0.25;
             const leagueLogoX = (width - leagueLogoSize) / 2;
@@ -267,12 +265,10 @@ async function generateGradient(teamA, teamB, width, height, league, orientation
         console.error('Error loading team logos:', error.message);
     }
     
-    // Draw league logo in the center if league is provided
-    if (league) {
+    // Draw league logo in the center if league logo URL is provided
+    if (league && league.logoUrl) {
         try {
-            const { getLeagueLogoUrl } = require('./imageUtils');
-            const leagueLogoUrl = await getLeagueLogoUrl(league);
-            const leagueLogoBuffer = await downloadImage(leagueLogoUrl);
+            const leagueLogoBuffer = await downloadImage(league.logoUrl);
             const leagueLogo = await loadImage(leagueLogoBuffer);
             const leagueLogoSize = Math.min(width, height) * 0.25;
             const leagueLogoX = (width - leagueLogoSize) / 2;
@@ -399,12 +395,10 @@ async function generateMinimalist(teamA, teamB, width, height, league, orientati
     
     ctx.fillText('VS', centerX, textY);
     
-    // Draw league logo at bottom if provided
-    if (league) {
+    // Draw league logo at bottom if league logo URL is provided
+    if (league && league.logoUrl) {
         try {
-            const { getLeagueLogoUrl } = require('./imageUtils');
-            const leagueLogoUrl = await getLeagueLogoUrl(league);
-            const leagueLogoBuffer = await downloadImage(leagueLogoUrl);
+            const leagueLogoBuffer = await downloadImage(league.logoUrl);
             const leagueLogo = await loadImage(leagueLogoBuffer);
             // Smaller logo for portrait orientation
             const leagueLogoSize = orientation === 'landscape' 

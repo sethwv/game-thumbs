@@ -4,8 +4,9 @@
 // Cover size is 1080W x 1440H by default
 // ------------------------------------------------------------------------------
 
-const { resolveTeam } = require('../providers/ESPN');
+const providerManager = require('../providers/ProviderManager');
 const { generateCover } = require('../helpers/thumbnailGenerator');
+const { findLeague } = require('../leagues');
 
 module.exports = {
     paths: [
@@ -25,10 +26,25 @@ module.exports = {
         };
 
         try {
-            const resolvedTeam1 = await resolveTeam(league, team1);
-            const resolvedTeam2 = await resolveTeam(league, team2);
+            const leagueObj = findLeague(league);
+            if (!leagueObj) {
+                return res.status(400).json({ error: `Unsupported league: ${league}` });
+            }
 
-            const coverBuffer = await generateCover(resolvedTeam1, resolvedTeam2, coverOptions);
+            const resolvedTeam1 = await providerManager.resolveTeam(leagueObj, team1);
+            const resolvedTeam2 = await providerManager.resolveTeam(leagueObj, team2);
+
+            // Get league logo URL if needed
+            let leagueInfo = null;
+            if (coverOptions.league) {
+                const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj);
+                leagueInfo = { logoUrl: leagueLogoUrl };
+            }
+
+            const coverBuffer = await generateCover(resolvedTeam1, resolvedTeam2, {
+                ...coverOptions,
+                league: leagueInfo
+            });
             res.set('Content-Type', 'image/png');
             res.send(coverBuffer);
             require('../helpers/imageCache').addToCache(req, res, coverBuffer);

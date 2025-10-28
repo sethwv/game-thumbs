@@ -3,8 +3,9 @@
 // Route to generate game logo images
 // ------------------------------------------------------------------------------
 
-const { resolveTeam } = require('../providers/ESPN');
+const providerManager = require('../providers/ProviderManager');
 const { generateLogo } = require('../helpers/logoGenerator');
+const { findLeague } = require('../leagues');
 
 
 module.exports = {
@@ -32,10 +33,25 @@ module.exports = {
         }
 
         try {
-            const resolvedTeam1 = await resolveTeam(league, team1);
-            const resolvedTeam2 = await resolveTeam(league, team2);
+            const leagueObj = findLeague(league);
+            if (!leagueObj) {
+                return res.status(400).json({ error: `Unsupported league: ${league}` });
+            }
 
-            const logoBuffer = await generateLogo(resolvedTeam1, resolvedTeam2, logoOptions);
+            const resolvedTeam1 = await providerManager.resolveTeam(leagueObj, team1);
+            const resolvedTeam2 = await providerManager.resolveTeam(leagueObj, team2);
+
+            // Get league logo URL if needed
+            let leagueInfo = null;
+            if (logoOptions.league) {
+                const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj);
+                leagueInfo = { logoUrl: leagueLogoUrl };
+            }
+
+            const logoBuffer = await generateLogo(resolvedTeam1, resolvedTeam2, {
+                ...logoOptions,
+                league: leagueInfo
+            });
             res.set('Content-Type', 'image/png');
             res.send(logoBuffer);
             require('../helpers/imageCache').addToCache(req, res, logoBuffer);
