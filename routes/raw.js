@@ -3,7 +3,7 @@
 // Route to return the raw json data for a team
 // ------------------------------------------------------------------------------
 
-const { resolveTeam } = require('../helpers/ESPNTeamResolver');
+const { resolveTeam } = require('../providers/ESPN');
 
 module.exports = {
     paths: [

@@ -7,7 +7,7 @@ const { createCanvas, loadImage } = require('canvas');
 const https = require('https');
 const crypto = require('crypto');
 
-const { fetchLeagueData } = require('./ESPNTeamResolver');
+const { fetchLeagueData } = require('../providers/ESPN');
 
 // ------------------------------------------------------------------------------
 // Constants
@@ -39,6 +39,7 @@ module.exports = {
     downloadImage,
     selectBestLogo,
     getLeagueLogoUrl,
+    trimImage,
 
     // Color utilities
     hexToRgb,
@@ -307,6 +308,61 @@ async function selectBestLogo(team, backgroundColor) {
         // Fallback to primary logo on error
         return team.logo;
     }
+}
+
+function trimImage(imageBuffer) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            // Load the image from buffer
+            const image = await loadImage(imageBuffer);
+            
+            // Create temporary canvas to analyze the image
+            const tempCanvas = createCanvas(image.width, image.height);
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.drawImage(image, 0, 0);
+            
+            const imageData = tempCtx.getImageData(0, 0, image.width, image.height);
+            const data = imageData.data;
+            
+            // Find the bounds of non-transparent pixels
+            let minX = image.width, maxX = 0;
+            let minY = image.height, maxY = 0;
+            
+            for (let y = 0; y < image.height; y++) {
+                for (let x = 0; x < image.width; x++) {
+                    const alpha = data[(y * image.width + x) * 4 + 3];
+                    if (alpha > 0) { // Non-transparent pixel
+                        minX = Math.min(minX, x);
+                        maxX = Math.max(maxX, x);
+                        minY = Math.min(minY, y);
+                        maxY = Math.max(maxY, y);
+                    }
+                }
+            }
+            
+            // If all pixels are transparent, return the original image
+            if (minX >= image.width || minY >= image.height) {
+                resolve(imageBuffer);
+                return;
+            }
+            
+            // Calculate trimmed dimensions
+            const trimmedWidth = maxX - minX + 1;
+            const trimmedHeight = maxY - minY + 1;
+            
+            // Create new canvas with trimmed dimensions
+            const trimmedCanvas = createCanvas(trimmedWidth, trimmedHeight);
+            const trimmedCtx = trimmedCanvas.getContext('2d');
+            
+            // Draw the trimmed portion
+            trimmedCtx.drawImage(image, minX, minY, trimmedWidth, trimmedHeight, 0, 0, trimmedWidth, trimmedHeight);
+            
+            // Return trimmed image buffer
+            resolve(trimmedCanvas.toBuffer('image/png'));
+        } catch (error) {
+            reject(error);
+        }
+    });
 }
 
 // ------------------------------------------------------------------------------

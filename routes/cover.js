@@ -4,7 +4,7 @@
 // Cover size is 1080W x 1440H by default
 // ------------------------------------------------------------------------------
 
-const { resolveTeam } = require('../helpers/ESPNTeamResolver');
+const { resolveTeam } = require('../providers/ESPN');
 const { generateCover } = require('../helpers/thumbnailGenerator');
 
 module.exports = {

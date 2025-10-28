@@ -118,7 +118,7 @@ const leagues = {
         espnSlug: 'mens-college-basketball',
         espnSport: 'basketball',
     },
-    naacw: {
+    ncaaw: {
         name: 'NCAA Women\'s Basketball',
         shortName: 'NCAAW',
         usesESPN: true,

@@ -1,5 +1,5 @@
 // ------------------------------------------------------------------------------
-// LogoGenerator.js
+// logoGenerator.js
 // This helper generates matchup logo images with team logos
 // ------------------------------------------------------------------------------
 
@@ -12,32 +12,39 @@ module.exports = {
 
 // ------------------------------------------------------------------------------
 
-/**
- * Generates a matchup logo with team logos
- * @param {Object} teamA - First team object from ESPNTeamResolver
- * @param {Object} teamB - Second team object from ESPNTeamResolver
- * @param {Object} options - Optional settings (width, height, style, league, useLight)
- * @returns {Promise<Buffer>} PNG image buffer
- */
 async function generateLogo(teamA, teamB, options = {}) {
     const width = options.width || 800;
     const height = options.height || 800;
     const style = options.style || 1;
     const league = options.league; // Required for league logo
     const useLight = options.useLight || false; // Whether to use primary (light) logos instead of dark variants
+    const trim = options.trim || false; // Whether to trim transparent edges before caching
     
+    let logoBuffer;
     switch (style) {
         case 1:
-            return generateDiagonalSplit(teamA, teamB, width, height, league, useLight);
+            logoBuffer = await generateDiagonalSplit(teamA, teamB, width, height, league, useLight);
+            break;
         case 2:
-            return generateSideBySide(teamA, teamB, width, height, league, useLight);
+            logoBuffer = await generateSideBySide(teamA, teamB, width, height, league, useLight);
+            break;
         case 3:
-            return generateCircleBadges(teamA, teamB, width, height, league, useLight);
+            logoBuffer = await generateCircleBadges(teamA, teamB, width, height, league, useLight);
+            break;
         case 4:
-            return generateSquareBadges(teamA, teamB, width, height, league, useLight);
+            logoBuffer = await generateSquareBadges(teamA, teamB, width, height, league, useLight);
+            break;
         default:
             throw new Error(`Unknown logo style: ${style}. Valid styles are 1 (split), 2 (side-by-side), 3 (circle badges), or 4 (square badges)`);
     }
+    
+    // Apply trim if requested
+    if (trim) {
+        const { trimImage } = require('./imageUtils');
+        logoBuffer = await trimImage(logoBuffer);
+    }
+    
+    return logoBuffer;
 }
 
 // ------------------------------------------------------------------------------

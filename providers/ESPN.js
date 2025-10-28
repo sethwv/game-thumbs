@@ -48,7 +48,7 @@ async function fetchTeamData(league) {
         return cached.data;
     }
 
-    const teamApiUrl = `https://site.api.espn.com/apis/site/v2/sports/${league.espnSport}/${league.espnSlug}/teams?limit=500`;
+    const teamApiUrl = `https://site.api.espn.com/apis/site/v2/sports/${league.espnSport}/${league.espnSlug}/teams?limit=1000`;
     return new Promise((resolve, reject) => {
         https.get(teamApiUrl, (response) => {
             let data = '';
