@@ -7,7 +7,7 @@ const { createCanvas, loadImage } = require('canvas');
 const https = require('https');
 const crypto = require('crypto');
 
-const { fetchLeagueData } = require('./ESPNTeamResolver');
+const { fetchLeagueData } = require('../providers/ESPN');
 
 // ------------------------------------------------------------------------------
 // Constants

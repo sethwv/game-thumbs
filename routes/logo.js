@@ -3,7 +3,7 @@
 // Route to generate game logo images
 // ------------------------------------------------------------------------------
 
-const { resolveTeam } = require('../helpers/ESPNTeamResolver');
+const { resolveTeam } = require('../providers/ESPN');
 const { generateLogo } = require('../helpers/logoGenerator');
 
 

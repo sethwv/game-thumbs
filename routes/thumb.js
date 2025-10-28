@@ -4,7 +4,7 @@
 // Thumb size is 1440W x 1080H by default
 // ------------------------------------------------------------------------------
 
-const { resolveTeam } = require('../helpers/ESPNTeamResolver');
+const { resolveTeam } = require('../providers/ESPN');
 const { generateThumbnail } = require('../helpers/thumbnailGenerator');
 
 module.exports = {
