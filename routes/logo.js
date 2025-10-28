@@ -14,18 +14,17 @@ module.exports = {
     ],
     method: "get",
     handler: async (req, res) => {
-        const { league, team1, team2 } = req.params;
-        const { size, logo, style, useLight } = req.query;
+    const { league, team1, team2 } = req.params;
+    const { size, logo, style, useLight, trim } = req.query;
 
-        const logoOptions = {
-            width: 1024,
-            height: 1024,
-            style: parseInt(style) || 1,
-            league: logo === 'true' ? league : null,
-            useLight: useLight === 'true'
-        };
-
-        const validSizes = [256, 512, 1024, 2048];
+    const logoOptions = {
+        width: 1024,
+        height: 1024,
+        style: parseInt(style) || 1,
+        league: logo === 'true' ? league : null,
+        useLight: useLight === 'true',
+        trim: trim === 'true'
+    };        const validSizes = [256, 512, 1024, 2048];
         const sizeValue = parseInt(size);
         if (validSizes.includes(sizeValue)) {
             logoOptions.width = sizeValue;
