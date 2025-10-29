@@ -25,7 +25,7 @@ class ProviderManager {
         }
 
         // Add other providers here as they're implemented
-        // const APIsports = require('./APISportsProvider');
+        // const APISportsProvider = require('./APISportsProvider');
         // this.registerProvider(new APISportsProvider());
 
         this._initialized = true;

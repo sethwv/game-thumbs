@@ -60,6 +60,8 @@ module.exports = {
             // Only send error response if headers haven't been sent yet
             if (!res.headersSent) {
                 res.status(400).json({ error: error.message });
+            } else {
+                console.error('Error after headers sent:', error);
             }
         }
     }
