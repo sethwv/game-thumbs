@@ -45,11 +45,22 @@ module.exports = {
                 ...coverOptions,
                 league: leagueInfo
             });
+            
+            // Send successful response
             res.set('Content-Type', 'image/png');
             res.send(coverBuffer);
-            require('../helpers/imageCache').addToCache(req, res, coverBuffer);
+            
+            // Cache successful result (don't let caching errors affect the response)
+            try {
+                require('../helpers/imageCache').addToCache(req, res, coverBuffer);
+            } catch (cacheError) {
+                console.error('Failed to cache image:', cacheError);
+            }
         } catch (error) {
-            res.status(400).json({ error: error.message });
+            // Only send error response if headers haven't been sent yet
+            if (!res.headersSent) {
+                res.status(400).json({ error: error.message });
+            }
         }
     }
 };
