@@ -7,8 +7,6 @@ const { createCanvas, loadImage } = require('canvas');
 const https = require('https');
 const crypto = require('crypto');
 
-const { fetchLeagueData } = require('../providers/ESPN');
-
 // ------------------------------------------------------------------------------
 // Constants
 // ------------------------------------------------------------------------------
@@ -38,7 +36,6 @@ module.exports = {
     // Image utilities
     downloadImage,
     selectBestLogo,
-    getLeagueLogoUrl,
     trimImage,
 
     // Color utilities
@@ -48,31 +45,6 @@ module.exports = {
     adjustColors,
     getAverageColor
 };
-// ------------------------------------------------------------------------------
-// League logo URL resolver
-// ------------------------------------------------------------------------------
-
-async function getLeagueLogoUrl(league, darkLogoPreferred = true) {
-    if (!league) {
-        throw new Error(`Unsupported league: ${league}`);
-    }
-    const leagueData = await fetchLeagueData(league);
-    const defaultLogo = leagueData.logos?.find(logo =>
-        logo.rel?.includes('full') && logo.rel?.includes('default')
-    )?.href;
-    const darkLogo = leagueData.logos?.find(logo =>
-        logo.rel?.includes('full') && logo.rel?.includes('dark')
-    )?.href;
-
-    switch (league.toLowerCase()) {
-        case 'ncaaf':
-        case 'ncaam':
-        case 'ncaaw':
-            return require('path').resolve(__dirname, '../assets/ncaa.png');
-        default:
-            return darkLogoPreferred ? (darkLogo || defaultLogo) : (defaultLogo || darkLogo) ?? `https://a.espncdn.com/i/teamlogos/leagues/500/${league.toLowerCase()}.png`;
-    }
-}
 
 // ------------------------------------------------------------------------------
 // Functions

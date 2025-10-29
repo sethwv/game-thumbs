@@ -136,13 +136,11 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league, useLig
     ctx.stroke();
     ctx.restore();
     
-    // Draw league logo as a badge in the bottom right corner if league is provided
+    // Draw league logo as a badge in the bottom right corner if league logo URL is provided
     // This is drawn LAST so it appears on top
-    if (league) {
+    if (league && league.logoUrl) {
         try {
-            const { getLeagueLogoUrl } = require('./imageUtils');
-            const leagueLogoUrl = await getLeagueLogoUrl(league);
-            const leagueLogoBuffer = await downloadImage(leagueLogoUrl);
+            const leagueLogoBuffer = await downloadImage(league.logoUrl);
             const leagueLogo = await loadImage(leagueLogoBuffer);
             
             // Save context for league logo
@@ -226,12 +224,10 @@ async function generateSideBySide(teamA, teamB, width, height, league, useLight)
     ctx.drawImage(logoB, logoBX, logoBY, logoSize, logoSize);
     ctx.restore();
     
-    // Draw league logo as a badge in the bottom center if league is provided
-    if (league) {
+    // Draw league logo as a badge in the bottom center if league logo URL is provided
+    if (league && league.logoUrl) {
         try {
-            const { getLeagueLogoUrl } = require('./imageUtils');
-            const leagueLogoUrl = await getLeagueLogoUrl(league);
-            const leagueLogoBuffer = await downloadImage(leagueLogoUrl);
+            const leagueLogoBuffer = await downloadImage(league.logoUrl);
             const leagueLogo = await loadImage(leagueLogoBuffer);
             
             ctx.save();
@@ -339,12 +335,10 @@ async function generateCircleBadges(teamA, teamB, width, height, league, useLigh
     
     ctx.drawImage(logoB, logoBX, logoBY, logoSize, logoSize);
     
-    // Draw league logo at bottom center if provided
-    if (league) {
+    // Draw league logo at bottom center if league logo URL is provided
+    if (league && league.logoUrl) {
         try {
-            const { getLeagueLogoUrl } = require('./imageUtils');
-            const leagueLogoUrl = await getLeagueLogoUrl(league);
-            const leagueLogoBuffer = await downloadImage(leagueLogoUrl);
+            const leagueLogoBuffer = await downloadImage(league.logoUrl);
             const leagueLogo = await loadImage(leagueLogoBuffer);
             
             ctx.save();
@@ -440,12 +434,10 @@ async function generateSquareBadges(teamA, teamB, width, height, league, useLigh
     const logoBY = badgeBY + (badgeSize - logoSize) / 2;
     ctx.drawImage(logoB, logoBX, logoBY, logoSize, logoSize);
     
-    // Draw league logo at bottom center if provided
-    if (league) {
+    // Draw league logo at bottom center if league logo URL is provided
+    if (league && league.logoUrl) {
         try {
-            const { getLeagueLogoUrl } = require('./imageUtils');
-            const leagueLogoUrl = await getLeagueLogoUrl(league);
-            const leagueLogoBuffer = await downloadImage(leagueLogoUrl);
+            const leagueLogoBuffer = await downloadImage(league.logoUrl);
             const leagueLogo = await loadImage(leagueLogoBuffer);
             
             ctx.save();
