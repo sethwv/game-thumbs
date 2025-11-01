@@ -45,7 +45,7 @@ class ProviderManager {
             this.leagueProviderMap.set(leagueId.toLowerCase(), provider);
         });
 
-        console.log(`Registered provider: ${providerId} (supports: ${supportedLeagues.join(', ')})`);
+        // console.log(`Registered provider: ${providerId} (supports: ${supportedLeagues.join(', ')})`);
     }
 
     /**
@@ -82,7 +82,29 @@ class ProviderManager {
      */
     async resolveTeam(league, teamIdentifier) {
         const provider = this.getProviderForLeague(league);
-        return provider.resolveTeam(league, teamIdentifier);
+        
+        try {
+            return await provider.resolveTeam(league, teamIdentifier);
+        } catch (error) {
+            // If team not found and league has a fallback, try the fallback league
+            if (league.fallbackLeague) {
+                const { findLeague } = require('../leagues');
+                const fallbackLeague = findLeague(league.fallbackLeague);
+                
+                if (fallbackLeague) {
+                    // console.log(`Team "${teamIdentifier}" not found in ${league.shortName}, trying fallback league ${fallbackLeague.shortName}`);
+                    try {
+                        return await this.resolveTeam(fallbackLeague, teamIdentifier);
+                    } catch (fallbackError) {
+                        // If fallback also fails, throw the original error
+                        throw error;
+                    }
+                }
+            }
+            
+            // No fallback or fallback not configured, throw original error
+            throw error;
+        }
     }
 
     /**

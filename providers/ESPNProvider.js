@@ -90,8 +90,8 @@ class ESPNProvider extends BaseProvider {
                 division: teamObj.groups?.find(g => g.parent?.id)?.name,
                 logo: defaultLogo?.href || teamObj.logos?.[0]?.href,
                 logoAlt: darkLogo?.href,
-                color: teamObj.color ? `#${teamObj.color}` : null,
-                alternateColor: teamObj.alternateColor ? `#${teamObj.alternateColor}` : null
+                color: teamObj.color ? `#${teamObj.color}` : '#000000',
+                alternateColor: teamObj.alternateColor ? `#${teamObj.alternateColor}` : '#ffffff'
             };
         } catch (error) {
             throw new Error(`Failed to resolve team: ${error.message}`);

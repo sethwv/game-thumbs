@@ -158,6 +158,7 @@ const leagues = {
         shortName: 'NCAAWH',
         aliases: ['women\'s college ice hockey', 'womens college ice hockey'],
         providerId: 'espn',
+        fallbackLeague: 'ncaah', // Fall back to men's hockey if team not found
         espnConfig: {
             espnSlug: 'womens-college-hockey',
             espnSport: 'hockey',
@@ -180,6 +181,7 @@ const leagues = {
         shortName: 'NCAAW',
         aliases: ['womens college basketball', 'womens-college-basketball', 'women\'s basketball'],
         providerId: 'espn',
+        fallbackLeague: 'ncaam', // Fall back to men's basketball if team not found
         espnConfig: {
             espnSlug: 'womens-college-basketball',
             espnSport: 'basketball',
@@ -201,6 +203,7 @@ const leagues = {
         shortName: 'NCAAWS',
         aliases: ['womens college soccer', 'women\'s college soccer'],
         providerId: 'espn',
+        fallbackLeague: 'ncaas', // Fall back to men's soccer if team not found
         espnConfig: {
             espnSlug: 'usa.ncaa.w.1',
             espnSport: 'soccer',

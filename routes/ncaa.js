@@ -27,7 +27,7 @@ module.exports = {
         };
 
         const leagueEntry = Object.entries(ncaaLeagueMap).find(([key, aliases]) => 
-            key === sport || aliases.includes(sport) || aliases.map(a => a.replace(/-/g, '')).includes(sport.replace(/-/g, ''))
+            key === sport || aliases.includes(sport) || aliases.map(a => a.replace(/[^a-z0-9]/gi, '').toLowerCase()).includes(sport.replace(/[^a-z0-9]/gi, '').toLowerCase())
         );
 
         if (!leagueEntry) {
