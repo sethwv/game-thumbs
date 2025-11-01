@@ -216,6 +216,124 @@ const leagues = {
             espnSport: 'soccer',
         },
     },
+
+
+    ncaabb: {
+        name: 'NCAA Baseball',
+        shortName: 'NCAABB',
+        aliases: ['college baseball', 'mens college baseball'],
+        providerId: 'espn',
+        fallbackLeague: 'ncaaf', // Fall back to football if team not found
+        logoUrl: 'https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/baseball.png',
+        espnConfig: {
+            espnSlug: 'college-baseball',
+            espnSport: 'baseball',
+        },
+    },
+    ncaasbw: {
+        name: 'NCAA Softball',
+        shortName: 'NCAASBW',
+        aliases: ['college softball', 'womens college softball', 'women\'s college softball'],
+        providerId: 'espn',
+        fallbackLeague: 'ncaaf', // Fall back to football if team not found
+        logoUrl: 'https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/softball.png',
+        espnConfig: {
+            espnSlug: 'college-softball',
+            espnSport: 'baseball',
+        },
+    },
+
+
+    ncaalax: {
+        name: 'NCAA Men\'s Lacrosse',
+        shortName: 'NCAALAX',
+        aliases: ['college lacrosse', 'mens college lacrosse', 'men\'s lacrosse'],
+        providerId: 'espn',
+        fallbackLeague: 'ncaaf', // Fall back to football if team not found
+        logoUrl: 'https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/lacrosse.png',
+        espnConfig: {
+            espnSlug: 'mens-college-lacrosse',
+            espnSport: 'lacrosse',
+        },
+    },
+    ncaawlax: {
+        name: 'NCAA Women\'s Lacrosse',
+        shortName: 'NCAAWLAX',
+        aliases: ['womens college lacrosse', 'women\'s college lacrosse', 'womens lacrosse'],
+        providerId: 'espn',
+        fallbackLeague: 'ncaaf', // Fall back to football if team not found
+        logoUrl: 'https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/lacrosse.png',
+        espnConfig: {
+            espnSlug: 'womens-college-lacrosse',
+            espnSport: 'lacrosse',
+        },
+    },
+
+
+    ncaavb: {
+        name: 'NCAA Men\'s Volleyball',
+        shortName: 'NCAAVB',
+        aliases: ['college volleyball', 'mens college volleyball', 'men\'s volleyball'],
+        providerId: 'espn',
+        fallbackLeague: 'ncaaf', // Fall back to football if team not found
+        logoUrl: 'https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/volleyball.png',
+        espnConfig: {
+            espnSlug: 'mens-college-volleyball',
+            espnSport: 'volleyball',
+        },
+    },
+    ncaawvb: {
+        name: 'NCAA Women\'s Volleyball',
+        shortName: 'NCAAWVB',
+        aliases: ['womens college volleyball', 'women\'s college volleyball', 'womens volleyball'],
+        providerId: 'espn',
+        fallbackLeague: 'ncaaf', // Fall back to football if team not found
+        logoUrl: 'https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/volleyball.png',
+        espnConfig: {
+            espnSlug: 'womens-college-volleyball',
+            espnSport: 'volleyball',
+        },
+    },
+
+
+    ncaawp: {
+        name: 'NCAA Men\'s Water Polo',
+        shortName: 'NCAAWP',
+        aliases: ['college water polo', 'mens college water polo', 'men\'s water polo'],
+        providerId: 'espn',
+        fallbackLeague: 'ncaaf', // Fall back to football if team not found
+        logoUrl: 'https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/waterpolo.png',
+        espnConfig: {
+            espnSlug: 'mens-college-water-polo',
+            espnSport: 'water-polo',
+        },
+    },
+    ncaawwp: {
+        name: 'NCAA Women\'s Water Polo',
+        shortName: 'NCAAWWP',
+        aliases: ['womens college water polo', 'women\'s college water polo', 'womens water polo'],
+        providerId: 'espn',
+        fallbackLeague: 'ncaaf', // Fall back to football if team not found
+        logoUrl: 'https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/waterpolo.png',
+        espnConfig: {
+            espnSlug: 'womens-college-water-polo',
+            espnSport: 'water-polo',
+        },
+    },
+
+
+    ncaawfh: {
+        name: 'NCAA Women\'s Field Hockey',
+        shortName: 'NCAAWFH',
+        aliases: ['womens college field hockey', 'women\'s college field hockey', 'womens field hockey', 'field hockey'],
+        providerId: 'espn',
+        fallbackLeague: 'ncaaf', // Fall back to football if team not found
+        logoUrl: 'https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/fieldhockey.png',
+        espnConfig: {
+            espnSlug: 'womens-college-field-hockey',
+            espnSport: 'field-hockey',
+        },
+    },
 };
 
 // ------------------------------------------------------------------------------

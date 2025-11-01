@@ -18,12 +18,21 @@ module.exports = {
         const ncaaLeagueMap = {
             ncaaf: ['football', 'footballm'],
             ncaah: ['hockey', 'ice-hockey', 'hockeym', 'ice-hockeym'],
-            ncaab: ['basketball', 'basketballm', 'march-madness'],
+            ncaam: ['basketball', 'basketballm', 'march-madness'],
             ncaas: ['soccer', 'soccerm'],
+            ncaabb: ['baseball', 'baseballm'],
+            ncaalax: ['lacrosse', 'lacrossem', 'mens-lacrosse'],
+            ncaavb: ['volleyball', 'volleyballm', 'mens-volleyball'],
+            ncaawp: ['water-polo', 'waterpolo', 'waterpolom', 'mens-water-polo'],
 
             ncaawh: ['womens-hockey', 'hockeyw', 'ice-hockeyw', 'womens-college-hockey'],
             ncaaw: ['womens-basketball', 'basketballw', 'womens-college-basketball'],
             ncaaws: ['womens-soccer', 'soccerw', 'womens-college-soccer'],
+            ncaasbw: ['softball', 'softballw', 'womens-softball'],
+            ncaawlax: ['womens-lacrosse', 'lacrossew', 'womens-college-lacrosse'],
+            ncaawvb: ['womens-volleyball', 'volleyballw', 'womens-college-volleyball'],
+            ncaawwp: ['womens-water-polo', 'waterpolow', 'womens-college-water-polo'],
+            ncaawfh: ['field-hockey', 'fieldhockey', 'womens-field-hockey', 'womens-college-field-hockey'],
         };
 
         const leagueEntry = Object.entries(ncaaLeagueMap).find(([key, aliases]) => 

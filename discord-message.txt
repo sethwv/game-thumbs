@@ -1,0 +1,56 @@
+**NCAA Sports Endpoint Update**
+
+Just pushed an update expanding NCAA sports coverage from 4 to 16 sports.
+
+**What's New:**
+Added `/ncaa/{sport}/{teamA}/{teamB}` endpoint with sport-friendly aliases instead of having to remember league codes like `ncaaf` or `ncaam`.
+
+All NCAA sports now display proper sport-specific logos (sourced from NCAA.com) instead of generic ESPN branding.
+
+**Endpoint Format:**
+```
+/ncaa/{sport}/{teamA}/{teamB}/thumb
+/ncaa/{sport}/{teamA}/{teamB}/cover
+/ncaa/{sport}/{teamA}/{teamB}/logo
+```
+
+**Supported Sports:**
+
+Men's Sports:
+- Football: `football`, `footballm`
+- Basketball: `basketball`, `basketballm`, `march-madness`
+- Ice Hockey: `hockey`, `ice-hockey`, `hockeym`
+- Soccer: `soccer`, `soccerm`
+- Baseball: `baseball`, `baseballm`
+- Lacrosse: `lacrosse`, `lacrossem`, `mens-lacrosse`
+- Volleyball: `volleyball`, `volleyballm`, `mens-volleyball`
+- Water Polo: `water-polo`, `waterpolo`, `waterpolom`
+
+Women's Sports:
+- Basketball: `womens-basketball`, `basketballw`
+- Ice Hockey: `womens-hockey`, `hockeyw`
+- Soccer: `womens-soccer`, `soccerw`
+- Softball: `softball`, `softballw`
+- Lacrosse: `womens-lacrosse`, `lacrossew`
+- Volleyball: `womens-volleyball`, `volleyballw`
+- Water Polo: `womens-water-polo`, `waterpolow`
+- Field Hockey: `field-hockey`, `fieldhockey`
+
+**Examples:**
+
+March Madness:
+https://game-thumbs.swvn.io/ncaa/march-madness/duke/north-carolina/thumb
+
+College Football:
+https://game-thumbs.swvn.io/ncaa/football/michigan/ohio-state/cover
+
+Women's Basketball:
+https://game-thumbs.swvn.io/ncaa/womens-basketball/uconn/south-carolina/thumb
+
+College Baseball:
+https://game-thumbs.swvn.io/ncaa/baseball/lsu/vanderbilt/logo
+
+Softball:
+https://game-thumbs.swvn.io/ncaa/softball/oklahoma/texas/thumb?style=2
+
+**Note:** Women's sports will automatically fall back to checking the men's equivalent if a team isn't found in that sport's data.

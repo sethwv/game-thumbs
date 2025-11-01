@@ -274,7 +274,7 @@ async function generateGradient(teamA, teamB, width, height, league, orientation
             const leagueLogoSize = Math.min(width, height) * 0.25;
             const leagueLogoX = (width - leagueLogoSize) / 2;
             const leagueLogoY = (height - leagueLogoSize) / 2;
-            drawLogoWithShadow(ctx, leagueLogo, leagueLogoX, leagueLogoY, leagueLogoSize);
+            drawLogoMaintainAspect(ctx, leagueLogo, leagueLogoX, leagueLogoY, leagueLogoSize);
         } catch (error) {
             console.error('Error loading league logo:', error.message);
         }
