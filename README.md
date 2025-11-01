@@ -20,21 +20,31 @@ A simple API that generates and serves various sports matchup thumbnails and log
 
 ```bash
 # Latest stable version
+# (This is usually fairly behind)
 docker pull ghcr.io/sethwv/game-thumbs:latest
 
 # Development version
 docker pull ghcr.io/sethwv/game-thumbs:dev
 ```
 
-### Run the Container
+### Environment Variables
 
-```bash
-# Run on default port 3000
-docker run -p 3000:3000 ghcr.io/sethwv/game-thumbs:latest
+You can configure the server behavior using environment variables:
 
-# Run on custom port
-docker run -p 8080:3000 ghcr.io/sethwv/game-thumbs:latest
-```
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `PORT` | Server port | `3000` |
+| `IMAGE_CACHE_HOURS` | How long to cache generated images (in hours). Set to `0` to disable caching. | `24` |
+| `RATE_LIMIT_PER_MINUTE` | Maximum image generation requests per minute per IP. Set to `0` to disable rate limiting. | `30` |
+| `TRUST_PROXY` | Number of proxy hops to trust for rate limiting (0 for local dev, 1+ for production behind proxies). | `2` |
+| `SHOW_TIMESTAMP` | Whether to show timestamps in logs. Set to `false` to hide timestamps. | `false` |
+
+**Notes:**
+- When `IMAGE_CACHE_HOURS=0`, every request generates a new image (useful for testing)
+- When `RATE_LIMIT_PER_MINUTE=0`, there are no request limits (use with caution)
+- Set `TRUST_PROXY` to the number of proxies between the internet and your app for accurate IP detection
+- Rate limiting only applies to uncached requests; cached images are served without limits
+- General API endpoints (like `/raw`) have 3x the image generation rate limit
 
 ## API Endpoints
 

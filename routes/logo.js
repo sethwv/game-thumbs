@@ -6,6 +6,7 @@
 const providerManager = require('../providers/ProviderManager');
 const { generateLogo } = require('../helpers/logoGenerator');
 const { findLeague } = require('../leagues');
+const logger = require('../helpers/logger');
 
 
 module.exports = {
@@ -35,6 +36,11 @@ module.exports = {
         try {
             const leagueObj = findLeague(league);
             if (!leagueObj) {
+                logger.warn('Unsupported league requested', {
+                    League: league,
+                    URL: req.url,
+                    IP: req.ip
+                });
                 return res.status(400).json({ error: `Unsupported league: ${league}` });
             }
 
@@ -61,14 +67,24 @@ module.exports = {
             try {
                 require('../helpers/imageCache').addToCache(req, res, logoBuffer);
             } catch (cacheError) {
-                console.error('Failed to cache image:', cacheError);
+                logger.error('Failed to cache image', {
+                    Error: cacheError.message,
+                    URL: req.url
+                });
             }
         } catch (error) {
+            logger.error('Logo generation failed', {
+                Error: error.message,
+                League: league,
+                Teams: `${team1} vs ${team2}`,
+                URL: req.url,
+                IP: req.ip,
+                Stack: error.stack
+            });
+            
             // Only send error response if headers haven't been sent yet
             if (!res.headersSent) {
                 res.status(400).json({ error: error.message });
-            } else {
-                console.error('Error after headers sent:', error);
             }
         }
     }

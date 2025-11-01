@@ -6,6 +6,7 @@
 const providerManager = require('../providers/ProviderManager');
 const { generateCover } = require('../helpers/thumbnailGenerator');
 const { findLeague } = require('../leagues');
+const logger = require('../helpers/logger');
 
 module.exports = {
     paths: [
@@ -40,6 +41,11 @@ module.exports = {
         );
 
         if (!leagueEntry) {
+            logger.warn('Unsupported NCAA sport requested', {
+                Sport: sport,
+                URL: req.url,
+                IP: req.ip
+            });
             return res.status(400).json({ error: `Unsupported NCAA sport: ${sport}` });
         }
 
@@ -62,6 +68,12 @@ module.exports = {
             case 'thumb.png':
                 return require('./thumb').handler(req, res);
             default:
+                logger.warn('Unsupported NCAA endpoint type', {
+                    Type: type,
+                    Sport: sport,
+                    URL: req.url,
+                    IP: req.ip
+                });
                 return res.status(400).json({ error: `Unsupported type: ${type}` });
         }
     }

@@ -31,8 +31,11 @@ RUN mkdir -p .cache
 # Expose port
 EXPOSE 3000
 
-# Set environment variables
+# Set environment variables with defaults
 ENV PORT=3000
+ENV IMAGE_CACHE_HOURS=24
+ENV RATE_LIMIT_PER_MINUTE=30
+ENV FORCE_COLOR=1
 
 # Start the application
 CMD ["node", "index.js"]

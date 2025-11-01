@@ -6,6 +6,8 @@ function findLeague(identifier) {
     if (!identifier) return null;
     
     const searchTerm = (identifier?.shortName ?? identifier).toLowerCase();
+    // Normalize by removing non-alphanumeric characters for flexible matching
+    const normalizedSearch = searchTerm.replace(/[^a-z0-9]/g, '');
     
     for (const key in leagues) {
         const league = leagues[key];
@@ -26,7 +28,10 @@ function findLeague(identifier) {
         }
         
         // Match by common aliases (provider-agnostic)
-        if (league.aliases && league.aliases.some(alias => alias.toLowerCase() === searchTerm)) {
+        // Compare normalized versions (without special characters)
+        if (league.aliases && league.aliases.some(alias => 
+            alias.toLowerCase().replace(/[^a-z0-9]/g, '') === normalizedSearch
+        )) {
             return league;
         }
     }
@@ -134,7 +139,7 @@ const leagues = {
     ncaaf: {
         name: 'NCAA Football',
         shortName: 'NCAAF',
-        aliases: ['college football', 'college-football', 'ncaa football'],
+        aliases: ['college football', 'ncaa football'],
         providerId: 'espn',
         logoUrl: 'https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/football.png',
         espnConfig: {
@@ -158,7 +163,7 @@ const leagues = {
     ncaawh: {
         name: 'NCAA Women\'s Ice Hockey',
         shortName: 'NCAAWH',
-        aliases: ['women\'s college ice hockey', 'womens college ice hockey'],
+        aliases: ['womens college ice hockey'],
         providerId: 'espn',
         fallbackLeague: 'ncaah', // Fall back to men's hockey if team not found
         logoUrl: 'https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/icehockey.png',
@@ -172,7 +177,7 @@ const leagues = {
     ncaam: {
         name: 'NCAA Men\'s Basketball',
         shortName: 'NCAAM',
-        aliases: ['college basketball', 'mens college basketball', 'mens-college-basketball', 'march madness'],
+        aliases: ['college basketball', 'mens college basketball', 'march madness'],
         providerId: 'espn',
         logoUrl: 'https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/basketball.png',
         espnConfig: {
@@ -183,7 +188,7 @@ const leagues = {
     ncaaw: {
         name: 'NCAA Women\'s Basketball',
         shortName: 'NCAAW',
-        aliases: ['womens college basketball', 'womens-college-basketball', 'women\'s basketball'],
+        aliases: ['womens college basketball', 'womens basketball'],
         providerId: 'espn',
         fallbackLeague: 'ncaam', // Fall back to men's basketball if team not found
         logoUrl: 'https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/basketball.png',
@@ -196,7 +201,7 @@ const leagues = {
     ncaas: {
         name: 'NCAA Soccer',
         shortName: 'NCAAS',
-        aliases: ['college soccer', 'mens-college-soccer', 'womens-college-soccer'],
+        aliases: ['college soccer', 'mens college soccer'],
         providerId: 'espn',
         logoUrl: 'https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/soccer.png',
         espnConfig: {
@@ -207,7 +212,7 @@ const leagues = {
     ncaaws: {
         name: 'NCAA Women\'s Soccer',
         shortName: 'NCAAWS',
-        aliases: ['womens college soccer', 'women\'s college soccer'],
+        aliases: ['womens college soccer'],
         providerId: 'espn',
         fallbackLeague: 'ncaas', // Fall back to men's soccer if team not found
         logoUrl: 'https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/soccer.png',
@@ -233,7 +238,7 @@ const leagues = {
     ncaasbw: {
         name: 'NCAA Softball',
         shortName: 'NCAASBW',
-        aliases: ['college softball', 'womens college softball', 'women\'s college softball'],
+        aliases: ['college softball', 'womens college softball'],
         providerId: 'espn',
         fallbackLeague: 'ncaaf', // Fall back to football if team not found
         logoUrl: 'https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/softball.png',
@@ -247,7 +252,7 @@ const leagues = {
     ncaalax: {
         name: 'NCAA Men\'s Lacrosse',
         shortName: 'NCAALAX',
-        aliases: ['college lacrosse', 'mens college lacrosse', 'men\'s lacrosse'],
+        aliases: ['college lacrosse', 'mens college lacrosse', 'mens lacrosse'],
         providerId: 'espn',
         fallbackLeague: 'ncaaf', // Fall back to football if team not found
         logoUrl: 'https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/lacrosse.png',
@@ -259,7 +264,7 @@ const leagues = {
     ncaawlax: {
         name: 'NCAA Women\'s Lacrosse',
         shortName: 'NCAAWLAX',
-        aliases: ['womens college lacrosse', 'women\'s college lacrosse', 'womens lacrosse'],
+        aliases: ['womens college lacrosse', 'womens lacrosse'],
         providerId: 'espn',
         fallbackLeague: 'ncaaf', // Fall back to football if team not found
         logoUrl: 'https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/lacrosse.png',
@@ -273,7 +278,7 @@ const leagues = {
     ncaavb: {
         name: 'NCAA Men\'s Volleyball',
         shortName: 'NCAAVB',
-        aliases: ['college volleyball', 'mens college volleyball', 'men\'s volleyball'],
+        aliases: ['college volleyball', 'mens college volleyball', 'mens volleyball'],
         providerId: 'espn',
         fallbackLeague: 'ncaaf', // Fall back to football if team not found
         logoUrl: 'https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/volleyball.png',
@@ -285,7 +290,7 @@ const leagues = {
     ncaawvb: {
         name: 'NCAA Women\'s Volleyball',
         shortName: 'NCAAWVB',
-        aliases: ['womens college volleyball', 'women\'s college volleyball', 'womens volleyball'],
+        aliases: ['womens college volleyball', 'womens volleyball'],
         providerId: 'espn',
         fallbackLeague: 'ncaaf', // Fall back to football if team not found
         logoUrl: 'https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/volleyball.png',
@@ -299,7 +304,7 @@ const leagues = {
     ncaawp: {
         name: 'NCAA Men\'s Water Polo',
         shortName: 'NCAAWP',
-        aliases: ['college water polo', 'mens college water polo', 'men\'s water polo'],
+        aliases: ['college water polo', 'mens college water polo', 'mens water polo'],
         providerId: 'espn',
         fallbackLeague: 'ncaaf', // Fall back to football if team not found
         logoUrl: 'https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/waterpolo.png',
@@ -311,7 +316,7 @@ const leagues = {
     ncaawwp: {
         name: 'NCAA Women\'s Water Polo',
         shortName: 'NCAAWWP',
-        aliases: ['womens college water polo', 'women\'s college water polo', 'womens water polo'],
+        aliases: ['womens college water polo', 'womens water polo'],
         providerId: 'espn',
         fallbackLeague: 'ncaaf', // Fall back to football if team not found
         logoUrl: 'https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/waterpolo.png',
@@ -325,7 +330,7 @@ const leagues = {
     ncaawfh: {
         name: 'NCAA Women\'s Field Hockey',
         shortName: 'NCAAWFH',
-        aliases: ['womens college field hockey', 'women\'s college field hockey', 'womens field hockey', 'field hockey'],
+        aliases: ['womens college field hockey', 'womens field hockey', 'field hockey'],
         providerId: 'espn',
         fallbackLeague: 'ncaaf', // Fall back to football if team not found
         logoUrl: 'https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/fieldhockey.png',

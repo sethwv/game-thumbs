@@ -7,16 +7,28 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const logger = require('./logger');
 
 const CACHE_DIR = path.join(__dirname, '..', '.cache');
+
+// Get cache duration from environment variable (in hours), default to 24 hours
+// Set to 0 to disable caching
+const CACHE_HOURS = parseInt(process.env.IMAGE_CACHE_HOURS || '24', 10);
+const CACHE_ENABLED = CACHE_HOURS > 0;
+
+logger.info(`Image cache: ${CACHE_ENABLED ? `enabled (${CACHE_HOURS} hours)` : 'disabled'}`);
 
 // Ensure cache directory exists, clear it on startup
 if (!fs.existsSync(CACHE_DIR)) {
     fs.mkdirSync(CACHE_DIR);
 } else {
-    fs.readdirSync(CACHE_DIR).forEach(file => {
+    const files = fs.readdirSync(CACHE_DIR);
+    files.forEach(file => {
         fs.unlinkSync(path.join(CACHE_DIR, file));
     });
+    if (files.length > 0) {
+        logger.info(`Cleared ${files.length} cached image(s) from previous session`);
+    }
 }
 
 module.exports = { checkCacheMiddleware, addToCache, getCachedImage };
@@ -29,6 +41,11 @@ const urlToChecksumMap = new Map();
 // Add a file to cache based on image data checksum
 // this is not a middleware function
 function addToCache(req, res, body) {
+    // Skip caching if disabled
+    if (!CACHE_ENABLED) {
+        return;
+    }
+    
     // Generate checksum from image data
     const imageChecksum = crypto.createHash('md5').update(body).digest('hex');
     const cachePath = path.join(CACHE_DIR, imageChecksum + '.png');
@@ -39,9 +56,10 @@ function addToCache(req, res, body) {
     // Only write if file doesn't exist (avoid duplicate work)
     if (!fs.existsSync(cachePath)) {
         fs.writeFileSync(cachePath, body);
-        console.log(`Cached new image with checksum: ${imageChecksum}`);
-    } else {
-        console.log(`Image already cached with checksum: ${imageChecksum}`);
+        logger.cache('New image cached', {
+            Checksum: imageChecksum,
+            URL: req.originalUrl
+        });
     }
 }
 
@@ -63,10 +81,16 @@ function getCachedImage(url) {
 // Check if image exists in cache
 // this is a middleware function
 function checkCacheMiddleware(req, res, next) {
+    // Skip cache check if caching is disabled
+    if (!CACHE_ENABLED) {
+        return next();
+    }
+    
     // Check for expired cache files and delete them
-    const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+    const maxAge = CACHE_HOURS * 60 * 60 * 1000; // Convert hours to milliseconds
     const files = fs.readdirSync(CACHE_DIR);
     const now = Date.now();
+    let expiredCount = 0;
     
     files.forEach(file => {
         const filePath = path.join(CACHE_DIR, file);
@@ -74,8 +98,8 @@ function checkCacheMiddleware(req, res, next) {
         const fileAge = now - stats.mtimeMs;
         
         if (fileAge > maxAge) {
-            console.log(`Deleting expired cache file: ${file}`);
             fs.unlinkSync(filePath);
+            expiredCount++;
             
             // Clean up URL mappings that point to this checksum
             const checksum = file.replace('.png', '');
@@ -87,11 +111,15 @@ function checkCacheMiddleware(req, res, next) {
         }
     });
     
+    if (expiredCount > 0) {
+        logger.cache(`Deleted ${expiredCount} expired image(s)`);
+    }
+    
     // Check for cached image
     const cachedImage = getCachedImage(req.originalUrl);
     
     if (cachedImage) {
-        console.log(`Serving cached image for ${req.originalUrl}`);
+        logger.request(req, true);
         res.set('Content-Type', 'image/png');
         return res.send(cachedImage);
     } else {
