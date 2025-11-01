@@ -6,7 +6,7 @@ A simple API that generates and serves various sports matchup thumbnails and log
 
 ## Features
 
--- 🏀 **Multi-Sport Support**: NBA, WNBA, NFL, UFL, MLB, NHL, EPL, MLS, UEFA Champions League, NCAA Football, NCAA Men's Basketball, NCAA Women's Basketball
+- 🏀 **Multi-Sport Support**: NBA, WNBA, NFL, UFL, MLB, NHL, EPL, MLS, UEFA Champions League, NCAA Football, NCAA Men's Basketball, NCAA Women's Basketball, NCAA Ice Hockey (Men's & Women's), NCAA Soccer (Men's & Women's)
 - 🎨 **Dynamic Generation**: Creates thumbnails and logos on-the-fly with team colors and branding
 - 🖼️ **Multiple Styles**: Choose from different visual styles for logos and thumbnails
 - 💾 **Smart Caching**: Automatically caches generated images for 24 hours
@@ -62,6 +62,49 @@ The API provides three types of image generation for sports matchups:
 | NCAA Football                    | ncaaf                |
 | NCAA Men's Basketball            | ncaam                |
 | NCAA Women's Basketball          | ncaaw                |
+| NCAA Ice Hockey (Men's)          | ncaah                |
+| NCAA Ice Hockey (Women's)        | ncaawh               |
+| NCAA Soccer (Men's)              | ncaas                |
+| NCAA Soccer (Women's)            | ncaaws               |
+
+---
+
+### NCAA Shorthand Route
+
+**Endpoint:** `/ncaa/:sport/:team1/:team2/:type`
+
+A convenience endpoint for NCAA sports that uses sport names instead of league codes.
+
+**Parameters:**
+- `sport` - NCAA sport identifier (see table below)
+- `team1` - First team (name, city, or abbreviation)
+- `team2` - Second team (name, city, or abbreviation)
+- `type` - Image type: `thumb`, `cover`, or `logo` (`.png` extension optional)
+
+**Supported NCAA Sports:**
+
+| Sport Parameter | Aliases | Maps to League |
+|----------------|---------|----------------|
+| `ncaaf` | `football`, `footballm` | ncaaf |
+| `ncaah` | `hockey`, `ice-hockey`, `hockeym`, `ice-hockeym` | ncaah |
+| `ncaab` | `basketball`, `basketballm`, `march-madness` | ncaam |
+| `ncaas` | `soccer`, `soccerm` | ncaas |
+| `ncaawh` | `womens-hockey`, `hockeyw`, `womens-college-hockey` | ncaawh |
+| `ncaaw` | `womens-basketball`, `basketballw`, `womens-college-basketball` | ncaaw |
+| `ncaaws` | `womens-soccer`, `soccerw`, `womens-college-soccer` | ncaaws |
+
+**Examples:**
+```
+GET /ncaa/football/alabama/georgia/thumb
+GET /ncaa/basketball/duke/unc/cover
+GET /ncaa/hockey/minnesota/wisconsin/logo
+GET /ncaa/womens-basketball/uconn/south-carolina/thumb?style=2
+GET /ncaa/womens-hockey/wisconsin/minnesota/cover
+GET /ncaa/soccer/indiana/maryland/thumb
+GET /ncaa/womens-soccer/stanford/ucla/logo
+```
+
+**Note:** This endpoint forwards to the standard league endpoints, so all query parameters (`style`, `logo`, `size`, etc.) work the same way.
 
 ---
 
@@ -207,7 +250,12 @@ All team data is fetched dynamically from **ESPN's public APIs**:
 - MLB: `https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/teams`
 - NHL: `https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/teams`
 - NCAA Football: `https://site.api.espn.com/apis/site/v2/sports/football/college-football/teams`
-- NCAA Basketball: `https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/teams`
+- NCAA Men's Basketball: `https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/teams`
+- NCAA Women's Basketball: `https://site.api.espn.com/apis/site/v2/sports/basketball/womens-college-basketball/teams`
+- NCAA Ice Hockey (Men's): `https://site.api.espn.com/apis/site/v2/sports/hockey/mens-college-hockey/teams`
+- NCAA Ice Hockey (Women's): `https://site.api.espn.com/apis/site/v2/sports/hockey/womens-college-hockey/teams`
+- NCAA Soccer (Men's): `https://site.api.espn.com/apis/site/v2/sports/soccer/usa.ncaa.m.1/teams`
+- NCAA Soccer (Women's): `https://site.api.espn.com/apis/site/v2/sports/soccer/usa.ncaa.w.1/teams`
 
 ### League Logos
 - ESPN CDN: `https://a.espncdn.com/i/teamlogos/leagues/500/{league}.png`

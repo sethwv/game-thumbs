@@ -21,10 +21,12 @@ class ESPNProvider extends BaseProvider {
     }
 
     getSupportedLeagues() {
-        return [
-            'nba', 'wnba', 'nfl', 'ufl', 'mlb', 'nhl', 
-            'epl', 'mls', 'uefa', 'ncaaf', 'ncaam', 'ncaaw'
-        ];
+        // return [
+        //     'nba', 'wnba', 'nfl', 'ufl', 'mlb', 'nhl', 
+        //     'epl', 'mls', 'uefa', 'ncaaf', 'ncaam', 'ncaaw'
+        // ];
+        const { leagues } = require('../leagues');
+        return Object.keys(leagues).filter(key => leagues[key].providerId === this.getProviderId());
     }
 
     async resolveTeam(league, teamIdentifier) {

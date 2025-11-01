@@ -66,16 +66,6 @@ const leagues = {
             espnSport: 'football',
         },
     },
-    // Does not have images on ESPN
-    // cfl: {
-    //     name: 'Canadian Football League',
-    //     shortName: 'CFL',
-    //     providerId: 'espn',
-    //     espnConfig: {
-    //         espnSlug: 'cfl',
-    //         espnSport: 'football',
-    //     },
-    // },
     ufl: {
         name: 'United Football League',
         shortName: 'UFL',
@@ -153,6 +143,28 @@ const leagues = {
     },
 
 
+    ncaah: {
+        name: 'NCAA Ice Hockey',
+        shortName: 'NCAAH',
+        aliases: ['college ice hockey', 'mens college ice hockey'],
+        providerId: 'espn',
+        espnConfig: {
+            espnSlug: 'mens-college-hockey',
+            espnSport: 'hockey',
+        },
+    },
+    ncaawh: {
+        name: 'NCAA Women\'s Ice Hockey',
+        shortName: 'NCAAWH',
+        aliases: ['women\'s college ice hockey', 'womens college ice hockey'],
+        providerId: 'espn',
+        espnConfig: {
+            espnSlug: 'womens-college-hockey',
+            espnSport: 'hockey',
+        },
+    },
+
+
     ncaam: {
         name: 'NCAA Men\'s Basketball',
         shortName: 'NCAAM',
@@ -172,8 +184,29 @@ const leagues = {
             espnSlug: 'womens-college-basketball',
             espnSport: 'basketball',
         },
-    }
-}
+    },
+
+    ncaas: {
+        name: 'NCAA Soccer',
+        shortName: 'NCAAS',
+        aliases: ['college soccer', 'mens-college-soccer', 'womens-college-soccer'],
+        providerId: 'espn',
+        espnConfig: {
+            espnSlug: 'usa.ncaa.m.1',
+            espnSport: 'soccer',
+        },
+    },
+    ncaaws: {
+        name: 'NCAA Women\'s Soccer',
+        shortName: 'NCAAWS',
+        aliases: ['womens college soccer', 'women\'s college soccer'],
+        providerId: 'espn',
+        espnConfig: {
+            espnSlug: 'usa.ncaa.w.1',
+            espnSport: 'soccer',
+        },
+    },
+};
 
 // ------------------------------------------------------------------------------
 
