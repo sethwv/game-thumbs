@@ -158,7 +158,25 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league, useLig
             ctx.shadowOffsetX = 3;
             ctx.shadowOffsetY = 3;
             
-            ctx.drawImage(leagueLogo, leagueLogoX, leagueLogoY, leagueLogoSize, leagueLogoSize);
+            // Calculate dimensions maintaining aspect ratio
+            const aspectRatio = leagueLogo.width / leagueLogo.height;
+            let drawWidth, drawHeight;
+            
+            if (aspectRatio > 1) {
+                // Wider than tall
+                drawWidth = leagueLogoSize;
+                drawHeight = leagueLogoSize / aspectRatio;
+            } else {
+                // Taller than wide or square
+                drawHeight = leagueLogoSize;
+                drawWidth = leagueLogoSize * aspectRatio;
+            }
+            
+            // Adjust position to maintain centering
+            const adjustedX = leagueLogoX + (leagueLogoSize - drawWidth) / 2;
+            const adjustedY = leagueLogoY + (leagueLogoSize - drawHeight) / 2;
+            
+            ctx.drawImage(leagueLogo, adjustedX, adjustedY, drawWidth, drawHeight);
             
             ctx.restore();
         } catch (error) {
@@ -243,7 +261,25 @@ async function generateSideBySide(teamA, teamB, width, height, league, useLight)
             ctx.shadowOffsetX = 3;
             ctx.shadowOffsetY = 3;
             
-            ctx.drawImage(leagueLogo, leagueLogoX, leagueLogoY, leagueLogoSize, leagueLogoSize);
+            // Calculate dimensions maintaining aspect ratio
+            const aspectRatio = leagueLogo.width / leagueLogo.height;
+            let drawWidth, drawHeight;
+            
+            if (aspectRatio > 1) {
+                // Wider than tall
+                drawWidth = leagueLogoSize;
+                drawHeight = leagueLogoSize / aspectRatio;
+            } else {
+                // Taller than wide or square
+                drawHeight = leagueLogoSize;
+                drawWidth = leagueLogoSize * aspectRatio;
+            }
+            
+            // Adjust position to maintain centering
+            const adjustedX = leagueLogoX + (leagueLogoSize - drawWidth) / 2;
+            const adjustedY = leagueLogoY + (leagueLogoSize - drawHeight) / 2;
+            
+            ctx.drawImage(leagueLogo, adjustedX, adjustedY, drawWidth, drawHeight);
             
             ctx.restore();
         } catch (error) {
@@ -354,7 +390,25 @@ async function generateCircleBadges(teamA, teamB, width, height, league, useLigh
             ctx.shadowOffsetX = 3;
             ctx.shadowOffsetY = 3;
             
-            ctx.drawImage(leagueLogo, leagueLogoX, leagueLogoY, leagueLogoSize, leagueLogoSize);
+            // Calculate dimensions maintaining aspect ratio
+            const aspectRatio = leagueLogo.width / leagueLogo.height;
+            let drawWidth, drawHeight;
+            
+            if (aspectRatio > 1) {
+                // Wider than tall
+                drawWidth = leagueLogoSize;
+                drawHeight = leagueLogoSize / aspectRatio;
+            } else {
+                // Taller than wide or square
+                drawHeight = leagueLogoSize;
+                drawWidth = leagueLogoSize * aspectRatio;
+            }
+            
+            // Adjust position to maintain centering
+            const adjustedX = leagueLogoX + (leagueLogoSize - drawWidth) / 2;
+            const adjustedY = leagueLogoY + (leagueLogoSize - drawHeight) / 2;
+            
+            ctx.drawImage(leagueLogo, adjustedX, adjustedY, drawWidth, drawHeight);
             
             ctx.restore();
         } catch (error) {
@@ -453,7 +507,25 @@ async function generateSquareBadges(teamA, teamB, width, height, league, useLigh
             ctx.shadowOffsetX = 3;
             ctx.shadowOffsetY = 3;
             
-            ctx.drawImage(leagueLogo, leagueLogoX, leagueLogoY, leagueLogoSize, leagueLogoSize);
+            // Calculate dimensions maintaining aspect ratio
+            const aspectRatio = leagueLogo.width / leagueLogo.height;
+            let drawWidth, drawHeight;
+            
+            if (aspectRatio > 1) {
+                // Wider than tall
+                drawWidth = leagueLogoSize;
+                drawHeight = leagueLogoSize / aspectRatio;
+            } else {
+                // Taller than wide or square
+                drawHeight = leagueLogoSize;
+                drawWidth = leagueLogoSize * aspectRatio;
+            }
+            
+            // Adjust position to maintain centering
+            const adjustedX = leagueLogoX + (leagueLogoSize - drawWidth) / 2;
+            const adjustedY = leagueLogoY + (leagueLogoSize - drawHeight) / 2;
+            
+            ctx.drawImage(leagueLogo, adjustedX, adjustedY, drawWidth, drawHeight);
             
             ctx.restore();
         } catch (error) {

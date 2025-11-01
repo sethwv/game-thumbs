@@ -136,6 +136,7 @@ const leagues = {
         shortName: 'NCAAF',
         aliases: ['college football', 'college-football', 'ncaa football'],
         providerId: 'espn',
+        logoUrl: 'https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/football.png',
         espnConfig: {
             espnSlug: 'college-football',
             espnSport: 'football',
@@ -148,6 +149,7 @@ const leagues = {
         shortName: 'NCAAH',
         aliases: ['college ice hockey', 'mens college ice hockey'],
         providerId: 'espn',
+        logoUrl: 'https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/icehockey.png',
         espnConfig: {
             espnSlug: 'mens-college-hockey',
             espnSport: 'hockey',
@@ -159,6 +161,7 @@ const leagues = {
         aliases: ['women\'s college ice hockey', 'womens college ice hockey'],
         providerId: 'espn',
         fallbackLeague: 'ncaah', // Fall back to men's hockey if team not found
+        logoUrl: 'https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/icehockey.png',
         espnConfig: {
             espnSlug: 'womens-college-hockey',
             espnSport: 'hockey',
@@ -171,6 +174,7 @@ const leagues = {
         shortName: 'NCAAM',
         aliases: ['college basketball', 'mens college basketball', 'mens-college-basketball', 'march madness'],
         providerId: 'espn',
+        logoUrl: 'https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/basketball.png',
         espnConfig: {
             espnSlug: 'mens-college-basketball',
             espnSport: 'basketball',
@@ -182,6 +186,7 @@ const leagues = {
         aliases: ['womens college basketball', 'womens-college-basketball', 'women\'s basketball'],
         providerId: 'espn',
         fallbackLeague: 'ncaam', // Fall back to men's basketball if team not found
+        logoUrl: 'https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/basketball.png',
         espnConfig: {
             espnSlug: 'womens-college-basketball',
             espnSport: 'basketball',
@@ -193,6 +198,7 @@ const leagues = {
         shortName: 'NCAAS',
         aliases: ['college soccer', 'mens-college-soccer', 'womens-college-soccer'],
         providerId: 'espn',
+        logoUrl: 'https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/soccer.png',
         espnConfig: {
             espnSlug: 'usa.ncaa.m.1',
             espnSport: 'soccer',
@@ -204,6 +210,7 @@ const leagues = {
         aliases: ['womens college soccer', 'women\'s college soccer'],
         providerId: 'espn',
         fallbackLeague: 'ncaas', // Fall back to men's soccer if team not found
+        logoUrl: 'https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/soccer.png',
         espnConfig: {
             espnSlug: 'usa.ncaa.w.1',
             espnSport: 'soccer',

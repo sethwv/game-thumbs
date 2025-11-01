@@ -31,6 +31,7 @@ module.exports = {
     // Drawing functions
     drawLogoWithShadow,
     drawLogoWithOutline,
+    drawLogoMaintainAspect,
     hasLightOutline,
 
     // Image utilities
@@ -58,6 +59,40 @@ function drawLogoWithShadow(ctx, logoImage, x, y, size) {
     ctx.shadowOffsetY = 5;
 
     ctx.drawImage(logoImage, x, y, size, size);
+
+    // Reset shadow
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+}
+
+function drawLogoMaintainAspect(ctx, logoImage, x, y, maxSize) {
+    // Calculate dimensions maintaining aspect ratio
+    const aspectRatio = logoImage.width / logoImage.height;
+    let drawWidth, drawHeight;
+    
+    if (aspectRatio > 1) {
+        // Wider than tall
+        drawWidth = maxSize;
+        drawHeight = maxSize / aspectRatio;
+    } else {
+        // Taller than wide or square
+        drawHeight = maxSize;
+        drawWidth = maxSize * aspectRatio;
+    }
+    
+    // Center the logo in the available space
+    const drawX = x + (maxSize - drawWidth) / 2;
+    const drawY = y + (maxSize - drawHeight) / 2;
+    
+    // Add drop shadow
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+    ctx.shadowBlur = 20;
+    ctx.shadowOffsetX = 5;
+    ctx.shadowOffsetY = 5;
+
+    ctx.drawImage(logoImage, drawX, drawY, drawWidth, drawHeight);
 
     // Reset shadow
     ctx.shadowColor = 'transparent';

@@ -6,6 +6,7 @@
 const { createCanvas, loadImage } = require('canvas');
 const { 
     drawLogoWithShadow, 
+    drawLogoMaintainAspect,
     downloadImage, 
     selectBestLogo,
     adjustColors,
@@ -196,7 +197,7 @@ async function generateSplit(teamA, teamB, width, height, league, orientation) {
             const leagueLogoSize = Math.min(width, height) * 0.25;
             const leagueLogoX = (width - leagueLogoSize) / 2;
             const leagueLogoY = (height - leagueLogoSize) / 2;
-            drawLogoWithShadow(ctx, leagueLogo, leagueLogoX, leagueLogoY, leagueLogoSize);
+            drawLogoMaintainAspect(ctx, leagueLogo, leagueLogoX, leagueLogoY, leagueLogoSize);
         } catch (error) {
             console.error('Error loading league logo:', error.message);
         }
@@ -411,7 +412,26 @@ async function generateMinimalist(teamA, teamB, width, height, league, orientati
             const leagueLogoY = orientation === 'landscape'
                 ? height - leagueLogoSize - (height * 0.08)
                 : height - leagueLogoSize - (height * 0.02);
-            ctx.drawImage(leagueLogo, leagueLogoX, leagueLogoY, leagueLogoSize, leagueLogoSize);
+            
+            // Calculate dimensions maintaining aspect ratio
+            const aspectRatio = leagueLogo.width / leagueLogo.height;
+            let drawWidth, drawHeight;
+            
+            if (aspectRatio > 1) {
+                // Wider than tall
+                drawWidth = leagueLogoSize;
+                drawHeight = leagueLogoSize / aspectRatio;
+            } else {
+                // Taller than wide or square
+                drawHeight = leagueLogoSize;
+                drawWidth = leagueLogoSize * aspectRatio;
+            }
+            
+            // Adjust position to maintain centering
+            const adjustedX = leagueLogoX + (leagueLogoSize - drawWidth) / 2;
+            const adjustedY = leagueLogoY + (leagueLogoSize - drawHeight) / 2;
+            
+            ctx.drawImage(leagueLogo, adjustedX, adjustedY, drawWidth, drawHeight);
         } catch (error) {
             console.error('Error loading league logo:', error.message);
         }

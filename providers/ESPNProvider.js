@@ -5,14 +5,15 @@
 // ------------------------------------------------------------------------------
 
 const https = require('https');
-const path = require('path');
 const BaseProvider = require('./BaseProvider');
 const { getTeamMatchScore } = require('../helpers/teamMatchingUtils');
+const { extractDominantColors } = require('../helpers/colorExtractor');
 
 class ESPNProvider extends BaseProvider {
     constructor() {
         super();
         this.teamCache = new Map();
+        this.colorCache = new Map(); // Cache for extracted colors
         this.CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
     }
 
@@ -80,6 +81,50 @@ class ESPNProvider extends BaseProvider {
                 logo.rel?.includes('full') && logo.rel?.includes('dark')
             );
 
+            const logoUrl = defaultLogo?.href || teamObj.logos?.[0]?.href;
+            
+            // Extract colors from logo if not provided by API
+            let primaryColor = teamObj.color ? `#${teamObj.color}` : null;
+            let alternateColor = teamObj.alternateColor ? `#${teamObj.alternateColor}` : null;
+            
+            if ((!primaryColor || !alternateColor) && logoUrl) {
+                // Check cache first
+                const colorCacheKey = `colors_${teamObj.id}`;
+                const cachedColors = this.colorCache.get(colorCacheKey);
+                
+                if (cachedColors && Date.now() - cachedColors.timestamp < this.CACHE_DURATION) {
+                    // Use cached colors
+                    if (!primaryColor) primaryColor = cachedColors.primary;
+                    if (!alternateColor) alternateColor = cachedColors.alternate;
+                } else {
+                    // Extract colors from logo
+                    try {
+                        const extractedColors = await extractDominantColors(logoUrl, 2);
+                        const extractedPrimary = extractedColors[0];
+                        const extractedAlternate = extractedColors[1];
+                        
+                        // Cache the extracted colors
+                        this.colorCache.set(colorCacheKey, {
+                            primary: extractedPrimary,
+                            alternate: extractedAlternate,
+                            timestamp: Date.now()
+                        });
+                        
+                        if (!primaryColor) primaryColor = extractedPrimary;
+                        if (!alternateColor) alternateColor = extractedAlternate;
+                    } catch (error) {
+                        console.warn(`Failed to extract colors for ${teamObj.displayName}:`, error.message);
+                        // Fall back to black and white if extraction fails
+                        if (!primaryColor) primaryColor = '#000000';
+                        if (!alternateColor) alternateColor = '#ffffff';
+                    }
+                }
+            }
+            
+            // Final fallback if still no colors
+            if (!primaryColor) primaryColor = '#000000';
+            if (!alternateColor) alternateColor = '#ffffff';
+
             return {
                 id: teamObj.id,
                 city: teamObj.location,
@@ -88,10 +133,10 @@ class ESPNProvider extends BaseProvider {
                 abbreviation: teamObj.abbreviation,
                 conference: teamObj.groups?.find(g => g.id)?.name,
                 division: teamObj.groups?.find(g => g.parent?.id)?.name,
-                logo: defaultLogo?.href || teamObj.logos?.[0]?.href,
+                logo: logoUrl,
                 logoAlt: darkLogo?.href,
-                color: teamObj.color ? `#${teamObj.color}` : '#000000',
-                alternateColor: teamObj.alternateColor ? `#${teamObj.alternateColor}` : '#ffffff'
+                color: primaryColor,
+                alternateColor: alternateColor
             };
         } catch (error) {
             throw new Error(`Failed to resolve team: ${error.message}`);
@@ -103,11 +148,12 @@ class ESPNProvider extends BaseProvider {
             throw new Error(`League ${league.shortName} is missing ESPN configuration`);
         }
 
-        // Handle special cases for NCAA
-        if (['ncaaf', 'ncaam', 'ncaaw'].includes(league.shortName.toLowerCase())) {
-            return path.resolve(__dirname, '../assets/ncaa.png');
+        // Check if league has a custom logo URL defined
+        if (league.logoUrl) {
+            return league.logoUrl;
         }
 
+        // Otherwise, fetch from ESPN API
         try {
             const leagueData = await this.fetchLeagueData(league);
             
@@ -130,6 +176,7 @@ class ESPNProvider extends BaseProvider {
 
     clearCache() {
         this.teamCache.clear();
+        this.colorCache.clear();
     }
 
     // ------------------------------------------------------------------------------
