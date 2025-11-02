@@ -73,14 +73,26 @@ module.exports = {
                 });
             }
         } catch (error) {
-            logger.error('Logo generation failed', {
+            const errorDetails = {
                 Error: error.message,
                 League: league,
                 Teams: `${team1} vs ${team2}`,
                 URL: req.url,
-                IP: req.ip,
-                Stack: error.stack
-            });
+                IP: req.ip
+            };
+            
+            // For TeamNotFoundError, use a cleaner console message
+            if (error.name === 'TeamNotFoundError') {
+                errorDetails.Error = `Team not found: '${error.teamIdentifier}' in ${error.league}`;
+                errorDetails['Available Teams'] = `${error.teamCount} teams available`;
+            }
+            
+            // Only include stack trace in development mode
+            if (process.env.NODE_ENV === 'development') {
+                errorDetails.Stack = error.stack;
+            }
+            
+            logger.error('Logo generation failed', errorDetails);
             
             // Only send error response if headers haven't been sent yet
             if (!res.headersSent) {

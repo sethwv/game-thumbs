@@ -9,6 +9,19 @@ const BaseProvider = require('./BaseProvider');
 const { getTeamMatchScore } = require('../helpers/teamMatchingUtils');
 const { extractDominantColors } = require('../helpers/colorExtractor');
 
+// Custom error class for team not found errors
+class TeamNotFoundError extends Error {
+    constructor(teamIdentifier, league, teamList) {
+        const teamNames = teamList.map(t => t.shortDisplayName || t.displayName).join(', ');
+        super(`Team not found: '${teamIdentifier}' in ${league.shortName.toUpperCase()}. Available teams: ${teamNames}`);
+        this.name = 'TeamNotFoundError';
+        this.teamIdentifier = teamIdentifier;
+        this.league = league.shortName;
+        this.availableTeams = teamList;
+        this.teamCount = teamList.length;
+    }
+}
+
 class ESPNProvider extends BaseProvider {
     constructor() {
         super();
@@ -65,7 +78,19 @@ class ESPNProvider extends BaseProvider {
             }
 
             if (!bestMatch || bestScore === 0) {
-                throw new Error(`Team not found: ${teamIdentifier} in ${league.shortName.toUpperCase()}`);
+                // Generate list of acceptable team identifiers
+                const teamList = teams.map(team => {
+                    const teamObj = team.team || {};
+                    return {
+                        displayName: teamObj.displayName,
+                        shortDisplayName: teamObj.shortDisplayName,
+                        abbreviation: teamObj.abbreviation,
+                        location: teamObj.location,
+                        nickname: teamObj.nickname
+                    };
+                }).sort((a, b) => a.displayName.localeCompare(b.displayName));
+
+                throw new TeamNotFoundError(teamIdentifier, league, teamList);
             }
 
             // Return standardized format
@@ -139,6 +164,10 @@ class ESPNProvider extends BaseProvider {
                 alternateColor: alternateColor
             };
         } catch (error) {
+            // Re-throw TeamNotFoundError as-is to preserve error type
+            if (error instanceof TeamNotFoundError) {
+                throw error;
+            }
             throw new Error(`Failed to resolve team: ${error.message}`);
         }
     }

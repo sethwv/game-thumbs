@@ -14,7 +14,7 @@
     "helmet": "^8.1.0"
   },
   "scripts": {
-    "start": "SHOW_TIMESTAMP=false node index.js",
-    "dev": "TRUST_PROXY=0 IMAGE_CACHE_HOURS=0 RATE_LIMIT_PER_MINUTE=0 SHOW_TIMESTAMP=false node index.js"
+    "start": "NODE_ENV=production SHOW_TIMESTAMP=false node index.js",
+    "dev": "NODE_ENV=development TRUST_PROXY=0 IMAGE_CACHE_HOURS=0 RATE_LIMIT_PER_MINUTE=0 SHOW_TIMESTAMP=false node index.js"
   }
 }
