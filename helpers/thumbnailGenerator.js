@@ -163,7 +163,7 @@ async function generateSplit(teamA, teamB, width, height, league, orientation) {
             const finalLogoImageA = await loadImage(await downloadImage(finalLogoA));
             
             const logoAX = orientation === 'landscape'
-                ? (width * 0.15) - (logoSize / 2)
+                ? (width * 0.2) - (logoSize / 2)
                 : (width - logoSize) / 2;
             const logoAY = orientation === 'landscape'
                 ? (height / 2) - (logoSize / 2)
@@ -177,7 +177,7 @@ async function generateSplit(teamA, teamB, width, height, league, orientation) {
             const finalLogoImageB = await loadImage(await downloadImage(finalLogoB));
             
             const logoBX = orientation === 'landscape'
-                ? (width * 0.85) - (logoSize / 2)
+                ? (width * 0.8) - (logoSize / 2)
                 : (width - logoSize) / 2;
             const logoBY = orientation === 'landscape'
                 ? (height / 2) - (logoSize / 2)
@@ -240,7 +240,7 @@ async function generateGradient(teamA, teamB, width, height, league, orientation
             const finalLogoImageA = await loadImage(await downloadImage(finalLogoA));
             
             const logoAX = orientation === 'landscape'
-                ? (width * 0.15) - (logoSize / 2)
+                ? (width * 0.2) - (logoSize / 2)
                 : (width - logoSize) / 2;
             const logoAY = orientation === 'landscape'
                 ? (height / 2) - (logoSize / 2)
@@ -254,7 +254,7 @@ async function generateGradient(teamA, teamB, width, height, league, orientation
             const finalLogoImageB = await loadImage(await downloadImage(finalLogoB));
             
             const logoBX = orientation === 'landscape'
-                ? (width * 0.85) - (logoSize / 2)
+                ? (width * 0.8) - (logoSize / 2)
                 : (width - logoSize) / 2;
             const logoBY = orientation === 'landscape'
                 ? (height / 2) - (logoSize / 2)
