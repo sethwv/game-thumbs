@@ -244,11 +244,14 @@ Generates a matchup logo with team logos on transparent background.
 - `style` - Style number (default: `1`)
   - `1` - Diagonal split with dividing line
   - `2` - Side by side
-  - `3` - Circle badges with team colors
-  - `4` - Square badges with team colors
+  - `3` - Circle badges with team colors (league logo overlays bottom)
+  - `4` - Square badges with team colors (league logo overlays bottom)
+  - `5` - Circle badges with league logo on left (white background, league logo required)
+  - `6` - Square badges with league logo on left (white background, league logo required)
 - `size` - Output size in pixels: `256`, `512`, `1024`, or `2048` (default: `800`)
-- `logo` - Show league logo badge (default: `true`, set to `false` to hide)
+- `logo` - Show league logo badge (default: `true`, set to `false` to hide; always `true` for styles 5-6)
 - `useLight` - Use primary (light) logos instead of dark variants (default: `false`)
+- `trim` - Trim transparent edges (default: `true`)
 
 **Examples:**
 ```
@@ -257,11 +260,17 @@ GET /nhl/toronto/montreal/logo?style=2
 GET /nfl/chiefs/49ers/logo?style=3
 GET /mlb/yankees/redsox/logo?size=2048
 GET /nba/lakers/celtics/logo?useLight=true&logo=false
+GET /epl/arsenal/chelsea/logo?style=5
+GET /nfl/packers/bears/logo?style=6&size=1024
 ```
 
 **Output:** PNG image with transparent background (square, size based on `size` parameter)
 
-**Note:** For styles 3 and 4, the logo variant (regular or alternate) is automatically selected for best contrast against the background color. The `useLight` parameter is ignored for these styles.
+**Notes:** 
+- For styles 3 and 4, the logo variant (regular or alternate) is automatically selected for best contrast against the background color. The `useLight` parameter is ignored for these styles.
+- Styles 5 and 6 require the league logo and will ignore the `logo` parameter (always treated as `true`). The league logo is placed on a white background on the left, with team logos following.
+- Styles 5 and 6 automatically select the best league logo variant (default or dark) based on contrast against the white background.
+- In style 5, circles overlap by up to 5% to maximize size while preventing edge clipping.
 
 ---
 
