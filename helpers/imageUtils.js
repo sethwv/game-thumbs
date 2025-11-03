@@ -238,10 +238,14 @@ function getWhiteLogo(logoImage, size) {
 
     tempCtx.putImageData(imageData, 0, 0);
 
-    // Cache it (limit cache size to prevent memory issues)
-    while (whiteLogoCache.size >= MAX_CACHE_SIZE) {
-        const firstKey = whiteLogoCache.keys().next().value;
-        whiteLogoCache.delete(firstKey);
+    // Cache it (limit cache size to prevent memory leaks)
+    if (whiteLogoCache.size >= MAX_CACHE_SIZE) {
+        // Remove oldest 20% of entries when limit reached
+        const entriesToRemove = Math.floor(MAX_CACHE_SIZE * 0.2);
+        const keys = Array.from(whiteLogoCache.keys());
+        for (let i = 0; i < entriesToRemove; i++) {
+            whiteLogoCache.delete(keys[i]);
+        }
     }
     whiteLogoCache.set(cacheKey, tempCanvas);
 
@@ -255,6 +259,8 @@ function getWhiteLogo(logoImage, size) {
 const fs = require('fs');
 const path = require('path');
 
+const REQUEST_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '10000', 10); // 10 seconds default
+
 function downloadImage(urlOrPath) {
     // If it's a local file path, load from filesystem
     if (typeof urlOrPath === 'string' && (urlOrPath.startsWith('/') || urlOrPath.startsWith('./') || urlOrPath.startsWith('../'))) {
@@ -265,14 +271,40 @@ function downloadImage(urlOrPath) {
             });
         });
     }
-    // Otherwise, treat as URL
+    // Otherwise, treat as URL with timeout protection
     return new Promise((resolve, reject) => {
-        https.get(urlOrPath, (response) => {
+        const timeout = setTimeout(() => {
+            request.destroy();
+            reject(new Error(`Request timeout after ${REQUEST_TIMEOUT}ms: ${urlOrPath}`));
+        }, REQUEST_TIMEOUT);
+        
+        const request = https.get(urlOrPath, (response) => {
+            // Handle redirects
+            if (response.statusCode === 301 || response.statusCode === 302) {
+                clearTimeout(timeout);
+                const redirectUrl = response.headers.location;
+                return downloadImage(redirectUrl).then(resolve).catch(reject);
+            }
+            
+            if (response.statusCode !== 200) {
+                clearTimeout(timeout);
+                return reject(new Error(`HTTP ${response.statusCode}: ${urlOrPath}`));
+            }
+            
             const chunks = [];
             response.on('data', (chunk) => chunks.push(chunk));
-            response.on('end', () => resolve(Buffer.concat(chunks)));
-            response.on('error', reject);
-        }).on('error', reject);
+            response.on('end', () => {
+                clearTimeout(timeout);
+                resolve(Buffer.concat(chunks));
+            });
+            response.on('error', (err) => {
+                clearTimeout(timeout);
+                reject(err);
+            });
+        }).on('error', (err) => {
+            clearTimeout(timeout);
+            reject(err);
+        });
     });
 }
 

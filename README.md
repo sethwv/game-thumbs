@@ -34,10 +34,14 @@ You can configure the server behavior using environment variables:
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `PORT` | Server port | `3000` |
+| `NODE_ENV` | Environment mode (`development` or `production`). In development, error stack traces are included in responses. | `production` |
 | `IMAGE_CACHE_HOURS` | How long to cache generated images (in hours). Set to `0` to disable caching. | `24` |
 | `RATE_LIMIT_PER_MINUTE` | Maximum image generation requests per minute per IP. Set to `0` to disable rate limiting. | `30` |
 | `TRUST_PROXY` | Number of proxy hops to trust for rate limiting (0 for local dev, 1+ for production behind proxies). | `2` |
-| `SHOW_TIMESTAMP` | Whether to show timestamps in logs. Set to `false` to hide timestamps. | `false` |
+| `REQUEST_TIMEOUT` | Timeout for external API calls and image downloads (in milliseconds). | `10000` |
+| `SERVER_TIMEOUT` | Timeout for HTTP connections (in milliseconds). | `30000` |
+| `SHOW_TIMESTAMP` | Whether to show timestamps in logs. Set to `false` to hide timestamps. | `true` |
+| `FORCE_COLOR` | Force colored output in logs (useful for Docker/CI environments). Set to `1` or `true` to enable. | `false` |
 
 **Notes:**
 - When `IMAGE_CACHE_HOURS=0`, every request generates a new image (useful for testing)
@@ -45,6 +49,9 @@ You can configure the server behavior using environment variables:
 - Set `TRUST_PROXY` to the number of proxies between the internet and your app for accurate IP detection
 - Rate limiting only applies to uncached requests; cached images are served without limits
 - General API endpoints (like `/raw`) have 3x the image generation rate limit
+- `REQUEST_TIMEOUT` prevents hanging on slow/unresponsive external services
+- `SERVER_TIMEOUT` prevents zombie connections from accumulating
+- Use `NODE_ENV=development` for detailed error messages and stack traces in API responses
 
 ## API Endpoints
 
@@ -58,6 +65,7 @@ The API provides four types of endpoints for sports matchups:
 | **Cover** | `/:league/:team1/:team2/cover[.png]` | 1080x1440 (3:4) | Portrait matchup cover |
 | **Logo** | `/:league/:team1/:team2/logo[.png]` | 800x800 (1:1) | Matchup logo with transparent background |
 | **Raw Data** | `/:league/:team/raw` | JSON | Raw team data from provider |
+| **Server Info** | `/info` | JSON | Version and git information |
 
 *Note: The `.png` extension is optional for image endpoints*
 
@@ -381,6 +389,31 @@ The following data is retrieved for each team:
 - **Extracted Colors**: Cached for 24 hours per team (only extracted once when missing from ESPN)
 - **Generated Images**: Cached for 24 hours based on content hash
 - **Automatic Cleanup**: Expired cache entries are automatically removed
+
+---
+
+### Server Info
+
+Get server version and git information:
+
+```
+GET /info
+```
+
+**Example Response:**
+
+```json
+{
+  "name": "Game Thumbs API",
+  "git": {
+    "branch": "main",
+    "commit": "a1b2c3d",
+    "tag": "v0.0.1"
+  }
+}
+```
+
+If the working tree has uncommitted changes, `dirty: true` will be included in the git object. If not in a git repository, the `git` field will be `null`.
 
 ---
 

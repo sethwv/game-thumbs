@@ -28,6 +28,8 @@ class ESPNProvider extends BaseProvider {
         this.teamCache = new Map();
         this.colorCache = new Map(); // Cache for extracted colors
         this.CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+        this.REQUEST_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '10000', 10); // 10 seconds
+        this.MAX_COLOR_CACHE_SIZE = 1000; // Prevent unbounded memory growth
     }
 
     getProviderId() {
@@ -122,6 +124,15 @@ class ESPNProvider extends BaseProvider {
                     if (!primaryColor) primaryColor = cachedColors.primary;
                     if (!alternateColor) alternateColor = cachedColors.alternate;
                 } else {
+                    // Prevent unbounded memory growth in color cache
+                    if (this.colorCache.size >= this.MAX_COLOR_CACHE_SIZE) {
+                        const entriesToRemove = Math.floor(this.MAX_COLOR_CACHE_SIZE * 0.1);
+                        const keys = Array.from(this.colorCache.keys());
+                        for (let i = 0; i < entriesToRemove; i++) {
+                            this.colorCache.delete(keys[i]);
+                        }
+                    }
+                    
                     // Extract colors from logo
                     try {
                         const extractedColors = await extractDominantColors(logoUrl, 2);
@@ -225,7 +236,12 @@ class ESPNProvider extends BaseProvider {
         const teamApiUrl = `https://site.api.espn.com/apis/site/v2/sports/${espnSport}/${espnSlug}/teams?limit=1000`;
         
         return new Promise((resolve, reject) => {
-            https.get(teamApiUrl, (response) => {
+            const timeout = setTimeout(() => {
+                request.destroy();
+                reject(new Error(`ESPN API timeout after ${this.REQUEST_TIMEOUT}ms: ${teamApiUrl}`));
+            }, this.REQUEST_TIMEOUT);
+            
+            const request = https.get(teamApiUrl, (response) => {
                 let data = '';
 
                 response.on('data', (chunk) => {
@@ -233,6 +249,7 @@ class ESPNProvider extends BaseProvider {
                 });
 
                 response.on('end', () => {
+                    clearTimeout(timeout);
                     try {
                         const parsed = JSON.parse(data);
                         const teams = parsed.sports?.[0]?.leagues?.[0]?.teams || [];
@@ -248,7 +265,13 @@ class ESPNProvider extends BaseProvider {
                         reject(new Error(`Failed to parse API response: ${error.message}`));
                     }
                 });
+                
+                response.on('error', (error) => {
+                    clearTimeout(timeout);
+                    reject(new Error(`API response error: ${error.message}`));
+                });
             }).on('error', (error) => {
+                clearTimeout(timeout);
                 reject(new Error(`API request failed: ${error.message}`));
             });
         });
@@ -267,7 +290,12 @@ class ESPNProvider extends BaseProvider {
         const leagueApiUrl = `https://sports.core.api.espn.com/v2/sports/${espnSport}/leagues/${espnSlug}`;
         
         return new Promise((resolve, reject) => {
-            https.get(leagueApiUrl, (response) => {
+            const timeout = setTimeout(() => {
+                request.destroy();
+                reject(new Error(`ESPN League API timeout after ${this.REQUEST_TIMEOUT}ms: ${leagueApiUrl}`));
+            }, this.REQUEST_TIMEOUT);
+            
+            const request = https.get(leagueApiUrl, (response) => {
                 let data = '';
 
                 response.on('data', (chunk) => {
@@ -275,6 +303,7 @@ class ESPNProvider extends BaseProvider {
                 });
 
                 response.on('end', () => {
+                    clearTimeout(timeout);
                     try {
                         const parsed = JSON.parse(data);
 
@@ -289,7 +318,13 @@ class ESPNProvider extends BaseProvider {
                         reject(new Error(`Failed to parse league API response: ${error.message}`));
                     }
                 });
+                
+                response.on('error', (error) => {
+                    clearTimeout(timeout);
+                    reject(new Error(`League API response error: ${error.message}`));
+                });
             }).on('error', (error) => {
+                clearTimeout(timeout);
                 reject(new Error(`League API request failed: ${error.message}`));
             });
         });

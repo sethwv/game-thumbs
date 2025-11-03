@@ -10,6 +10,7 @@ const rateLimit = require('express-rate-limit');
 const logger = require('./helpers/logger');
 
 const app = express();
+let server = null; // Store server instance for graceful shutdown
 
 module.exports = { init };
 
@@ -135,15 +136,105 @@ function init(port) {
         }
     });
 
-    app.listen(port, () => {
+    // Global error handler for uncaught route errors
+    app.use((err, req, res, next) => {
+        logger.error('Unhandled route error', {
+            Error: err.message,
+            Stack: err.stack,
+            URL: req.url,
+            IP: req.ip
+        });
+        
+        if (!res.headersSent) {
+            res.status(500).json({ error: 'Internal server error' });
+        }
+    });
+
+    // Catch-all handler for non-registered routes (must be last)
+    app.use((req, res) => {
+        logger.warn('Route not found', {
+            Method: req.method,
+            URL: req.url,
+            IP: req.ip
+        });
+        res.status(444).json({ error: 'Route not found' });
+    });
+
+    server = app.listen(port, () => {
         logger.startup(`Server Running on Port ${port}`);
     });
+    
+    // Set server timeout to prevent hanging connections
+    const SERVER_TIMEOUT = parseInt(process.env.SERVER_TIMEOUT || '30000', 10);
+    server.timeout = SERVER_TIMEOUT;
+    server.keepAliveTimeout = SERVER_TIMEOUT;
+    server.headersTimeout = SERVER_TIMEOUT + 5000;
+    
+    logger.info(`Server timeout set to: ${SERVER_TIMEOUT}ms`);
+    
+    // Graceful shutdown handlers
+    setupGracefulShutdown();
 }
 
 // ------------------------------------------------------------------------------
 
 function registerRoute(path, handler, method = 'get') {
     app[method](path, handler);
+}
+
+// ------------------------------------------------------------------------------
+
+function setupGracefulShutdown() {
+    let isShuttingDown = false;
+    
+    const shutdown = async (signal) => {
+        if (isShuttingDown) return;
+        isShuttingDown = true;
+        
+        logger.info(`Received ${signal}, starting graceful shutdown...`);
+        
+        // Stop accepting new connections
+        if (server) {
+            server.close(() => {
+                logger.info('Server closed, all connections ended');
+                process.exit(0);
+            });
+            
+            // Force close after 10 seconds
+            setTimeout(() => {
+                logger.error('Forced shutdown after timeout');
+                process.exit(1);
+            }, 10000);
+        } else {
+            process.exit(0);
+        }
+    };
+    
+    // Handle various termination signals
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
+    process.on('SIGINT', () => shutdown('SIGINT'));
+    
+    // Handle uncaught exceptions
+    process.on('uncaughtException', (err) => {
+        logger.error('Uncaught Exception', {
+            Error: err.message,
+            Stack: err.stack
+        });
+        // Don't exit immediately, let the process continue
+        // but log it for debugging
+    });
+    
+    // Handle unhandled promise rejections
+    process.on('unhandledRejection', (reason, promise) => {
+        logger.error('Unhandled Promise Rejection', {
+            Reason: reason,
+            Promise: promise
+        });
+        // Don't exit immediately, let the process continue
+        // but log it for debugging
+    });
+    
+    logger.info('Graceful shutdown handlers registered');
 }
 
 // ------------------------------------------------------------------------------
