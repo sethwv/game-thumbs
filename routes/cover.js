@@ -4,8 +4,10 @@
 // Cover size is 1080W x 1440H by default
 // ------------------------------------------------------------------------------
 
-const { resolveTeam } = require('../providers/ESPN');
+const providerManager = require('../providers/ProviderManager');
 const { generateCover } = require('../helpers/thumbnailGenerator');
+const { findLeague } = require('../leagues');
+const logger = require('../helpers/logger');
 
 module.exports = {
     paths: [
@@ -25,15 +27,70 @@ module.exports = {
         };
 
         try {
-            const resolvedTeam1 = await resolveTeam(league, team1);
-            const resolvedTeam2 = await resolveTeam(league, team2);
+            const leagueObj = findLeague(league);
+            if (!leagueObj) {
+                logger.warn('Unsupported league requested', {
+                    League: league,
+                    URL: req.url,
+                    IP: req.ip
+                });
+                return res.status(400).json({ error: `Unsupported league: ${league}` });
+            }
 
-            const coverBuffer = await generateCover(resolvedTeam1, resolvedTeam2, coverOptions);
+            const resolvedTeam1 = await providerManager.resolveTeam(leagueObj, team1);
+            const resolvedTeam2 = await providerManager.resolveTeam(leagueObj, team2);
+
+            // Get league logo URL if needed
+            let leagueInfo = null;
+            if (coverOptions.league) {
+                const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj);
+                leagueInfo = { logoUrl: leagueLogoUrl };
+            }
+
+            const coverBuffer = await generateCover(resolvedTeam1, resolvedTeam2, {
+                ...coverOptions,
+                league: leagueInfo
+            });
+            
+            // Send successful response
             res.set('Content-Type', 'image/png');
             res.send(coverBuffer);
-            require('../helpers/imageCache').addToCache(req, res, coverBuffer);
+            
+            // Cache successful result (don't let caching errors affect the response)
+            try {
+                require('../helpers/imageCache').addToCache(req, res, coverBuffer);
+            } catch (cacheError) {
+                logger.error('Failed to cache image', {
+                    Error: cacheError.message,
+                    URL: req.url
+                });
+            }
         } catch (error) {
-            res.status(400).json({ error: error.message });
+            const errorDetails = {
+                Error: error.message,
+                League: league,
+                Teams: `${team1} vs ${team2}`,
+                URL: req.url,
+                IP: req.ip
+            };
+            
+            // For TeamNotFoundError, use a cleaner console message
+            if (error.name === 'TeamNotFoundError') {
+                errorDetails.Error = `Team not found: '${error.teamIdentifier}' in ${error.league}`;
+                errorDetails['Available Teams'] = `${error.teamCount} teams available`;
+            }
+            
+            // Only include stack trace in development mode
+            if (process.env.NODE_ENV === 'development') {
+                errorDetails.Stack = error.stack;
+            }
+            
+            logger.error('Cover generation failed', errorDetails);
+            
+            // Only send error response if headers haven't been sent yet
+            if (!res.headersSent) {
+                res.status(400).json({ error: error.message });
+            }
         }
     }
 };

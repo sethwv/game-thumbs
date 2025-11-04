@@ -1,130 +1,48 @@
 // ------------------------------------------------------------------------------
 // leagues.js
+// League lookup and matching logic
+// League definitions are stored in leagues.json
+// ------------------------------------------------------------------------------
+
+const leagues = require('./leagues.json');
+
 // ------------------------------------------------------------------------------
 
 function findLeague(identifier) {
-    identifier = identifier?.shortName?.toLowerCase() ?? identifier?.toLowerCase();
+    if (!identifier) return null;
+    
+    const searchTerm = (identifier?.shortName ?? identifier).toLowerCase();
+    // Normalize by removing non-alphanumeric characters for flexible matching
+    const normalizedSearch = searchTerm.replace(/[^a-z0-9]/g, '');
+    
     for (const key in leagues) {
         const league = leagues[key];
-        if (league.shortName.toLowerCase() === identifier ||
-            league.espnSlug.toLowerCase() === identifier ||
-            league.name.toLowerCase() === identifier) {
+        
+        // Match by shortName (primary identifier)
+        if (league.shortName?.toLowerCase() === searchTerm) {
+            return league;
+        }
+        
+        // Match by full name
+        if (league.name?.toLowerCase() === searchTerm) {
+            return league;
+        }
+        
+        // Match by league key
+        if (key.toLowerCase() === searchTerm) {
+            return league;
+        }
+        
+        // Match by common aliases (provider-agnostic)
+        // Compare normalized versions (without special characters)
+        if (league.aliases && league.aliases.some(alias => 
+            alias.toLowerCase().replace(/[^a-z0-9]/g, '') === normalizedSearch
+        )) {
             return league;
         }
     }
+    
     return null;
-}
-
-// ------------------------------------------------------------------------------
-
-// https://sports.core.api.espn.com/v2/sports/?limit=999
-// https://sports.core.api.espn.com/v2/sports/baseball/leagues?limit=999
-
-const leagues = {
-    nba: {
-        name: 'National Basketball Association',
-        shortName: 'NBA',
-        usesESPN: true,
-        espnSlug: 'nba',
-        espnSport: 'basketball',
-    },
-    wnba: {
-        name: 'Women\'s National Basketball Association',
-        shortName: 'WNBA',
-        usesESPN: true,
-        espnSlug: 'wnba',
-        espnSport: 'basketball',
-    },
-
-
-    nfl: {
-        name: 'National Football League',
-        shortName: 'NFL',
-        usesESPN: true,
-        espnSlug: 'nfl',
-        espnSport: 'football',
-    },
-    // Does not have images on ESPN
-    // cfl: {
-    //     name: 'Canadian Football League',
-    //     shortName: 'CFL',
-    //     usesESPN: true,
-    //     espnSlug: 'cfl',
-    //     espnSport: 'football',
-    // },
-    ufl: {
-        name: 'United Football League',
-        shortName: 'UFL',
-        usesESPN: true,
-        espnSlug: 'ufl',
-        espnSport: 'football',
-    },
-
-
-    mlb: {
-        name: 'Major League Baseball',
-        shortName: 'MLB',
-        usesESPN: true,
-        espnSlug: 'mlb',
-        espnSport: 'baseball',
-    },
-
-
-    nhl: {
-        name: 'National Hockey League',
-        shortName: 'NHL',
-        usesESPN: true,
-        espnSlug: 'nhl',
-        espnSport: 'hockey',
-    },
-
-
-    epl: {
-        name: 'English Premier League',
-        shortName: 'EPL',
-        usesESPN: true,
-        espnSlug: 'eng.1',
-        espnSport: 'soccer',
-    },
-    mls: {
-        name: 'Major League Soccer',
-        shortName: 'MLS',
-        usesESPN: true,
-        espnSlug: 'usa.1',
-        espnSport: 'soccer',
-    },
-    uefa: {
-        name: 'UEFA Champions League',
-        shortName: 'UEFA',
-        usesESPN: true,
-        espnSlug: 'uefa.champions',
-        espnSport: 'soccer',
-    },
-
-
-    ncaaf: {
-        name: 'NCAA Football',
-        shortName: 'NCAAF',
-        usesESPN: true,
-        espnSlug: 'college-football',
-        espnSport: 'football',
-    },
-
-
-    ncaam: {
-        name: 'NCAA Men\'s Basketball',
-        shortName: 'NCAAM',
-        usesESPN: true,
-        espnSlug: 'mens-college-basketball',
-        espnSport: 'basketball',
-    },
-    ncaaw: {
-        name: 'NCAA Women\'s Basketball',
-        shortName: 'NCAAW',
-        usesESPN: true,
-        espnSlug: 'womens-college-basketball',
-        espnSport: 'basketball',
-    }
 }
 
 // ------------------------------------------------------------------------------
