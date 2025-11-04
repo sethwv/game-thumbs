@@ -36,6 +36,36 @@ function init(port) {
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
 
+    // Request-level timeout to prevent hanging requests
+    const OVERALL_REQUEST_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '10000', 10) * 2; // 2x the external request timeout
+    app.use((req, res, next) => {
+        // Set a timeout for the entire request
+        req.setTimeout(OVERALL_REQUEST_TIMEOUT, () => {
+            logger.error('Request timeout exceeded', {
+                URL: req.url,
+                IP: req.ip,
+                Timeout: `${OVERALL_REQUEST_TIMEOUT}ms`
+            });
+            if (!res.headersSent) {
+                res.status(408).json({ error: 'Request timeout' });
+            }
+        });
+        
+        // Also set response timeout
+        res.setTimeout(OVERALL_REQUEST_TIMEOUT, () => {
+            logger.error('Response timeout exceeded', {
+                URL: req.url,
+                IP: req.ip,
+                Timeout: `${OVERALL_REQUEST_TIMEOUT}ms`
+            });
+            if (!res.headersSent) {
+                res.status(408).json({ error: 'Response timeout' });
+            }
+        });
+        
+        next();
+    });
+
     // Get real IP from proxy headers and log requests
     app.use((req, res, next) => {
         // Get real IP from proxy headers (nginx X-Real-IP)
@@ -109,14 +139,25 @@ function init(port) {
 
     // Log all requests that make it past rate limiting and cache
     app.use((req, res, next) => {
-        // Only log if not already served from cache
-        if (!res.headersSent) {
+        // Only log if not already served from cache and not a health check
+        if (!res.headersSent && req.path !== '/health') {
             logger.request(req, false);
         }
         next();
     });
 
     logger.info('Registering routes...');
+    
+    // Health check endpoint (before loading other routes)
+    app.get('/health', (req, res) => {
+        res.status(200).json({ 
+            status: 'ok', 
+            uptime: process.uptime(),
+            memory: process.memoryUsage(),
+            timestamp: new Date().toISOString()
+        });
+    });
+    
     const fs = require('fs');
     const path = require('path');
     const routesPath = path.join(__dirname, 'routes');
@@ -171,6 +212,64 @@ function init(port) {
     server.headersTimeout = SERVER_TIMEOUT + 5000;
     
     logger.info(`Server timeout set to: ${SERVER_TIMEOUT}ms`);
+    
+    // Monitor active connections and log periodically
+    let activeConnections = 0;
+    
+    server.on('connection', (socket) => {
+        activeConnections++;
+        
+        // Set socket timeout to prevent zombie connections
+        socket.setTimeout(SERVER_TIMEOUT);
+        
+        socket.on('timeout', () => {
+            logger.warn('Socket timeout - destroying connection', {
+                RemoteAddress: socket.remoteAddress,
+                ActiveConnections: activeConnections
+            });
+            socket.destroy();
+        });
+        
+        socket.on('close', () => {
+            activeConnections--;
+        });
+        
+        socket.on('error', (err) => {
+            logger.error('Socket error', {
+                Error: err.message,
+                RemoteAddress: socket.remoteAddress
+            });
+        });
+    });
+    
+    // Log connection count every 5 minutes
+    setInterval(() => {
+        if (activeConnections > 0) {
+            logger.info(`Active connections: ${activeConnections}`);
+        }
+    }, 5 * 60 * 1000);
+    
+    // Monitor memory usage every 10 minutes
+    setInterval(() => {
+        const memUsage = process.memoryUsage();
+        const memUsedMB = Math.round(memUsage.heapUsed / 1024 / 1024);
+        const memTotalMB = Math.round(memUsage.heapTotal / 1024 / 1024);
+        
+        logger.info(`Memory usage: ${memUsedMB}MB / ${memTotalMB}MB heap (RSS: ${Math.round(memUsage.rss / 1024 / 1024)}MB)`);
+        
+        // Warning if memory usage is high
+        if (memUsedMB > 800) {
+            logger.warn(`High memory usage detected: ${memUsedMB}MB`);
+        }
+    }, 10 * 60 * 1000);
+    
+    // Force garbage collection every hour if available
+    if (global.gc) {
+        setInterval(() => {
+            logger.info('Running manual garbage collection');
+            global.gc();
+        }, 60 * 60 * 1000);
+    }
     
     // Graceful shutdown handlers
     setupGracefulShutdown();

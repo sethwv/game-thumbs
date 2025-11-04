@@ -273,37 +273,97 @@ function downloadImage(urlOrPath) {
     }
     // Otherwise, treat as URL with timeout protection
     return new Promise((resolve, reject) => {
+        let request;
+        let resolved = false;
+        
+        const cleanup = () => {
+            if (request) {
+                request.destroy();
+                request.removeAllListeners();
+            }
+        };
+        
         const timeout = setTimeout(() => {
-            request.destroy();
-            reject(new Error(`Request timeout after ${REQUEST_TIMEOUT}ms: ${urlOrPath}`));
+            if (!resolved) {
+                resolved = true;
+                cleanup();
+                reject(new Error(`Request timeout after ${REQUEST_TIMEOUT}ms: ${urlOrPath}`));
+            }
         }, REQUEST_TIMEOUT);
         
-        const request = https.get(urlOrPath, (response) => {
+        const options = {
+            timeout: REQUEST_TIMEOUT,
+            headers: {
+                'User-Agent': 'Mozilla/5.0'
+            }
+        };
+        
+        request = https.get(urlOrPath, options, (response) => {
             // Handle redirects
             if (response.statusCode === 301 || response.statusCode === 302) {
                 clearTimeout(timeout);
-                const redirectUrl = response.headers.location;
-                return downloadImage(redirectUrl).then(resolve).catch(reject);
+                cleanup();
+                if (!resolved) {
+                    resolved = true;
+                    const redirectUrl = response.headers.location;
+                    return downloadImage(redirectUrl).then(resolve).catch(reject);
+                }
+                return;
             }
             
             if (response.statusCode !== 200) {
                 clearTimeout(timeout);
-                return reject(new Error(`HTTP ${response.statusCode}: ${urlOrPath}`));
+                cleanup();
+                if (!resolved) {
+                    resolved = true;
+                    reject(new Error(`HTTP ${response.statusCode}: ${urlOrPath}`));
+                }
+                return;
             }
             
             const chunks = [];
-            response.on('data', (chunk) => chunks.push(chunk));
+            
+            response.on('data', (chunk) => {
+                if (!resolved) {
+                    chunks.push(chunk);
+                }
+            });
+            
             response.on('end', () => {
                 clearTimeout(timeout);
-                resolve(Buffer.concat(chunks));
+                cleanup();
+                if (!resolved) {
+                    resolved = true;
+                    resolve(Buffer.concat(chunks));
+                }
             });
+            
             response.on('error', (err) => {
                 clearTimeout(timeout);
-                reject(err);
+                cleanup();
+                if (!resolved) {
+                    resolved = true;
+                    reject(err);
+                }
             });
-        }).on('error', (err) => {
+        });
+        
+        request.on('error', (err) => {
             clearTimeout(timeout);
-            reject(err);
+            cleanup();
+            if (!resolved) {
+                resolved = true;
+                reject(err);
+            }
+        });
+        
+        request.on('timeout', () => {
+            clearTimeout(timeout);
+            cleanup();
+            if (!resolved) {
+                resolved = true;
+                reject(new Error(`Request timeout after ${REQUEST_TIMEOUT}ms: ${urlOrPath}`));
+            }
         });
     });
 }
