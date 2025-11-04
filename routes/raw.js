@@ -3,7 +3,8 @@
 // Route to return the raw json data for a team
 // ------------------------------------------------------------------------------
 
-const { resolveTeam } = require('../providers/ESPN');
+const providerManager = require('../providers/ProviderManager');
+const { findLeague } = require('../leagues');
 
 module.exports = {
     paths: [
@@ -14,7 +15,12 @@ module.exports = {
         const { league, team } = req.params;
 
         try {
-            const resolvedTeam = await resolveTeam(league, team);
+            const leagueObj = findLeague(league);
+            if (!leagueObj) {
+                return res.status(400).json({ error: `Unsupported league: ${league}` });
+            }
+
+            const resolvedTeam = await providerManager.resolveTeam(leagueObj, team);
             res.json(resolvedTeam);
         } catch (error) {
             res.status(400).json({ error: error.message });

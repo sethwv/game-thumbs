@@ -6,6 +6,7 @@
 const { createCanvas, loadImage } = require('canvas');
 const { 
     drawLogoWithShadow, 
+    drawLogoMaintainAspect,
     downloadImage, 
     selectBestLogo,
     adjustColors,
@@ -162,11 +163,11 @@ async function generateSplit(teamA, teamB, width, height, league, orientation) {
             const finalLogoImageA = await loadImage(await downloadImage(finalLogoA));
             
             const logoAX = orientation === 'landscape'
-                ? (width / 5) - (logoSize / 2)
+                ? (width * 0.2) - (logoSize / 2)
                 : (width - logoSize) / 2;
             const logoAY = orientation === 'landscape'
                 ? (height / 2) - (logoSize / 2)
-                : (height * 0.25) - (logoSize / 2);
+                : (height * 0.2) - (logoSize / 2);
             
             drawLogoWithShadow(ctx, finalLogoImageA, logoAX, logoAY, logoSize);
         }
@@ -180,7 +181,7 @@ async function generateSplit(teamA, teamB, width, height, league, orientation) {
                 : (width - logoSize) / 2;
             const logoBY = orientation === 'landscape'
                 ? (height / 2) - (logoSize / 2)
-                : (height * 0.75) - (logoSize / 2);
+                : (height * 0.8) - (logoSize / 2);
             
             drawLogoWithShadow(ctx, finalLogoImageB, logoBX, logoBY, logoSize);
         }
@@ -188,17 +189,15 @@ async function generateSplit(teamA, teamB, width, height, league, orientation) {
         console.error('Error loading team logos:', error.message);
     }
     
-    // Draw league logo in the center if league is provided
-    if (league) {
+    // Draw league logo in the center if league logo URL is provided
+    if (league && league.logoUrl) {
         try {
-            const { getLeagueLogoUrl } = require('./imageUtils');
-            const leagueLogoUrl = await getLeagueLogoUrl(league);
-            const leagueLogoBuffer = await downloadImage(leagueLogoUrl);
+            const leagueLogoBuffer = await downloadImage(league.logoUrl);
             const leagueLogo = await loadImage(leagueLogoBuffer);
             const leagueLogoSize = Math.min(width, height) * 0.25;
             const leagueLogoX = (width - leagueLogoSize) / 2;
             const leagueLogoY = (height - leagueLogoSize) / 2;
-            drawLogoWithShadow(ctx, leagueLogo, leagueLogoX, leagueLogoY, leagueLogoSize);
+            drawLogoMaintainAspect(ctx, leagueLogo, leagueLogoX, leagueLogoY, leagueLogoSize);
         } catch (error) {
             console.error('Error loading league logo:', error.message);
         }
@@ -241,11 +240,11 @@ async function generateGradient(teamA, teamB, width, height, league, orientation
             const finalLogoImageA = await loadImage(await downloadImage(finalLogoA));
             
             const logoAX = orientation === 'landscape'
-                ? (width / 5) - (logoSize / 2)
+                ? (width * 0.2) - (logoSize / 2)
                 : (width - logoSize) / 2;
             const logoAY = orientation === 'landscape'
                 ? (height / 2) - (logoSize / 2)
-                : (height * 0.25) - (logoSize / 2);
+                : (height * 0.2) - (logoSize / 2);
             
             drawLogoWithShadow(ctx, finalLogoImageA, logoAX, logoAY, logoSize);
         }
@@ -259,7 +258,7 @@ async function generateGradient(teamA, teamB, width, height, league, orientation
                 : (width - logoSize) / 2;
             const logoBY = orientation === 'landscape'
                 ? (height / 2) - (logoSize / 2)
-                : (height * 0.75) - (logoSize / 2);
+                : (height * 0.8) - (logoSize / 2);
             
             drawLogoWithShadow(ctx, finalLogoImageB, logoBX, logoBY, logoSize);
         }
@@ -267,17 +266,15 @@ async function generateGradient(teamA, teamB, width, height, league, orientation
         console.error('Error loading team logos:', error.message);
     }
     
-    // Draw league logo in the center if league is provided
-    if (league) {
+    // Draw league logo in the center if league logo URL is provided
+    if (league && league.logoUrl) {
         try {
-            const { getLeagueLogoUrl } = require('./imageUtils');
-            const leagueLogoUrl = await getLeagueLogoUrl(league);
-            const leagueLogoBuffer = await downloadImage(leagueLogoUrl);
+            const leagueLogoBuffer = await downloadImage(league.logoUrl);
             const leagueLogo = await loadImage(leagueLogoBuffer);
             const leagueLogoSize = Math.min(width, height) * 0.25;
             const leagueLogoX = (width - leagueLogoSize) / 2;
             const leagueLogoY = (height - leagueLogoSize) / 2;
-            drawLogoWithShadow(ctx, leagueLogo, leagueLogoX, leagueLogoY, leagueLogoSize);
+            drawLogoMaintainAspect(ctx, leagueLogo, leagueLogoX, leagueLogoY, leagueLogoSize);
         } catch (error) {
             console.error('Error loading league logo:', error.message);
         }
@@ -399,12 +396,10 @@ async function generateMinimalist(teamA, teamB, width, height, league, orientati
     
     ctx.fillText('VS', centerX, textY);
     
-    // Draw league logo at bottom if provided
-    if (league) {
+    // Draw league logo at bottom if league logo URL is provided
+    if (league && league.logoUrl) {
         try {
-            const { getLeagueLogoUrl } = require('./imageUtils');
-            const leagueLogoUrl = await getLeagueLogoUrl(league);
-            const leagueLogoBuffer = await downloadImage(leagueLogoUrl);
+            const leagueLogoBuffer = await downloadImage(league.logoUrl);
             const leagueLogo = await loadImage(leagueLogoBuffer);
             // Smaller logo for portrait orientation
             const leagueLogoSize = orientation === 'landscape' 
@@ -417,7 +412,26 @@ async function generateMinimalist(teamA, teamB, width, height, league, orientati
             const leagueLogoY = orientation === 'landscape'
                 ? height - leagueLogoSize - (height * 0.08)
                 : height - leagueLogoSize - (height * 0.02);
-            ctx.drawImage(leagueLogo, leagueLogoX, leagueLogoY, leagueLogoSize, leagueLogoSize);
+            
+            // Calculate dimensions maintaining aspect ratio
+            const aspectRatio = leagueLogo.width / leagueLogo.height;
+            let drawWidth, drawHeight;
+            
+            if (aspectRatio > 1) {
+                // Wider than tall
+                drawWidth = leagueLogoSize;
+                drawHeight = leagueLogoSize / aspectRatio;
+            } else {
+                // Taller than wide or square
+                drawHeight = leagueLogoSize;
+                drawWidth = leagueLogoSize * aspectRatio;
+            }
+            
+            // Adjust position to maintain centering
+            const adjustedX = leagueLogoX + (leagueLogoSize - drawWidth) / 2;
+            const adjustedY = leagueLogoY + (leagueLogoSize - drawHeight) / 2;
+            
+            ctx.drawImage(leagueLogo, adjustedX, adjustedY, drawWidth, drawHeight);
         } catch (error) {
             console.error('Error loading league logo:', error.message);
         }

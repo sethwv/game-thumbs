@@ -7,8 +7,6 @@ const { createCanvas, loadImage } = require('canvas');
 const https = require('https');
 const crypto = require('crypto');
 
-const { fetchLeagueData } = require('../providers/ESPN');
-
 // ------------------------------------------------------------------------------
 // Constants
 // ------------------------------------------------------------------------------
@@ -33,12 +31,12 @@ module.exports = {
     // Drawing functions
     drawLogoWithShadow,
     drawLogoWithOutline,
+    drawLogoMaintainAspect,
     hasLightOutline,
 
     // Image utilities
     downloadImage,
     selectBestLogo,
-    getLeagueLogoUrl,
     trimImage,
 
     // Color utilities
@@ -48,31 +46,6 @@ module.exports = {
     adjustColors,
     getAverageColor
 };
-// ------------------------------------------------------------------------------
-// League logo URL resolver
-// ------------------------------------------------------------------------------
-
-async function getLeagueLogoUrl(league, darkLogoPreferred = true) {
-    if (!league) {
-        throw new Error(`Unsupported league: ${league}`);
-    }
-    const leagueData = await fetchLeagueData(league);
-    const defaultLogo = leagueData.logos?.find(logo =>
-        logo.rel?.includes('full') && logo.rel?.includes('default')
-    )?.href;
-    const darkLogo = leagueData.logos?.find(logo =>
-        logo.rel?.includes('full') && logo.rel?.includes('dark')
-    )?.href;
-
-    switch (league.toLowerCase()) {
-        case 'ncaaf':
-        case 'ncaam':
-        case 'ncaaw':
-            return require('path').resolve(__dirname, '../assets/ncaa.png');
-        default:
-            return darkLogoPreferred ? (darkLogo || defaultLogo) : (defaultLogo || darkLogo) ?? `https://a.espncdn.com/i/teamlogos/leagues/500/${league.toLowerCase()}.png`;
-    }
-}
 
 // ------------------------------------------------------------------------------
 // Functions
@@ -86,6 +59,40 @@ function drawLogoWithShadow(ctx, logoImage, x, y, size) {
     ctx.shadowOffsetY = 5;
 
     ctx.drawImage(logoImage, x, y, size, size);
+
+    // Reset shadow
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+}
+
+function drawLogoMaintainAspect(ctx, logoImage, x, y, maxSize) {
+    // Calculate dimensions maintaining aspect ratio
+    const aspectRatio = logoImage.width / logoImage.height;
+    let drawWidth, drawHeight;
+    
+    if (aspectRatio > 1) {
+        // Wider than tall
+        drawWidth = maxSize;
+        drawHeight = maxSize / aspectRatio;
+    } else {
+        // Taller than wide or square
+        drawHeight = maxSize;
+        drawWidth = maxSize * aspectRatio;
+    }
+    
+    // Center the logo in the available space
+    const drawX = x + (maxSize - drawWidth) / 2;
+    const drawY = y + (maxSize - drawHeight) / 2;
+    
+    // Add drop shadow
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+    ctx.shadowBlur = 20;
+    ctx.shadowOffsetX = 5;
+    ctx.shadowOffsetY = 5;
+
+    ctx.drawImage(logoImage, drawX, drawY, drawWidth, drawHeight);
 
     // Reset shadow
     ctx.shadowColor = 'transparent';
@@ -231,10 +238,14 @@ function getWhiteLogo(logoImage, size) {
 
     tempCtx.putImageData(imageData, 0, 0);
 
-    // Cache it (limit cache size to prevent memory issues)
-    while (whiteLogoCache.size >= MAX_CACHE_SIZE) {
-        const firstKey = whiteLogoCache.keys().next().value;
-        whiteLogoCache.delete(firstKey);
+    // Cache it (limit cache size to prevent memory leaks)
+    if (whiteLogoCache.size >= MAX_CACHE_SIZE) {
+        // Remove oldest 20% of entries when limit reached
+        const entriesToRemove = Math.floor(MAX_CACHE_SIZE * 0.2);
+        const keys = Array.from(whiteLogoCache.keys());
+        for (let i = 0; i < entriesToRemove; i++) {
+            whiteLogoCache.delete(keys[i]);
+        }
     }
     whiteLogoCache.set(cacheKey, tempCanvas);
 
@@ -248,6 +259,8 @@ function getWhiteLogo(logoImage, size) {
 const fs = require('fs');
 const path = require('path');
 
+const REQUEST_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '10000', 10); // 10 seconds default
+
 function downloadImage(urlOrPath) {
     // If it's a local file path, load from filesystem
     if (typeof urlOrPath === 'string' && (urlOrPath.startsWith('/') || urlOrPath.startsWith('./') || urlOrPath.startsWith('../'))) {
@@ -258,14 +271,100 @@ function downloadImage(urlOrPath) {
             });
         });
     }
-    // Otherwise, treat as URL
+    // Otherwise, treat as URL with timeout protection
     return new Promise((resolve, reject) => {
-        https.get(urlOrPath, (response) => {
+        let request;
+        let resolved = false;
+        
+        const cleanup = () => {
+            if (request) {
+                request.destroy();
+                request.removeAllListeners();
+            }
+        };
+        
+        const timeout = setTimeout(() => {
+            if (!resolved) {
+                resolved = true;
+                cleanup();
+                reject(new Error(`Request timeout after ${REQUEST_TIMEOUT}ms: ${urlOrPath}`));
+            }
+        }, REQUEST_TIMEOUT);
+        
+        const options = {
+            timeout: REQUEST_TIMEOUT,
+            headers: {
+                'User-Agent': 'Mozilla/5.0'
+            }
+        };
+        
+        request = https.get(urlOrPath, options, (response) => {
+            // Handle redirects
+            if (response.statusCode === 301 || response.statusCode === 302) {
+                clearTimeout(timeout);
+                cleanup();
+                if (!resolved) {
+                    resolved = true;
+                    const redirectUrl = response.headers.location;
+                    return downloadImage(redirectUrl).then(resolve).catch(reject);
+                }
+                return;
+            }
+            
+            if (response.statusCode !== 200) {
+                clearTimeout(timeout);
+                cleanup();
+                if (!resolved) {
+                    resolved = true;
+                    reject(new Error(`HTTP ${response.statusCode}: ${urlOrPath}`));
+                }
+                return;
+            }
+            
             const chunks = [];
-            response.on('data', (chunk) => chunks.push(chunk));
-            response.on('end', () => resolve(Buffer.concat(chunks)));
-            response.on('error', reject);
-        }).on('error', reject);
+            
+            response.on('data', (chunk) => {
+                if (!resolved) {
+                    chunks.push(chunk);
+                }
+            });
+            
+            response.on('end', () => {
+                clearTimeout(timeout);
+                cleanup();
+                if (!resolved) {
+                    resolved = true;
+                    resolve(Buffer.concat(chunks));
+                }
+            });
+            
+            response.on('error', (err) => {
+                clearTimeout(timeout);
+                cleanup();
+                if (!resolved) {
+                    resolved = true;
+                    reject(err);
+                }
+            });
+        });
+        
+        request.on('error', (err) => {
+            clearTimeout(timeout);
+            cleanup();
+            if (!resolved) {
+                resolved = true;
+                reject(err);
+            }
+        });
+        
+        request.on('timeout', () => {
+            clearTimeout(timeout);
+            cleanup();
+            if (!resolved) {
+                resolved = true;
+                reject(new Error(`Request timeout after ${REQUEST_TIMEOUT}ms: ${urlOrPath}`));
+            }
+        });
     });
 }
 
