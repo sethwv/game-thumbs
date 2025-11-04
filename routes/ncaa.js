@@ -11,6 +11,8 @@ const logger = require('../helpers/logger');
 module.exports = {
     paths: [
         "/ncaa/:sport/:team1/:team2/:type",
+        "/ncaa/:sport/:team1/:type",
+        "/ncaa/:sport/:type",
     ],
     method: "get",
     handler: async (req, res) => {
@@ -67,6 +69,13 @@ module.exports = {
             case 'thumb':
             case 'thumb.png':
                 return require('./thumb').handler(req, res);
+            case 'teamlogo':
+            case 'teamlogo.png':
+                req.params.team = team1;
+                return require('./teamlogo').handler(req, res);
+            case 'leaguelogo':
+            case 'leaguelogo.png':
+                return require('./leaguelogo').handler(req, res);
             default:
                 logger.warn('Unsupported NCAA endpoint type', {
                     Type: type,
