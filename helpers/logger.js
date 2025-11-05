@@ -224,7 +224,7 @@ function log(level, message, details = null, error = null) {
     
     // Check if we should show details in console (based on environment and level)
     const isDevelopment = process.env.NODE_ENV === 'development';
-    const showDetailsInConsole = isDevelopment || level !== 'error';
+    const showDetailsInConsole = isDevelopment;
     
     // Write to file with separate formatting (always includes all details + stack)
     writeToFile(prefixStr, message, details, error);

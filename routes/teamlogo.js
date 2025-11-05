@@ -39,12 +39,9 @@ module.exports = {
                 logoUrl = resolvedTeam.logo;
             } else {
                 // If variant specified but not 'dark' or 'light', return error
-                if (variant) {
-                    return res.status(400).json({ 
-                        error: `Invalid variant: ${variant}. Use 'light' or 'dark'` 
-                    });
-                }
-                logoUrl = resolvedTeam.logo;
+                return res.status(400).json({ 
+                    error: `Invalid variant: ${variant}. Use 'light' or 'dark'` 
+                });
             }
 
             if (!logoUrl) {
