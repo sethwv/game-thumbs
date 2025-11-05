@@ -1,7 +1,10 @@
 // ------------------------------------------------------------------------------
 // logger.js
-// Centralized logging utility with colored output
+// Centralized logging utility with colored output and optional file logging
 // ------------------------------------------------------------------------------
+
+const fs = require('fs');
+const path = require('path');
 
 let chalk;
 
@@ -12,6 +15,40 @@ let chalk;
 
 // Check if colors should be forced (for Docker/CI environments)
 const forceColor = process.env.FORCE_COLOR === '1' || process.env.FORCE_COLOR === 'true';
+
+// File logging configuration
+const LOG_TO_FILE = process.env.LOG_TO_FILE === 'true' || process.env.LOG_TO_FILE === '1';
+const LOG_DIR = process.env.LOG_DIR || path.join(__dirname, '..', 'logs');
+const LOG_ROTATION_SIZE = parseInt(process.env.LOG_ROTATION_SIZE || '102400', 10); // 100KB default
+const MAX_LOG_FILES = parseInt(process.env.MAX_LOG_FILES || '10', 10); // Keep last 10 files
+
+let currentLogFile = null;
+let currentLogSize = 0;
+let fileLoggingStatusShown = false; // Track if we've shown the file logging status
+
+// Initialize log directory if file logging is enabled
+if (LOG_TO_FILE) {
+    if (!fs.existsSync(LOG_DIR)) {
+        fs.mkdirSync(LOG_DIR, { recursive: true });
+    }
+    
+    // Initialize first log file
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0];
+    currentLogFile = path.join(LOG_DIR, `app-${timestamp}-001.log`);
+    
+    // Find next available log file number for today
+    let fileNumber = 1;
+    while (fs.existsSync(currentLogFile)) {
+        fileNumber++;
+        currentLogFile = path.join(LOG_DIR, `app-${timestamp}-${String(fileNumber).padStart(3, '0')}.log`);
+    }
+    
+    // Get current size if file exists
+    if (fs.existsSync(currentLogFile)) {
+        const stats = fs.statSync(currentLogFile);
+        currentLogSize = stats.size;
+    }
+}
 
 // Synchronous fallback colors (ANSI codes)
 const colors = {
@@ -64,29 +101,157 @@ const levels = {
     api: { color: colors.gray, prefix: 'API' }
 };
 
-// Format timestamp
+// Format timestamp for console
 function timestamp() {
     // Check if timestamps should be shown (default: true, set SHOW_TIMESTAMP=false to disable)
     const showTimestamp = process.env.SHOW_TIMESTAMP !== 'false';
     return showTimestamp ? colors.gray(`[${new Date().toLocaleTimeString()}]`) : '';
 }
 
+// Format timestamp for file (always included)
+function fileTimestamp() {
+    return new Date().toISOString();
+}
+
+// Strip ANSI color codes from text
+function stripColors(text) {
+    return text.replace(/\x1b\[[0-9;]*m/g, '');
+}
+
+// Write to log file with rotation
+function writeToFile(prefix, message, details = null, error = null) {
+    if (!LOG_TO_FILE || !currentLogFile) return;
+    
+    try {
+        // Build log line with timestamp and stripped colors
+        const ts = fileTimestamp();
+        const plainPrefix = stripColors(prefix);
+        const plainMessage = stripColors(message);
+        
+        let logLine = `[${ts}] ${plainPrefix} ${plainMessage}\n`;
+        
+        // Add details if present
+        if (details) {
+            if (typeof details === 'object' && !Array.isArray(details)) {
+                Object.entries(details).forEach(([key, value]) => {
+                    logLine += `[${ts}]        │ ${key}: ${stripColors(String(value))}\n`;
+                });
+            } else {
+                logLine += `[${ts}]        │ ${stripColors(String(details))}\n`;
+            }
+        }
+        
+        // Always include full stack trace in file logs for errors
+        if (error && error.stack) {
+            logLine += `[${ts}]        │ Stack Trace:\n`;
+            const stackLines = error.stack.split('\n');
+            stackLines.forEach(line => {
+                logLine += `[${ts}]        │   ${line.trim()}\n`;
+            });
+        }
+        
+        const lineSize = Buffer.byteLength(logLine, 'utf8');
+        
+        // Check if we need to rotate
+        if (currentLogSize + lineSize > LOG_ROTATION_SIZE) {
+            rotateLogFile();
+        }
+        
+        // Append to current log file
+        fs.appendFileSync(currentLogFile, logLine, 'utf8');
+        currentLogSize += lineSize;
+    } catch (err) {
+        console.error('Failed to write to log file:', err.message);
+    }
+}
+
+// Rotate log file
+function rotateLogFile() {
+    try {
+        // Get current date for filename
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0];
+        
+        // Find next available file number
+        let fileNumber = 1;
+        let newLogFile;
+        do {
+            newLogFile = path.join(LOG_DIR, `app-${timestamp}-${String(fileNumber).padStart(3, '0')}.log`);
+            fileNumber++;
+        } while (fs.existsSync(newLogFile));
+        
+        // Update current log file
+        currentLogFile = newLogFile;
+        currentLogSize = 0;
+        
+        // Cleanup old log files (keep only MAX_LOG_FILES)
+        cleanupOldLogs();
+    } catch (error) {
+        console.error('Failed to rotate log file:', error.message);
+    }
+}
+
+// Clean up old log files
+function cleanupOldLogs() {
+    try {
+        const files = fs.readdirSync(LOG_DIR)
+            .filter(file => file.startsWith('app-') && file.endsWith('.log'))
+            .map(file => ({
+                name: file,
+                path: path.join(LOG_DIR, file),
+                time: fs.statSync(path.join(LOG_DIR, file)).mtime.getTime()
+            }))
+            .sort((a, b) => b.time - a.time); // Sort by time, newest first
+        
+        // Remove old files beyond MAX_LOG_FILES
+        if (files.length > MAX_LOG_FILES) {
+            files.slice(MAX_LOG_FILES).forEach(file => {
+                fs.unlinkSync(file.path);
+            });
+        }
+    } catch (error) {
+        console.error('Failed to cleanup old logs:', error.message);
+    }
+}
+
 // Generic log function
-function log(level, message, details = null) {
+function log(level, message, details = null, error = null) {
     const { color, prefix } = levels[level] || levels.info;
     const prefixStr = color(`[${prefix}]`);
     const ts = timestamp();
     
-    console.log(`${ts}${ts ? ' ' : ''}${prefixStr} ${message}`);
+    const logMessage = `${ts}${ts ? ' ' : ''}${prefixStr} ${message}`;
+    console.log(logMessage);
+    
+    // Check if we should show details in console (based on environment and level)
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const showDetailsInConsole = isDevelopment;
+    
+    // Write to file with separate formatting (always includes all details + stack)
+    writeToFile(prefixStr, message, details, error);
     
     if (details) {
         if (typeof details === 'object' && !Array.isArray(details)) {
             Object.entries(details).forEach(([key, value]) => {
-                console.log(`       ${colors.gray('│')} ${colors.dim(key)}: ${value}`);
+                const detailLine = `       ${colors.gray('│')} ${colors.dim(key)}: ${value}`;
+                // Only show in console if development or not an error
+                if (showDetailsInConsole) {
+                    console.log(detailLine);
+                }
             });
         } else {
-            console.log(`       ${colors.gray('│')} ${details}`);
+            const detailLine = `       ${colors.gray('│')} ${details}`;
+            if (showDetailsInConsole) {
+                console.log(detailLine);
+            }
         }
+    }
+    
+    // Show stack trace in console only in development mode
+    if (error && error.stack && isDevelopment) {
+        const stackLines = error.stack.split('\n');
+        stackLines.forEach(line => {
+            console.log(`       ${colors.gray('│')} ${colors.dim(line.trim())}`);
+        });
     }
 }
 
@@ -95,7 +260,7 @@ const logger = {
     info: (message, details) => log('info', message, details),
     success: (message, details) => log('success', message, details),
     warn: (message, details) => log('warn', message, details),
-    error: (message, details) => log('error', message, details),
+    error: (message, details, error) => log('error', message, details, error),
     cache: (message, details) => log('cache', message, details),
     rate: (message, details) => log('rate', message, details),
     api: (message, details) => log('api', message, details),
@@ -138,6 +303,7 @@ const logger = {
         }
         
         const status = cached ? colors.cyan('[CACHED]') : colors.green('[OK]');
+        const statusPlain = cached ? '[CACHED]' : '[OK]';
         const ts = timestamp();
         
         // Build the entire log message as a single string to prevent interleaving
@@ -148,14 +314,33 @@ const logger = {
         ].join('\n');
         
         console.log(logMessage);
+        
+        // Write to file with timestamp and details
+        writeToFile('[API]', `${stripColors(method)} ${url} ${statusPlain}`, {
+            IP: ip,
+            'User-Agent': userAgent
+        });
     },
     
     // Special startup message
     startup: (message) => {
         const line = '═'.repeat(60);
-        console.log('\n' + colors.blue(colors.bold(line)));
-        console.log(colors.blue(colors.bold(`  ${message}`)));
-        console.log(colors.blue(colors.bold(line)) + '\n');
+        const startupMessage = '\n' + colors.blue(colors.bold(line)) + '\n' + 
+                               colors.blue(colors.bold(`  ${message}`)) + '\n' + 
+                               colors.blue(colors.bold(line)) + '\n';
+        console.log(startupMessage);
+        
+        // Write to file (startup messages as INFO)
+        writeToFile('[INFO]', `${'═'.repeat(60)}`);
+        writeToFile('[INFO]', message);
+        writeToFile('[INFO]', `${'═'.repeat(60)}`);
+        
+        // Log file logging status (console only, show only once)
+        if (LOG_TO_FILE && !fileLoggingStatusShown) {
+            const fileInfo = `File logging enabled: ${currentLogFile} (rotate at ${Math.round(LOG_ROTATION_SIZE / 1024)}KB)`;
+            logger.info(fileInfo);
+            fileLoggingStatusShown = true;
+        }
     }
 };
 

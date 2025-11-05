@@ -73,20 +73,16 @@ module.exports = {
                 URL: req.url,
                 IP: req.ip
             };
-            
+
             // For TeamNotFoundError, use a cleaner console message
             if (error.name === 'TeamNotFoundError') {
                 errorDetails.Error = `Team not found: '${error.teamIdentifier}' in ${error.league}`;
                 errorDetails['Available Teams'] = `${error.teamCount} teams available`;
             }
-            
-            // Only include stack trace in development mode
-            if (process.env.NODE_ENV === 'development') {
-                errorDetails.Stack = error.stack;
-            }
-            
-            logger.error('Thumbnail generation failed', errorDetails);
-            
+
+            // Logger will handle stack trace automatically (file: always, console: dev only)
+            logger.error('Thumbnail generation failed', errorDetails, error);
+
             // Only send error response if headers haven't been sent yet
             if (!res.headersSent) {
                 res.status(400).json({ error: error.message });

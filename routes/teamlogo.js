@@ -1,30 +1,22 @@
 // ------------------------------------------------------------------------------
-// cover.js
-// Route to generate game cover images
-// Cover size is 1080W x 1440H by default
+// teamlogo.js
+// Route to return the raw team logo image
 // ------------------------------------------------------------------------------
 
 const providerManager = require('../providers/ProviderManager');
-const { generateCover } = require('../helpers/thumbnailGenerator');
 const { findLeague } = require('../leagues');
+const { downloadImage } = require('../helpers/imageUtils');
 const logger = require('../helpers/logger');
 
 module.exports = {
     paths: [
-        "/:league/:team1/:team2/cover",
-        "/:league/:team1/:team2/cover.png"
+        "/:league/:team/teamlogo",
+        "/:league/:team/teamlogo.png"
     ],
     method: "get",
     handler: async (req, res) => {
-        const { league, team1, team2 } = req.params;
-        const { logo, style } = req.query;
-
-        const coverOptions = {
-            width: 1080,
-            height: 1440,
-            style: parseInt(style) || 1,
-            league: logo === 'false' ? null : league
-        };
+        const { league, team } = req.params;
+        const { variant } = req.query;
 
         try {
             const leagueObj = findLeague(league);
@@ -37,28 +29,35 @@ module.exports = {
                 return res.status(400).json({ error: `Unsupported league: ${league}` });
             }
 
-            const resolvedTeam1 = await providerManager.resolveTeam(leagueObj, team1);
-            const resolvedTeam2 = await providerManager.resolveTeam(leagueObj, team2);
+            const resolvedTeam = await providerManager.resolveTeam(leagueObj, team);
 
-            // Get league logo URL if needed
-            let leagueInfo = null;
-            if (coverOptions.league) {
-                const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj);
-                leagueInfo = { logoUrl: leagueLogoUrl };
+            // Determine which logo URL to use based on variant parameter
+            let logoUrl;
+            if (variant === 'dark' && resolvedTeam.logoAlt) {
+                logoUrl = resolvedTeam.logoAlt;
+            } else if (variant === 'light' || !variant) {
+                logoUrl = resolvedTeam.logo;
+            } else {
+                // If variant specified but not 'dark' or 'light', return error
+                return res.status(400).json({ 
+                    error: `Invalid variant: ${variant}. Use 'light' or 'dark'` 
+                });
             }
 
-            const coverBuffer = await generateCover(resolvedTeam1, resolvedTeam2, {
-                ...coverOptions,
-                league: leagueInfo
-            });
-            
+            if (!logoUrl) {
+                return res.status(404).json({ error: 'Logo not found for team' });
+            }
+
+            // Download the image
+            const logoBuffer = await downloadImage(logoUrl);
+
             // Send successful response
             res.set('Content-Type', 'image/png');
-            res.send(coverBuffer);
-            
+            res.send(logoBuffer);
+
             // Cache successful result (don't let caching errors affect the response)
             try {
-                require('../helpers/imageCache').addToCache(req, res, coverBuffer);
+                require('../helpers/imageCache').addToCache(req, res, logoBuffer);
             } catch (cacheError) {
                 logger.error('Failed to cache image', {
                     Error: cacheError.message,
@@ -69,7 +68,7 @@ module.exports = {
             const errorDetails = {
                 Error: error.message,
                 League: league,
-                Teams: `${team1} vs ${team2}`,
+                Team: team,
                 URL: req.url,
                 IP: req.ip
             };
@@ -81,7 +80,7 @@ module.exports = {
             }
 
             // Logger will handle stack trace automatically (file: always, console: dev only)
-            logger.error('Cover generation failed', errorDetails, error);
+            logger.error('Team logo fetch failed', errorDetails, error);
 
             // Only send error response if headers haven't been sent yet
             if (!res.headersSent) {

@@ -42,6 +42,8 @@ You can configure the server behavior using environment variables:
 | `SERVER_TIMEOUT` | Timeout for HTTP connections (in milliseconds). | `30000` |
 | `SHOW_TIMESTAMP` | Whether to show timestamps in logs. Set to `false` to hide timestamps. | `true` |
 | `FORCE_COLOR` | Force colored output in logs (useful for Docker/CI environments). Set to `1` or `true` to enable. | `false` |
+| `LOG_TO_FILE` | Enable file logging. Set to `true` or `1` to enable. | `false` |
+| `MAX_LOG_FILES` | Maximum number of log files to keep (oldest are deleted). | `10` |
 
 **Notes:**
 - When `IMAGE_CACHE_HOURS=0`, every request generates a new image (useful for testing)
@@ -52,22 +54,37 @@ You can configure the server behavior using environment variables:
 - `REQUEST_TIMEOUT` prevents hanging on slow/unresponsive external services
 - `SERVER_TIMEOUT` prevents zombie connections from accumulating
 - Use `NODE_ENV=development` for detailed error messages and stack traces in API responses
+- When `LOG_TO_FILE=true`, logs are written to files in `./logs` directory with automatic rotation (~100KB per file)
+- Log files are named `app-YYYY-MM-DD-NNN.log` and old files are automatically cleaned up
+- File logs always include full timestamps and stack traces (regardless of console settings)
 
 ## API Endpoints
 
 ### Overview
 
-The API provides four types of endpoints for sports matchups:
+The API provides endpoints for sports matchups and logos:
 
 | Type | Endpoint | Dimensions | Description |
 |------|----------|------------|-------------|
 | **Thumbnail** | `/:league/:team1/:team2/thumb[.png]` | 1440x1080 (4:3) | Landscape matchup thumbnail |
 | **Cover** | `/:league/:team1/:team2/cover[.png]` | 1080x1440 (3:4) | Portrait matchup cover |
 | **Logo** | `/:league/:team1/:team2/logo[.png]` | 800x800 (1:1) | Matchup logo with transparent background |
+| **Team Logo** | `/:league/:team/teamlogo[.png]` | Original | Raw team logo image |
+| **League Logo** | `/:league/leaguelogo[.png]` | Original | Raw league logo image |
 | **Raw Data** | `/:league/:team/raw` | JSON | Raw team data from provider |
 | **Server Info** | `/info` | JSON | Version and git information |
 
-*Note: The `.png` extension is optional for image endpoints*
+**NCAA Shorthand Endpoints:**
+
+| Type | Endpoint | Dimensions | Description |
+|------|----------|------------|-------------|
+| **Thumbnail** | `/ncaa/:sport/:team1/:team2/thumb[.png]` | 1440x1080 (4:3) | NCAA matchup thumbnail |
+| **Cover** | `/ncaa/:sport/:team1/:team2/cover[.png]` | 1080x1440 (3:4) | NCAA matchup cover |
+| **Logo** | `/ncaa/:sport/:team1/:team2/logo[.png]` | 800x800 (1:1) | NCAA matchup logo |
+| **Team Logo** | `/ncaa/:sport/:team/teamlogo[.png]` | Original | NCAA team logo |
+| **League Logo** | `/ncaa/:sport/leaguelogo[.png]` | Original | NCAA sport logo |
+
+*Note: The `.png` extension is optional for all image endpoints*
 
 ---
 
@@ -123,9 +140,9 @@ A convenience endpoint for NCAA sports that uses sport names instead of league c
 
 **Parameters:**
 - `sport` - NCAA sport identifier (see table below)
-- `team1` - First team (name, city, or abbreviation)
-- `team2` - Second team (name, city, or abbreviation)
-- `type` - Image type: `thumb`, `cover`, or `logo` (`.png` extension optional)
+- `team1` - First team (name, city, or abbreviation) *(optional for `leaguelogo`)*
+- `team2` - Second team (name, city, or abbreviation) *(only required for matchup types)*
+- `type` - Image type: `thumb`, `cover`, `logo`, `teamlogo`, or `leaguelogo` (`.png` extension optional)
 
 **Supported NCAA Sports:**
 
@@ -159,6 +176,10 @@ GET /ncaa/softball/oklahoma/alabama/cover
 GET /ncaa/lacrosse/duke/north-carolina/logo
 GET /ncaa/womens-volleyball/stanford/nebraska/thumb
 GET /ncaa/field-hockey/north-carolina/duke/cover
+GET /ncaa/football/alabama/teamlogo
+GET /ncaa/basketball/duke/teamlogo?variant=dark
+GET /ncaa/football/leaguelogo
+GET /ncaa/womens-basketball/leaguelogo.png
 ```
 
 **Note:** This endpoint forwards to the standard league endpoints, so all query parameters work the same way.
@@ -271,6 +292,66 @@ GET /nfl/packers/bears/logo?style=6&size=1024
 - Styles 5 and 6 require the league logo and will ignore the `logo` parameter (always treated as `true`). The league logo is placed on a white background on the left, with team logos following.
 - Styles 5 and 6 automatically select the best league logo variant (default or dark) based on contrast against the white background.
 - In style 5, circles overlap by up to 5% to maximize size while preventing edge clipping.
+
+---
+
+### Team Logo (Raw)
+
+**Endpoint:** `/:league/:team/teamlogo[.png]`
+
+Returns the raw team logo image directly from the provider (proxied through the server).
+
+**Parameters:**
+- `league` - Sport league code (see [Supported Leagues](#supported-leagues))
+- `team` - Team identifier (name, city, or abbreviation)
+
+**Query Parameters:**
+- `variant` - Logo variant (optional)
+  - `light` - Primary/default logo (default)
+  - `dark` - Dark variant logo (if available, otherwise falls back to light)
+
+**Examples:**
+```
+GET /nba/lakers/teamlogo
+GET /nfl/chiefs/teamlogo.png
+GET /nhl/toronto/teamlogo?variant=dark
+GET /ncaaf/alabama/teamlogo?variant=light
+GET /mlb/yankees/teamlogo
+```
+
+**Output:** PNG image (original resolution from provider)
+
+**Notes:**
+- Images are cached using the same 24-hour cache system as other endpoints
+- If a dark variant is requested but not available, the light variant is returned
+- The image is proxied through the server to ensure compatibility with all clients
+
+---
+
+### League Logo (Raw)
+
+**Endpoint:** `/:league/leaguelogo[.png]`
+
+Returns the raw league logo image directly from the provider (proxied through the server).
+
+**Parameters:**
+- `league` - Sport league code (see [Supported Leagues](#supported-leagues))
+
+**Query Parameters:**
+- `variant` - Logo variant (optional)
+  - `light` - Primary/default logo (default)
+  - `dark` - Dark variant logo (default for most leagues, if available)
+
+**Examples:**
+```
+GET /nba/leaguelogo
+GET /nfl/leaguelogo.png
+GET /epl/leaguelogo?variant=dark
+GET /ncaaf/leaguelogo?variant=light
+GET /mls/leaguelogo
+```
+
+**Output:** PNG image (original resolution from provider)
 
 ---
 
