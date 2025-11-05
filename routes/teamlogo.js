@@ -82,12 +82,8 @@ module.exports = {
                 errorDetails['Available Teams'] = `${error.teamCount} teams available`;
             }
 
-            // Only include stack trace in development mode
-            if (process.env.NODE_ENV === 'development') {
-                errorDetails.Stack = error.stack;
-            }
-
-            logger.error('Team logo fetch failed', errorDetails);
+            // Logger will handle stack trace automatically (file: always, console: dev only)
+            logger.error('Team logo fetch failed', errorDetails, error);
 
             // Only send error response if headers haven't been sent yet
             if (!res.headersSent) {

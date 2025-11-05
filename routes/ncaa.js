@@ -55,6 +55,7 @@ module.exports = {
 
         // Rewrite request to use the specific NCAA league
         req.params.league = leagueKey;
+        req.params.team = team1;
         req.params.team1 = team1;
         req.params.team2 = team2;
 
@@ -71,7 +72,6 @@ module.exports = {
                 return require('./thumb').handler(req, res);
             case 'teamlogo':
             case 'teamlogo.png':
-                req.params.team = team1;
                 return require('./teamlogo').handler(req, res);
             case 'leaguelogo':
             case 'leaguelogo.png':

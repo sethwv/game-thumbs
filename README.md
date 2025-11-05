@@ -42,6 +42,8 @@ You can configure the server behavior using environment variables:
 | `SERVER_TIMEOUT` | Timeout for HTTP connections (in milliseconds). | `30000` |
 | `SHOW_TIMESTAMP` | Whether to show timestamps in logs. Set to `false` to hide timestamps. | `true` |
 | `FORCE_COLOR` | Force colored output in logs (useful for Docker/CI environments). Set to `1` or `true` to enable. | `false` |
+| `LOG_TO_FILE` | Enable file logging. Set to `true` or `1` to enable. | `false` |
+| `MAX_LOG_FILES` | Maximum number of log files to keep (oldest are deleted). | `10` |
 
 **Notes:**
 - When `IMAGE_CACHE_HOURS=0`, every request generates a new image (useful for testing)
@@ -52,6 +54,9 @@ You can configure the server behavior using environment variables:
 - `REQUEST_TIMEOUT` prevents hanging on slow/unresponsive external services
 - `SERVER_TIMEOUT` prevents zombie connections from accumulating
 - Use `NODE_ENV=development` for detailed error messages and stack traces in API responses
+- When `LOG_TO_FILE=true`, logs are written to files in `./logs` directory with automatic rotation (~100KB per file)
+- Log files are named `app-YYYY-MM-DD-NNN.log` and old files are automatically cleaned up
+- File logs always include full timestamps and stack traces (regardless of console settings)
 
 ## API Endpoints
 

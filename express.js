@@ -167,12 +167,12 @@ function init(port) {
             if (route.paths) {
                 for (const path of route.paths) {
                     registerRoute(path, route.handler, route.method);
-                    logger.success(`Registered route: [${route.method.toUpperCase()}] ${path}`);
+                    logger.info(`Registered route: [${route.method.toUpperCase()}] ${path}`);
                 }
             }
             else if (route.path) {
                 registerRoute(route.path, route.handler, route.method);
-                logger.success(`Registered route: [${route.method.toUpperCase()}] ${route.path}`);
+                logger.info(`Registered route: [${route.method.toUpperCase()}] ${route.path}`);
             }
         }
     });
@@ -181,10 +181,9 @@ function init(port) {
     app.use((err, req, res, next) => {
         logger.error('Unhandled route error', {
             Error: err.message,
-            Stack: err.stack,
             URL: req.url,
             IP: req.ip
-        });
+        }, err);
         
         if (!res.headersSent) {
             res.status(500).json({ error: 'Internal server error' });
@@ -316,19 +315,20 @@ function setupGracefulShutdown() {
     // Handle uncaught exceptions
     process.on('uncaughtException', (err) => {
         logger.error('Uncaught Exception', {
-            Error: err.message,
-            Stack: err.stack
-        });
+            Error: err.message
+        }, err);
         // Don't exit immediately, let the process continue
         // but log it for debugging
     });
     
     // Handle unhandled promise rejections
     process.on('unhandledRejection', (reason, promise) => {
+        // Create an error object if reason is not already an error
+        const err = reason instanceof Error ? reason : new Error(String(reason));
         logger.error('Unhandled Promise Rejection', {
-            Reason: reason,
-            Promise: promise
-        });
+            Reason: String(reason),
+            Promise: String(promise)
+        }, err);
         // Don't exit immediately, let the process continue
         // but log it for debugging
     });

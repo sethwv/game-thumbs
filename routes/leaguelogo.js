@@ -70,12 +70,8 @@ module.exports = {
                 IP: req.ip
             };
 
-            // Only include stack trace in development mode
-            if (process.env.NODE_ENV === 'development') {
-                errorDetails.Stack = error.stack;
-            }
-
-            logger.error('League logo fetch failed', errorDetails);
+            // Logger will handle stack trace automatically (file: always, console: dev only)
+            logger.error('League logo fetch failed', errorDetails, error);
 
             // Only send error response if headers haven't been sent yet
             if (!res.headersSent) {
