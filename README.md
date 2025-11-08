@@ -92,17 +92,25 @@ The API provides endpoints for sports matchups and logos:
 
 **Professional Leagues:**
 
-| League Name                                  | Code   |
-|----------------------------------------------|--------|
-| National Basketball Association              | `nba`  |
-| Women's National Basketball Association      | `wnba` |
-| National Football League                     | `nfl`  |
-| United Football League                       | `ufl`  |
-| Major League Baseball                        | `mlb`  |
-| National Hockey League                       | `nhl`  |
-| English Premier League                       | `epl`  |
-| Major League Soccer                          | `mls`  |
-| UEFA Champions League                        | `uefa` |
+| League Name                                  | Code          |
+|----------------------------------------------|---------------|
+| National Basketball Association              | `nba`         |
+| Women's National Basketball Association      | `wnba`        |
+| National Football League                     | `nfl`         |
+| United Football League                       | `ufl`         |
+| Major League Baseball                        | `mlb`         |
+| National Hockey League                       | `nhl`         |
+| National Lacrosse League                     | `nll`         |
+| English Premier League                       | `epl`         |
+| La Liga                                      | `laliga`      |
+| Bundesliga                                   | `bundesliga`  |
+| Serie A                                      | `seriea`      |
+| Ligue 1                                      | `ligue1`      |
+| Major League Soccer                          | `mls`         |
+| UEFA Champions League                        | `uefa`        |
+| UEFA Europa League                           | `europa`      |
+| UEFA Europa Conference League                | `conference`  |
+| FIFA World Cup                               | `worldcup`    |
 
 **NCAA Men's Sports:**
 
