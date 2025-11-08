@@ -72,6 +72,63 @@
       "espnSport": "soccer"
     }
   },
+    "laliga": {
+    "name": "La Liga",
+    "shortName": "LaLiga",
+    "providerId": "espn",
+    "espnConfig": {
+      "espnSlug": "esp.1",
+      "espnSport": "soccer"
+    }
+  },
+  "bundesliga": {
+    "name": "Bundesliga",
+    "shortName": "Bundesliga",
+    "providerId": "espn",
+    "espnConfig": {
+      "espnSlug": "ger.1",
+      "espnSport": "soccer"
+    }
+  },
+    "seriea": {
+    "name": "Serie A",
+    "shortName": "SerieA",
+    "providerId": "espn",
+    "espnConfig": {
+      "espnSlug": "ita.1",
+      "espnSport": "soccer"
+    }
+  },
+  "ligue1": {
+    "name": "Ligue 1",
+    "shortName": "Ligue1",
+    "providerId": "espn",
+    "espnConfig": {
+      "espnSlug": "fra.1",
+      "espnSport": "soccer"
+    }
+  },
+  "europa": {
+    "name": "UEFA Europa League",
+    "shortName": "Europa",
+    "aliases": ["europa league", "uel", "uefa.europa", "uefaeuropaleague"],
+    "providerId": "espn",
+    "espnConfig": {
+      "espnSlug": "uefa.europa",
+      "espnSport": "soccer"
+    }
+  },
+  "conference": {
+    "name": "UEFA Europa Conference League",
+    "shortName": "Conference",
+    "aliases": ["conference league", "uefa.conference", "uefaconferenceleague", "uefaeuropaconfleague"],
+    "providerId": "espn",
+    "espnConfig": {
+      "espnSlug": "uefa.conference",
+      "espnSport": "soccer"
+    }
+  },
+
   "mls": {
     "name": "Major League Soccer",
     "shortName": "MLS",
