@@ -110,6 +110,139 @@ function expandLocationAbbreviations(input) {
 // ------------------------------------------------------------------------------
 
 /**
+ * Check if a prefix matches any variation of a team's city
+ * e.g., "losangeles" matches city "LA" because LA can expand to "Los Angeles"
+ */
+function isCityVariation(prefix, teamCity) {
+    if (!prefix || !teamCity) return false;
+    
+    const compactPrefix = normalizeCompact(prefix);
+    const compactCity = normalizeCompact(teamCity);
+    
+    // Direct match
+    if (compactPrefix === compactCity) return true;
+    
+    // Check if team city is an abbreviation or expansion that matches the prefix
+    for (const [abbrev, expansions] of Object.entries(LOCATION_ABBREVIATIONS)) {
+        const compactAbbrev = normalizeCompact(abbrev);
+        
+        // If team city matches this abbreviation
+        if (compactCity === compactAbbrev) {
+            // Check if prefix matches any expansion
+            for (const expansion of expansions) {
+                if (compactPrefix === normalizeCompact(expansion)) {
+                    return true;
+                }
+            }
+        }
+        
+        // If team city matches any expansion
+        for (const expansion of expansions) {
+            if (compactCity === normalizeCompact(expansion)) {
+                // Check if prefix matches the abbreviation or other expansions
+                if (compactPrefix === compactAbbrev) {
+                    return true;
+                }
+                for (const otherExpansion of expansions) {
+                    if (compactPrefix === normalizeCompact(otherExpansion)) {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+    return false;
+}
+
+/**
+ * Check for exact matches between input and team fields
+ */
+function checkExactMatches(expandedInput, compactInput, normalized) {
+    const exactMatchFields = [
+        { norm: normalized.abbreviation, compact: normalized.compactAbbreviation, score: 1000 },
+        { norm: normalized.name, compact: normalized.compactName, score: 900 },
+        { norm: normalized.shortDisplayName, compact: normalized.compactShortDisplayName, score: 850 },
+        { norm: normalized.fullName, compact: normalized.compactFullName, score: 800 },
+        { norm: normalized.city, compact: normalized.compactCity, score: 700 }
+    ];
+    
+    for (const field of exactMatchFields) {
+        if ((field.norm && expandedInput === field.norm) || (field.compact && compactInput === field.compact)) {
+            return field.score;
+        }
+    }
+    return 0;
+}
+
+/**
+ * Check for city+team concatenation patterns (e.g., "losangelesclippers")
+ */
+function checkConcatenationMatch(compactInput, teamCity, normalized) {
+    const MIN_LENGTH = 4;
+    const teamNames = [normalized.compactShortDisplayName, normalized.compactName];
+    
+    for (const teamName of teamNames) {
+        if (!teamName || teamName.length < MIN_LENGTH) continue;
+        
+        // Direct: city + team name (e.g., "laclippers")
+        if (normalized.compactCity && compactInput === normalized.compactCity + teamName) {
+            return 950;
+        }
+        
+        // City variation + team name (e.g., "losangelesclippers" where city is "LA")
+        if (compactInput.endsWith(teamName)) {
+            const prefix = compactInput.substring(0, compactInput.length - teamName.length);
+            if (isCityVariation(prefix, teamCity)) {
+                return 950;
+            }
+        }
+    }
+    
+    return 0;
+}
+
+/**
+ * Check for partial substring matches
+ */
+function checkPartialMatches(expandedInput, compactInput, normalized) {
+    const MIN_LENGTH = 4;
+    let score = 0;
+    
+    // Helper to check if input contains field or vice versa
+    const checkSubstring = (field, compactField, containsScore, isContainedScore) => {
+        let s = 0;
+        if (field && field.length >= MIN_LENGTH && expandedInput.includes(field)) s = Math.max(s, containsScore);
+        if (compactField && compactField.length >= MIN_LENGTH && compactInput.includes(compactField)) s = Math.max(s, containsScore);
+        if (field && expandedInput.length >= MIN_LENGTH && field.includes(expandedInput)) s = Math.max(s, isContainedScore);
+        if (compactField && compactInput.length >= MIN_LENGTH && compactField.includes(compactInput)) s = Math.max(s, isContainedScore);
+        return s;
+    };
+    
+    // Team name/shortDisplayName (score: 400 if input contains, 300 if contains input)
+    score = Math.max(score, checkSubstring(normalized.name, normalized.compactName, 400, 300));
+    score = Math.max(score, checkSubstring(normalized.shortDisplayName, normalized.compactShortDisplayName, 400, 300));
+    
+    // Full name (score: 200)
+    if (normalized.fullName && expandedInput.length >= MIN_LENGTH && normalized.fullName.includes(expandedInput)) {
+        score = Math.max(score, 200);
+    }
+    if (normalized.compactFullName && compactInput.length >= MIN_LENGTH && normalized.compactFullName.includes(compactInput)) {
+        score = Math.max(score, 200);
+    }
+    
+    // City (score: 100, but only if not followed by another team name)
+    if (normalized.compactCity && normalized.compactCity.length >= MIN_LENGTH && compactInput.includes(normalized.compactCity)) {
+        const cityIndex = compactInput.indexOf(normalized.compactCity);
+        const textAfterCity = compactInput.substring(cityIndex + normalized.compactCity.length);
+        if (textAfterCity.length < 3) { // Not followed by substantial text
+            score = Math.max(score, 100);
+        }
+    }
+    
+    return score;
+}
+
+/**
  * Calculate match score between user input and a standardized team object
  * @param {string} input - User search input
  * @param {Object} team - Standardized team object with properties:
@@ -123,102 +256,31 @@ function expandLocationAbbreviations(input) {
 function getTeamMatchScore(input, team) {
     if (!input || !team) return 0;
     
+    // Pre-normalize all team properties
+    const normalized = {
+        fullName: normalize(team.fullName || ''),
+        shortDisplayName: normalize(team.shortDisplayName || ''),
+        abbreviation: normalize(team.abbreviation || ''),
+        city: normalize(team.city || ''),
+        name: normalize(team.name || ''),
+        compactFullName: normalizeCompact(team.fullName || ''),
+        compactShortDisplayName: normalizeCompact(team.shortDisplayName || ''),
+        compactAbbreviation: normalizeCompact(team.abbreviation || ''),
+        compactCity: normalizeCompact(team.city || ''),
+        compactName: normalizeCompact(team.name || '')
+    };
+    
+    let maxScore = 0;
     const expandedInputs = expandLocationAbbreviations(input);
 
-    // Normalize all team properties
-    const fullName = normalize(team.fullName || '');
-    const shortDisplayName = normalize(team.shortDisplayName || '');
-    const abbreviation = normalize(team.abbreviation || '');
-    const city = normalize(team.city || '');
-    const name = normalize(team.name || '');
-
-    // Compact versions for flexible matching
-    const compactFullName = normalizeCompact(team.fullName || '');
-    const compactShortDisplayName = normalizeCompact(team.shortDisplayName || '');
-    const compactAbbreviation = normalizeCompact(team.abbreviation || '');
-    const compactCity = normalizeCompact(team.city || '');
-    const compactName = normalizeCompact(team.name || '');
-
-    let maxScore = 0;
-
-    // Check all expanded variations of the input
     for (const expandedInput of expandedInputs) {
-        const compactExpanded = normalizeCompact(expandedInput);
-
-        // Weighted scoring: higher score = better match
-        // 1000 = Perfect match (highest priority)
-        // 500-999 = Good match
-        // 100-499 = Partial match
-        // 0 = No match
-
-        // 1. Abbreviation (highest priority - most specific)
-        if (expandedInput === abbreviation && abbreviation) {
-            maxScore = Math.max(maxScore, 1000);
-        }
-        if (compactExpanded === compactAbbreviation && compactAbbreviation) {
-            maxScore = Math.max(maxScore, 1000);
-        }
-
-        // 2. Team name/nickname (e.g., "Lakers", "Celtics")
-        if (expandedInput === name && name) {
-            maxScore = Math.max(maxScore, 900);
-        }
-        if (compactExpanded === compactName && compactName) {
-            maxScore = Math.max(maxScore, 900);
-        }
-
-        // 3. Short display name (e.g., "LA Lakers")
-        if (expandedInput === shortDisplayName && shortDisplayName) {
-            maxScore = Math.max(maxScore, 850);
-        }
-        if (compactExpanded === compactShortDisplayName && compactShortDisplayName) {
-            maxScore = Math.max(maxScore, 850);
-        }
-
-        // 4. Full display name (e.g., "Los Angeles Lakers")
-        if (expandedInput === fullName && fullName) {
-            maxScore = Math.max(maxScore, 800);
-        }
-        if (compactExpanded === compactFullName && compactFullName) {
-            maxScore = Math.max(maxScore, 800);
-        }
-
-        // 5. City/Location (e.g., "Los Angeles")
-        if (expandedInput === city && city) {
-            maxScore = Math.max(maxScore, 700);
-        }
-        if (compactExpanded === compactCity && compactCity) {
-            maxScore = Math.max(maxScore, 700);
-        }
-
-        // 6. Partial matches (lower priority)
-        if (name && expandedInput.includes(name)) {
-            maxScore = Math.max(maxScore, 400);
-        }
-        if (compactName && compactExpanded.includes(compactName)) {
-            maxScore = Math.max(maxScore, 400);
-        }
-
-        if (name && name.includes(expandedInput)) {
-            maxScore = Math.max(maxScore, 300);
-        }
-        if (compactName && compactName.includes(compactExpanded)) {
-            maxScore = Math.max(maxScore, 300);
-        }
-
-        if (fullName && fullName.includes(expandedInput)) {
-            maxScore = Math.max(maxScore, 200);
-        }
-        if (compactFullName && compactFullName.includes(compactExpanded)) {
-            maxScore = Math.max(maxScore, 200);
-        }
-
-        if (city && city.includes(expandedInput)) {
-            maxScore = Math.max(maxScore, 100);
-        }
-        if (compactCity && compactCity.includes(compactExpanded)) {
-            maxScore = Math.max(maxScore, 100);
-        }
+        const compactInput = normalizeCompact(expandedInput);
+        
+        maxScore = Math.max(maxScore,
+            checkExactMatches(expandedInput, compactInput, normalized),
+            checkConcatenationMatch(compactInput, team.city, normalized),
+            checkPartialMatches(expandedInput, compactInput, normalized)
+        );
     }
 
     return maxScore;
