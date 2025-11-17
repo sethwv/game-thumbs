@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file.
 
+> **Note on Breaking Changes**: For this API service, breaking changes are those that affect how you use the API - such as changed endpoint URLs, modified query parameters, altered response formats, or removed features. Internal code refactoring that doesn't change the API behavior is not considered breaking.
+
 ## 🚧 Unreleased (dev branch)
 
 Changes in development that are not yet in the latest release:
@@ -39,15 +41,12 @@ Changes in development that are not yet in the latest release:
 
 ### v0.4.0 - 2025-10-29
 
-**⚠️ Breaking Changes:**
-- Major refactoring of codebase structure
-
 **New Features:**
 - Added logo cropping capabilities
 - Improved cover image cache checking
 
 **Improvements:**
-- Significant code organization improvements
+- Major internal code refactoring and organization (no API changes)
 
 ---
 
