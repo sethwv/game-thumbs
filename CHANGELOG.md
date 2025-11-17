@@ -34,8 +34,21 @@ Changes in development that are not yet in the latest release:
 
 ### v0.5.0 - 2025-11-04
 
-**Major Update:**
-- Various improvements and fixes (see release notes)
+**New Features:**
+- Added 21 NCAA sports leagues (Hockey, Soccer, Baseball, Softball, Lacrosse, Volleyball, Water Polo, Field Hockey)
+- Added NCAA shorthand route (`/ncaa/:sport/:team1/:team2/:type`)
+- Added automatic color extraction from team logos when ESPN doesn't provide colors
+- Added NCAA women's sports fallback to men's teams when not found
+- Added environment variable configuration (rate limiting, caching, logging, timeouts)
+- Added `/info` endpoint for server version and git information
+- Added structured logging system with file logging support
+
+**Improvements:**
+- Enhanced team matching with weighted scoring system
+- Improved error handling with detailed stack traces in development mode
+- Added rate limiting (30 requests/min by default, configurable)
+- Added request/server timeout configuration
+- Refactored provider system for better maintainability
 
 ---
 
