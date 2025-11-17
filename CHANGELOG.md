@@ -65,15 +65,22 @@ Changes in development that are not yet in the latest release:
 
 ### v0.3.2 - 2025-10-24
 
+**New Features:**
+- Added `/cover` endpoint for portrait (3:4 aspect ratio) matchup images
+- Added optional `.png` extension support for endpoints
+- Improved white outline detection and rendering for team logos
+
 **Improvements:**
-- Minor fixes and enhancements
+- Changed thumbnail aspect ratio from 16:9 to 4:3 (1440x1080)
+- Enhanced logo outline algorithm for better visibility
 
 ---
 
 ### v0.3.1 - 2025-10-23
 
 **Improvements:**
-- Minor fixes and enhancements
+- Improved code organization and structure in thumbnail generator
+- Enhanced error handling and validation
 
 ---
 
@@ -89,8 +96,13 @@ Changes in development that are not yet in the latest release:
 
 ### v0.2.0 - 2025-10-23
 
-**Initial Features:**
-- Core functionality for generating matchup thumbnails
+**New Features:**
+- Added `/logo` endpoint for generating matchup logos with transparent backgrounds
+- Added comprehensive README documentation
+- Added `.gitignore` file
+
+**Improvements:**
+- Enhanced thumbnail generation with better logo placement
 
 ---
 
