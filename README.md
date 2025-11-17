@@ -4,6 +4,8 @@
 
 A simple API that generates and serves various sports matchup thumbnails and logos dynamically.
 
+📋 **[View Changelog](CHANGELOG.md)** - See what's new and what's coming
+
 ## Features
 
 - 🏀 **Multi-Sport Support**: Supports 30+ leagues including NBA, WNBA, NFL, UFL, MLB, NHL, EPL, MLS, UEFA Champions League, and 21 NCAA sports (Football, Basketball, Hockey, Soccer, Baseball, Softball, Lacrosse, Volleyball, Water Polo, and Field Hockey)
