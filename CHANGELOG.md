@@ -8,7 +8,15 @@ All notable changes to this project will be documented in this file.
 
 Changes in development that are not yet in the latest release:
 
-- **Improved Team Matching**: Revamped team matching algorithm with better weighted scoring and more flexible pattern matching
+**New Features:**
+- Added `/leaguethumb` endpoint for league logo thumbnails with gradient backgrounds (1440x1080)
+- Added `/leaguecover` endpoint for league logo covers with gradient backgrounds (1080x1440)
+- Added `fallback` query parameter to matchup endpoints - returns league image when teams not found
+- Added support for NCAA league thumbnails and covers via shorthand routes
+
+**Improvements:**
+- Revamped team matching algorithm with better weighted scoring and more flexible pattern matching
+- Enhanced gradient backgrounds with subtle league brand color hints for league images
 
 ---
 
