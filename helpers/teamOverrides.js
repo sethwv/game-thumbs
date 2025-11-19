@@ -53,18 +53,26 @@ function getTeamAliases(leagueKey, teamIdentifier) {
 }
 
 function findTeamByAlias(input, leagueKey, teams) {
-    const { normalize } = require('./teamMatchingUtils');
-    const normalizedInput = normalize(input);
+    const { normalizeCompact } = require('./teamMatchingUtils');
+    const normalizedInput = normalizeCompact(input);
     const leagueOverrides = getLeagueOverrides(leagueKey);
     
     // Check each team's aliases
     for (const team of teams) {
-        const teamId = team.espnId || team.id;
-        const teamOverride = leagueOverrides[teamId];
+        // Extract slug from espnId (e.g., 'eng.nottm_forest' -> 'nottm-forest')
+        let teamSlug = team.espnId || team.id;
+        if (teamSlug && teamSlug.includes('.')) {
+            teamSlug = teamSlug.split('.')[1];
+        }
+        // Normalize underscores to hyphens
+        teamSlug = teamSlug?.replace(/_/g, '-');
+        
+        const teamOverride = leagueOverrides[teamSlug];
         
         if (teamOverride?.aliases) {
             for (const alias of teamOverride.aliases) {
-                if (normalize(alias) === normalizedInput) {
+                // Use compact normalization to match with or without spaces
+                if (normalizeCompact(alias) === normalizedInput) {
                     return team;
                 }
             }

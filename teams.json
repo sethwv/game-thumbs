@@ -1,17 +1,17 @@
 {
   "epl": {
-    "manchester-united": {
-      "aliases": ["man utd", "man u", "manutd", "mufc"],
+    "man-utd": {
+      "aliases": ["man utd", "man u", "manutd", "mufc", "manchester united"],
       "override": {
         "abbreviation": "MUN"
       }
     },
-    "tottenham-hotspur": {
-      "aliases": ["spurs", "thfc"],
+    "tottenham": {
+      "aliases": ["spurs", "thfc", "tottenham hotspur"],
       "override": {}
     },
-    "nottingham-forest": {
-      "aliases": ["notts forest", "forest", "nffc"],
+    "nottm-forest": {
+      "aliases": ["notts forest", "forest", "nffc", "nottingham forest"],
       "override": {}
     }
   }

@@ -177,6 +177,7 @@ class ESPNProvider extends BaseProvider {
 
             const teamData = {
                 id: teamObj.id,
+                slug: teamObj.slug,
                 city: teamObj.location,
                 name: teamObj.nickname,
                 fullName: teamObj.displayName,
@@ -191,7 +192,13 @@ class ESPNProvider extends BaseProvider {
 
             // Apply team overrides from teams.json
             const { applyTeamOverrides } = require('../helpers/teamOverrides');
-            const teamIdentifierForOverride = teamObj.slug || teamObj.id;
+            let teamIdentifierForOverride = teamObj.slug || teamObj.id;
+            // Extract slug without league prefix (e.g., 'eng.nottm_forest' -> 'nottm-forest')
+            if (teamIdentifierForOverride && teamIdentifierForOverride.includes('.')) {
+                teamIdentifierForOverride = teamIdentifierForOverride.split('.')[1];
+            }
+            // Normalize underscores to hyphens
+            teamIdentifierForOverride = teamIdentifierForOverride?.replace(/_/g, '-');
             return applyTeamOverrides(teamData, league.shortName.toLowerCase(), teamIdentifierForOverride);
         } catch (error) {
             // Re-throw TeamNotFoundError as-is to preserve error type
