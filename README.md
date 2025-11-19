@@ -69,6 +69,8 @@ The API provides endpoints for sports matchups and logos:
 | **Thumbnail** | `/:league/:team1/:team2/thumb[.png]` | 1440x1080 (4:3) | Landscape matchup thumbnail |
 | **Cover** | `/:league/:team1/:team2/cover[.png]` | 1080x1440 (3:4) | Portrait matchup cover |
 | **Logo** | `/:league/:team1/:team2/logo[.png]` | 800x800 (1:1) | Matchup logo with transparent background |
+| **League Thumbnail** | `/:league/leaguethumb[.png]` | 1440x1080 (4:3) | League logo with gradient background |
+| **League Cover** | `/:league/leaguecover[.png]` | 1080x1440 (3:4) | League logo cover with gradient background |
 | **Team Logo** | `/:league/:team/teamlogo[.png]` | Original | Raw team logo image |
 | **League Logo** | `/:league/leaguelogo[.png]` | Original | Raw league logo image |
 | **Raw Data** | `/:league/:team/raw` | JSON | Raw team data from provider |
@@ -81,6 +83,8 @@ The API provides endpoints for sports matchups and logos:
 | **Thumbnail** | `/ncaa/:sport/:team1/:team2/thumb[.png]` | 1440x1080 (4:3) | NCAA matchup thumbnail |
 | **Cover** | `/ncaa/:sport/:team1/:team2/cover[.png]` | 1080x1440 (3:4) | NCAA matchup cover |
 | **Logo** | `/ncaa/:sport/:team1/:team2/logo[.png]` | 800x800 (1:1) | NCAA matchup logo |
+| **League Thumbnail** | `/ncaa/:sport/leaguethumb[.png]` | 1440x1080 (4:3) | NCAA sport logo with gradient |
+| **League Cover** | `/ncaa/:sport/leaguecover[.png]` | 1080x1440 (3:4) | NCAA sport cover with gradient |
 | **Team Logo** | `/ncaa/:sport/:team/teamlogo[.png]` | Original | NCAA team logo |
 | **League Logo** | `/ncaa/:sport/leaguelogo[.png]` | Original | NCAA sport logo |
 
@@ -204,6 +208,7 @@ Generates a landscape matchup thumbnail with diagonal split layout.
   - `3` - Minimalist badge with team circles and VS text (light background)
   - `4` - Minimalist badge with team circles and VS text (dark background)
 - `logo` - Show league logo (default: `true`, set to `false` to hide)
+- `fallback` - Return league thumbnail if teams not found (default: `false`, set to `true` to enable)
 
 **Examples:**
 ```
@@ -212,6 +217,7 @@ GET /nhl/toronto/montreal/thumb?logo=false
 GET /nfl/chiefs/49ers/thumb?style=2
 GET /ncaaf/alabama/georgia/thumb?style=3
 GET /mlb/yankees/redsox/thumb?style=4&logo=false
+GET /nba/invalidteam/anotherteam/thumb?fallback=true
 ```
 
 **Output:** 1440x1080 PNG image (4:3 aspect ratio)
@@ -236,6 +242,7 @@ Generates a vertical matchup cover with horizontal split.
   - `3` - Minimalist badge with team circles and VS text (light background)
   - `4` - Minimalist badge with team circles and VS text (dark background)
 - `logo` - Show league logo (default: `true`, set to `false` to hide)
+- `fallback` - Return league cover if teams not found (default: `false`, set to `true` to enable)
 
 **Examples:**
 ```
@@ -244,6 +251,7 @@ GET /nhl/toronto/montreal/cover?logo=false
 GET /nfl/chiefs/49ers/cover?style=2
 GET /mlb/yankees/redsox/cover?style=3
 GET /ncaam/duke/unc/cover?style=4&logo=false
+GET /nfl/badteam/faketeam/cover?fallback=true
 ```
 
 **Output:** 1080x1440 PNG image (3:4 aspect ratio)
@@ -273,6 +281,7 @@ Generates a matchup logo with team logos on transparent background.
 - `logo` - Show league logo badge (default: `true`, set to `false` to hide; always `true` for styles 5-6)
 - `useLight` - Use primary (light) logos instead of dark variants (default: `false`)
 - `trim` - Trim transparent edges (default: `true`)
+- `fallback` - Return raw league logo if teams not found (default: `false`, set to `true` to enable)
 
 **Examples:**
 ```
@@ -283,6 +292,7 @@ GET /mlb/yankees/redsox/logo?size=2048
 GET /nba/lakers/celtics/logo?useLight=true&logo=false
 GET /epl/arsenal/chelsea/logo?style=5
 GET /nfl/packers/bears/logo?style=6&size=1024
+GET /mlb/unknown/invalid/logo?fallback=true
 ```
 
 **Output:** PNG image with transparent background (square, size based on `size` parameter)
@@ -352,6 +362,59 @@ GET /mls/leaguelogo
 ```
 
 **Output:** PNG image (original resolution from provider)
+
+---
+
+### League Thumbnail
+
+**Endpoint:** `/:league/leaguethumb[.png]`
+
+Generates a landscape thumbnail featuring the league logo centered on a moody dark gradient background with subtle hints of the league's brand colors.
+
+**Parameters:**
+- `league` - Sport league code (see [Supported Leagues](#supported-leagues))
+
+**Examples:**
+```
+GET /nba/leaguethumb
+GET /nfl/leaguethumb.png
+GET /ncaaf/leaguethumb
+GET /mls/leaguethumb
+```
+
+**Output:** 1440x1080 PNG image (4:3 aspect ratio)
+
+**Notes:**
+- Uses a moody dark gradient background with subtle hints of the league's brand colors (when vibrant colors are detected)
+- The logo is displayed large and centered (60% of the smaller dimension)
+- A subtle drop shadow is applied to the logo for depth
+- Automatically selects the best logo variant (light/dark) based on contrast with the background
+
+---
+
+### League Cover
+
+**Endpoint:** `/:league/leaguecover[.png]`
+
+Generates a portrait cover featuring the league logo centered on a moody dark gradient background with subtle hints of the league's brand colors.
+
+**Parameters:**
+- `league` - Sport league code (see [Supported Leagues](#supported-leagues))
+
+**Examples:**
+```
+GET /nba/leaguecover
+GET /nfl/leaguecover.png
+GET /ncaaf/leaguecover
+GET /mls/leaguecover
+```
+
+**Output:** 1080x1440 PNG image (3:4 aspect ratio)
+
+**Notes:**
+- Identical to league thumbnail but in portrait orientation
+- Uses the same moody dark gradient with brand color hints
+- Perfect for vertical/portrait displays and mobile screens
 
 ---
 

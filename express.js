@@ -81,7 +81,7 @@ function init(port) {
     // Check cache first to determine if we need strict rate limiting
     const { checkCacheMiddleware } = require('./helpers/imageCache');
     app.use((req, res, next) => {
-        if (['thumb', 'logo', 'cover', 'teamlogo', 'leaguelogo'].some(path => req.path.includes(path))) {
+        if (['thumb', 'logo', 'cover', 'teamlogo', 'leaguelogo', 'leaguethumb', 'leaguecover'].some(path => req.path.includes(path))) {
             return checkCacheMiddleware(req, res, next);
         }
         next();
@@ -131,7 +131,7 @@ function init(port) {
 
     // Apply rate limiting
     app.use((req, res, next) => {
-        if (['thumb', 'logo', 'cover', 'teamlogo', 'leaguelogo'].some(path => req.path.includes(path))) {
+        if (['thumb', 'logo', 'cover', 'teamlogo', 'leaguelogo', 'leaguethumb', 'leaguecover'].some(path => req.path.includes(path))) {
             return imageGenerationLimiter(req, res, next);
         }
         return generalLimiter(req, res, next);

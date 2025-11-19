@@ -76,6 +76,12 @@ module.exports = {
             case 'leaguelogo':
             case 'leaguelogo.png':
                 return require('./leaguelogo').handler(req, res);
+            case 'leaguethumb':
+            case 'leaguethumb.png':
+                return require('./leaguethumb').handler(req, res);
+            case 'leaguecover':
+            case 'leaguecover.png':
+                return require('./leaguecover').handler(req, res);
             default:
                 logger.warn('Unsupported NCAA endpoint type', {
                     Type: type,

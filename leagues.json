@@ -72,7 +72,7 @@
       "espnSport": "soccer"
     }
   },
-    "laliga": {
+  "laliga": {
     "name": "La Liga",
     "shortName": "LaLiga",
     "providerId": "espn",
@@ -90,7 +90,7 @@
       "espnSport": "soccer"
     }
   },
-    "seriea": {
+  "seriea": {
     "name": "Serie A",
     "shortName": "SerieA",
     "providerId": "espn",
@@ -196,7 +196,7 @@
   "ncaam": {
     "name": "NCAA Men's Basketball",
     "shortName": "NCAAM",
-    "aliases": ["college basketball", "mens college basketball", "march madness"],
+    "aliases": ["college basketball", "mens college basketball", "march madness", "ncaab"],
     "providerId": "espn",
     "logoUrl": "https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/basketball.png",
     "espnConfig": {
