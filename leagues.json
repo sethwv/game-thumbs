@@ -175,6 +175,7 @@
     "shortName": "NCAAH",
     "aliases": ["college ice hockey", "mens college ice hockey"],
     "providerId": "espn",
+    "fallbackLeague": "ncaaf",
     "logoUrl": "https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/icehockey.png",
     "espnConfig": {
       "espnSlug": "mens-college-hockey",
@@ -198,6 +199,7 @@
     "shortName": "NCAAM",
     "aliases": ["college basketball", "mens college basketball", "march madness", "ncaab"],
     "providerId": "espn",
+    "fallbackLeague": "ncaaf",
     "logoUrl": "https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/basketball.png",
     "espnConfig": {
       "espnSlug": "mens-college-basketball",
@@ -221,6 +223,7 @@
     "shortName": "NCAAS",
     "aliases": ["college soccer", "mens college soccer"],
     "providerId": "espn",
+    "fallbackLeague": "ncaaf",
     "logoUrl": "https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/soccer.png",
     "espnConfig": {
       "espnSlug": "usa.ncaa.m.1",
