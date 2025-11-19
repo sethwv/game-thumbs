@@ -44,6 +44,8 @@ You can configure the server behavior using environment variables:
 | `FORCE_COLOR` | Force colored output in logs (useful for Docker/CI environments). Set to `1` or `true` to enable. | `false` |
 | `LOG_TO_FILE` | Enable file logging. Set to `true` or `1` to enable. | `false` |
 | `MAX_LOG_FILES` | Maximum number of log files to keep (oldest are deleted). | `10` |
+| `CORS_ORIGIN` | Allowed CORS origin(s). Set to `*` for all origins, or a specific domain like `https://example.com`. | `*` |
+| `CORS_MAX_AGE` | How long (in seconds) browsers should cache CORS preflight requests. | `86400` (24 hours) |
 
 **Notes:**
 - When `IMAGE_CACHE_HOURS=0`, every request generates a new image (useful for testing)

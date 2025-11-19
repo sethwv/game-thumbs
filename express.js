@@ -27,12 +27,19 @@ function init(port) {
     logger.info(`Trust proxy set to: ${trustProxyHops} hop(s)`);
 
     const corsOptions = {
-        origin: '*',
-        optionsSuccessStatus: 200
+        origin: process.env.CORS_ORIGIN || '*',
+        optionsSuccessStatus: 200,
+        credentials: false,
+        methods: ['GET', 'HEAD', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization'],
+        exposedHeaders: ['Content-Type', 'Content-Length'],
+        maxAge: parseInt(process.env.CORS_MAX_AGE || '86400', 10),
     };
 
     app.use(cors(corsOptions));
-    app.use(helmet());
+    app.use(helmet({
+        crossOriginResourcePolicy: { policy: "cross-origin" }
+    }));
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
 
@@ -135,6 +142,15 @@ function init(port) {
             return imageGenerationLimiter(req, res, next);
         }
         return generalLimiter(req, res, next);
+    });
+
+    // Ignore browser icon requests early (before logging)
+    const ignoredPaths = ['/favicon.ico', '/apple-touch-icon.png', '/apple-touch-icon-precomposed.png'];
+    app.use((req, res, next) => {
+        if (ignoredPaths.includes(req.path)) {
+            return res.status(204).end();
+        }
+        next();
     });
 
     // Log all requests that make it past rate limiting and cache
