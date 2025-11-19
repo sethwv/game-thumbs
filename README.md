@@ -469,12 +469,13 @@ GET /ncaaf/alabama/raw
 The API uses intelligent team matching with weighted scoring to find teams flexibly.
 
 ### Matching Priority (Highest to Lowest):
-1. **Abbreviation** - e.g., `LAL`, `BOS`, `NYY`
-2. **Team Nickname** - e.g., `Lakers`, `Celtics`, `Yankees`
-3. **Short Display Name** - e.g., `LA Lakers`, `Boston`
-4. **Full Display Name** - e.g., `Los Angeles Lakers`
-5. **Location/City** - e.g., `Los Angeles`, `Boston`, `New York`
-6. **Partial Matches** - Fuzzy matching for convenience
+1. **Custom Aliases** - User-defined nicknames from `teams.json` (highest priority)
+2. **Abbreviation** - e.g., `LAL`, `BOS`, `NYY`
+3. **Team Nickname** - e.g., `Lakers`, `Celtics`, `Yankees`
+4. **Short Display Name** - e.g., `LA Lakers`, `Boston`
+5. **Full Display Name** - e.g., `Los Angeles Lakers`
+6. **Location/City** - e.g., `Los Angeles`, `Boston`, `New York`
+7. **Partial Matches** - Fuzzy matching for convenience
 
 ### Examples:
 ```
@@ -494,6 +495,55 @@ Women's NCAA sports automatically fall back to men's teams when a team is not fo
 - Women's Lacrosse, Volleyball, Water Polo, Softball, Field Hockey → Football
 
 This ensures maximum compatibility when teams don't have dedicated women's programs.
+
+### Team Overrides
+
+For cases where ESPN's API doesn't match common team nicknames (e.g., "Man Utd" for Manchester United), you can define custom aliases and data overrides in `teams.json`.
+
+**File Structure:**
+```json
+{
+  "leagueKey": {
+    "team-slug": {
+      "aliases": ["nickname1", "nickname2"],
+      "override": {
+        "abbreviation": "CUSTOM",
+        "color": "#000000"
+      }
+    }
+  }
+}
+```
+
+**Example:**
+```json
+{
+  "epl": {
+    "manchester-united": {
+      "aliases": ["man utd", "man u", "manutd", "mufc"],
+      "override": {
+        "abbreviation": "MUN"
+      }
+    },
+    "nottingham-forest": {
+      "aliases": ["notts forest", "forest", "nffc"],
+      "override": {}
+    }
+  }
+}
+```
+
+**How It Works:**
+- **Aliases**: Custom aliases are checked first (before ESPN's normal matching) and given highest priority
+- **Override**: Properties in the `override` object merge into the final team data, allowing you to fix incorrect abbreviations, colors, or other ESPN data
+- **League Keys**: Use lowercase league codes (e.g., `epl`, `nba`, `nfl`)
+- **Team Slugs**: Use ESPN's team slug/identifier (visible in URLs or raw data)
+
+**Use Cases:**
+- Add common nicknames that ESPN doesn't recognize ("Man Utd", "Spurs")
+- Fix incorrect abbreviations from ESPN's API
+- Override team colors when ESPN's data is wrong
+- Augment team data with custom properties
 
 ---
 

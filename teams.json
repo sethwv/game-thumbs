@@ -1,0 +1,18 @@
+{
+  "epl": {
+    "manchester-united": {
+      "aliases": ["man utd", "man u", "manutd", "mufc"],
+      "override": {
+        "abbreviation": "MUN"
+      }
+    },
+    "tottenham-hotspur": {
+      "aliases": ["spurs", "thfc"],
+      "override": {}
+    },
+    "nottingham-forest": {
+      "aliases": ["notts forest", "forest", "nffc"],
+      "override": {}
+    }
+  }
+}

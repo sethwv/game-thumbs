@@ -56,26 +56,40 @@ class ESPNProvider extends BaseProvider {
 
         try {
             const teams = await this.fetchTeamData(league);
+            const { findTeamByAlias } = require('../helpers/teamOverrides');
 
-            // Find best matching team using weighted scoring
-            let bestMatch = null;
-            let bestScore = 0;
+            // First, check if the input matches any custom aliases
+            const teamsWithIds = teams.map(team => ({
+                ...team,
+                espnId: team.team?.slug || team.team?.id
+            }));
+            
+            const aliasMatch = findTeamByAlias(teamIdentifier, league.shortName.toLowerCase(), teamsWithIds);
+            if (aliasMatch) {
+                // Use the alias match as the best match
+                var bestMatch = aliasMatch;
+                var bestScore = 1000; // High score for alias matches
+            } else {
+                // Find best matching team using weighted scoring
+                var bestMatch = null;
+                var bestScore = 0;
 
-            for (const team of teams) {
-                // Convert ESPN team format to standardized format for matching
-                const teamObj = team.team || {};
-                const standardizedTeam = {
-                    fullName: teamObj.displayName,
-                    shortDisplayName: teamObj.shortDisplayName,
-                    name: teamObj.nickname,
-                    city: teamObj.location,
-                    abbreviation: teamObj.abbreviation
-                };
-                
-                const score = getTeamMatchScore(teamIdentifier, standardizedTeam);
-                if (score > bestScore) {
-                    bestScore = score;
-                    bestMatch = team;
+                for (const team of teams) {
+                    // Convert ESPN team format to standardized format for matching
+                    const teamObj = team.team || {};
+                    const standardizedTeam = {
+                        fullName: teamObj.displayName,
+                        shortDisplayName: teamObj.shortDisplayName,
+                        name: teamObj.nickname,
+                        city: teamObj.location,
+                        abbreviation: teamObj.abbreviation
+                    };
+                    
+                    const score = getTeamMatchScore(teamIdentifier, standardizedTeam);
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestMatch = team;
+                    }
                 }
             }
 
@@ -161,7 +175,7 @@ class ESPNProvider extends BaseProvider {
             if (!primaryColor) primaryColor = '#000000';
             if (!alternateColor) alternateColor = '#ffffff';
 
-            return {
+            const teamData = {
                 id: teamObj.id,
                 city: teamObj.location,
                 name: teamObj.nickname,
@@ -174,6 +188,11 @@ class ESPNProvider extends BaseProvider {
                 color: primaryColor,
                 alternateColor: alternateColor
             };
+
+            // Apply team overrides from teams.json
+            const { applyTeamOverrides } = require('../helpers/teamOverrides');
+            const teamIdentifierForOverride = teamObj.slug || teamObj.id;
+            return applyTeamOverrides(teamData, league.shortName.toLowerCase(), teamIdentifierForOverride);
         } catch (error) {
             // Re-throw TeamNotFoundError as-is to preserve error type
             if (error instanceof TeamNotFoundError) {
