@@ -1,0 +1,34 @@
+title: Game Thumbs API Documentation
+description: Sports matchup thumbnail and logo generation API
+theme: just-the-docs
+url: https://sethwv.github.io
+baseurl: /game-thumbs
+
+# Enable search
+search_enabled: true
+search:
+  heading_level: 2
+  previews: 3
+  preview_words_before: 5
+  preview_words_after: 10
+  tokenizer_separator: /[\s/]+/
+  rel_url: true
+  button: false
+
+# Aux links for the upper right navigation
+aux_links:
+  "Game Thumbs on GitHub":
+    - "//github.com/sethwv/game-thumbs"
+
+# Footer content
+footer_content: 'Copyright &copy; 2025. Distributed by an <a href="https://github.com/sethwv/game-thumbs/blob/main/LICENSE">MIT license.</a>'
+
+# Color scheme
+color_scheme: dark
+
+# Back to top link
+back_to_top: true
+back_to_top_text: "Back to top"
+
+# Google Analytics (optional - remove if not needed)
+# ga_tracking: UA-XXXXXXXX-X
