@@ -179,7 +179,7 @@ function checkExactMatches(expandedInput, compactInput, normalized) {
  */
 function checkConcatenationMatch(compactInput, teamCity, normalized) {
     const MIN_LENGTH = 4;
-    const teamNames = [normalized.compactShortDisplayName, normalized.compactName];
+    const teamNames = [normalized.compactShortDisplayName, normalized.compactName, normalized.compactAbbreviation];
     
     for (const teamName of teamNames) {
         if (!teamName || teamName.length < MIN_LENGTH) continue;
@@ -194,6 +194,23 @@ function checkConcatenationMatch(compactInput, teamCity, normalized) {
             const prefix = compactInput.substring(0, compactInput.length - teamName.length);
             if (isCityVariation(prefix, teamCity)) {
                 return 950;
+            }
+        }
+        
+        // Special case: Check if the team name/abbreviation itself starts with a location code
+        // (e.g., "LAFC" starts with "LA", so "losangelesfc" should match)
+        if (teamName.length >= 3) {
+            for (const [abbrev, expansions] of Object.entries(LOCATION_ABBREVIATIONS)) {
+                if (teamName.startsWith(abbrev)) {
+                    const restOfTeamName = teamName.substring(abbrev.length);
+                    // Check if input matches expanded location + rest of team name
+                    for (const expansion of expansions) {
+                        const compactExpansion = normalizeCompact(expansion);
+                        if (compactInput === compactExpansion + restOfTeamName) {
+                            return 950;
+                        }
+                    }
+                }
             }
         }
     }
