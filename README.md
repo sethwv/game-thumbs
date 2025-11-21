@@ -27,13 +27,13 @@ GET http://localhost:3000/ncaa/football/alabama/georgia/thumb
 
 ## Documentation
 
-📚 **[View Full Documentation](https://sethwv.github.io/game-thumbs/)**
+📚 **[View Full Documentation](https://game-thumbs-docs.swvn.io/)**
 
-- [Docker Setup](https://sethwv.github.io/game-thumbs/docker.html) - Configuration and environment variables
-- [API Reference](https://sethwv.github.io/game-thumbs/api-reference.html) - All endpoints with examples  
-- [Supported Leagues](https://sethwv.github.io/game-thumbs/supported-leagues.html) - League codes and sports
-- [Customization](https://sethwv.github.io/game-thumbs/customization.html) - Custom leagues and team overrides
-- [Contributing](https://sethwv.github.io/game-thumbs/contributing.html) - How to contribute improvements
+- [Docker Setup](https://game-thumbs-docs.swvn.io/docker.html) - Configuration and environment variables
+- [API Reference](https://game-thumbs-docs.swvn.io/api-reference/) - All endpoints with examples  
+- [Supported Leagues](https://game-thumbs-docs.swvn.io/supported-leagues.html) - League codes and sports
+- [Customization](https://game-thumbs-docs.swvn.io/customization.html) - Custom leagues and team overrides
+- [Contributing](https://game-thumbs-docs.swvn.io/contributing.html) - How to contribute improvements
 
 ## License
 

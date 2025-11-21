@@ -79,7 +79,7 @@ GET http://localhost:3000/mls/lafc/raw
 |------|----------|------------|
 | Thumbnail | `/:league/:team1/:team2/thumb` | 1440x1080 |
 | Cover | `/:league/:team1/:team2/cover` | 1080x1440 |
-| Logo | `/:league/:team1/:team2/logo` | 800x800 |
+| Logo | `/:league/:team1/:team2/logo` | 1024x1024 |
 | Team Logo | `/:league/:team/teamlogo` | Original |
 | League Logo | `/:league/leaguelogo` | Original |
 | League Thumb | `/:league/leaguethumb` | 1440x1080 |

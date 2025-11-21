@@ -1,8 +1,8 @@
 title: Game Thumbs API Documentation
 description: Sports matchup thumbnail and logo generation API
-theme: just-the-docs
-url: https://sethwv.github.io
-baseurl: /game-thumbs
+remote_theme: pmarsceill/just-the-docs
+url: https://game-thumbs-docs.swvn.io
+baseurl: ""
 
 # Enable search
 search_enabled: true
