@@ -347,8 +347,8 @@ async function generateCircleBadges(teamA, teamB, width, height, league, useLigh
     ctx.fill();
     ctx.restore();
     
-    // Draw teamA logo
-    const logoSize = badgeSize * 0.95;
+    // Draw teamA logo (80% to fit within circle)
+    const logoSize = badgeSize * 0.80;
     const logoAX = badgeAX + (badgeSize - logoSize) / 2;
     const logoAY = badgeAY + (badgeSize - logoSize) / 2;
     
@@ -650,7 +650,7 @@ async function generateCircleBadgesWithLeague(teamA, teamB, width, height, leagu
         ctx.fill();
         ctx.restore();
         
-        const logoMaxSize = badgeSize * 0.95;
+        const logoMaxSize = badgeSize * 0.80;
         const aspectRatio = badge.logo.width / badge.logo.height;
         let drawWidth, drawHeight;
         

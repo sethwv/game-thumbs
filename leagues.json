@@ -349,5 +349,17 @@
       "espnSlug": "womens-college-field-hockey",
       "espnSport": "field-hockey"
     }
+  },
+  "ohl": {
+    "name": "Ontario Hockey League",
+    "shortName": "OHL",
+    "aliases": ["canadian ohl", "ontario hockey"],
+    "providerId": "thesportsdb",
+    "logoUrl": "./assets/OHL_LIGHTMODE.png",
+    "logoUrlDark": "./assets/OHL_DARKMODE.png",
+    "theSportsDBConfig": {
+      "leagueId": "5159",
+      "leagueName": "Canadian OHL"
+    }
   }
 }

@@ -214,7 +214,10 @@ class ESPNProvider extends BaseProvider {
             throw new Error(`League ${league.shortName} is missing ESPN configuration`);
         }
 
-        // Check if league has a custom logo URL defined
+        // Check if league has custom logo URLs defined
+        if (darkLogoPreferred && league.logoUrlDark) {
+            return league.logoUrlDark;
+        }
         if (league.logoUrl) {
             return league.logoUrl;
         }

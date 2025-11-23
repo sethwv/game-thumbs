@@ -24,6 +24,13 @@ class ProviderManager {
             console.warn('Failed to load ESPN provider:', error.message);
         }
 
+        try {
+            const TheSportsDBProvider = require('./TheSportsDBProvider');
+            this.registerProvider(new TheSportsDBProvider());
+        } catch (error) {
+            console.warn('Failed to load TheSportsDB provider:', error.message);
+        }
+
         // Add other providers here as they're implemented
         // const APISportsProvider = require('./APISportsProvider');
         // this.registerProvider(new APISportsProvider());
