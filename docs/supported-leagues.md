@@ -26,6 +26,7 @@ nav_order: 4
 | Major League Baseball | `mlb` | ESPN |
 | National Hockey League | `nhl` | ESPN |
 | National Lacrosse League | `nll` | ESPN |
+| Ontario Hockey League | `ohl` | TheSportsDB |
 | English Premier League | `epl` | ESPN |
 | La Liga (Spain) | `laliga` | ESPN |
 | Bundesliga (Germany) | `bundesliga` | ESPN |
@@ -121,6 +122,8 @@ The `/ncaa/:sport/:team1/:team2/:type` endpoint accepts these sport identifiers:
 GET /nba/lakers/celtics/thumb
 GET /nfl/chiefs/49ers/cover
 GET /mlb/yankees/redsox/logo
+GET /nhl/maple-leafs/canadiens/thumb
+GET /ohl/london-knights/ottawa-67s/cover
 GET /epl/manchester-united/chelsea/thumb
 GET /mls/lafc/galaxy/cover
 ```
@@ -149,13 +152,26 @@ GET /ncaa/hockey/minnesota/wisconsin/thumb
 
 ### ESPN
 
-All leagues currently use ESPN as the data provider. Team data is fetched from ESPN's public APIs:
+Most leagues use ESPN as the data provider. Team data is fetched from ESPN's public APIs:
 
 **Professional Leagues:**
 - `https://site.api.espn.com/apis/site/v2/sports/{sport}/{league}/teams`
 
 **NCAA Leagues:**
 - `https://site.api.espn.com/apis/site/v2/sports/{sport}/{league}/teams`
+
+### TheSportsDB
+
+Some leagues use TheSportsDB's free API v1:
+
+**Supported Leagues:**
+- Ontario Hockey League (OHL)
+
+**Team Data:**
+- `https://www.thesportsdb.com/api/v1/json/3/search_all_teams.php?l={league}`
+
+**League Data:**
+- `https://www.thesportsdb.com/api/v1/json/3/lookupleague.php?id={leagueId}`
 
 ### Caching
 
@@ -169,27 +185,47 @@ See [Technical Details](technical-details.html) for more information on caching 
 
 ## Adding New Leagues
 
-New leagues can be added by configuring them in `leagues.js`. Each league requires:
+New leagues can be added by configuring them in `leagues.json`. Each league requires:
 
 - **shortName**: League code used in API endpoints
-- **fullName**: Full league name for display
-- **providerId**: Data provider (currently only `espn` supported)
-- **espnConfig**: ESPN sport and slug configuration
-  - `espnSport`: ESPN sport identifier (e.g., `basketball`, `football`, `soccer`)
-  - `espnSlug`: ESPN league slug (e.g., `nba`, `nfl`, `eng.1` for EPL)
+- **name**: Full league name for display
+- **providerId**: Data provider (`espn` or `thesportsdb`)
+- Provider-specific configuration (see examples below)
 
-### Example League Configuration
+### ESPN Provider Configuration
 
 ```javascript
 {
-  shortName: 'nba',
-  fullName: 'NBA',
-  providerId: 'espn',
-  espnConfig: {
-    espnSport: 'basketball',
-    espnSlug: 'nba'
+  "shortName": "nba",
+  "name": "National Basketball Association",
+  "providerId": "espn",
+  "espnConfig": {
+    "espnSport": "basketball",
+    "espnSlug": "nba"
   }
 }
 ```
+
+### TheSportsDB Provider Configuration
+
+```javascript
+{
+  "shortName": "ohl",
+  "name": "Ontario Hockey League",
+  "providerId": "thesportsdb",
+  "logoUrl": "./assets/OHL_LIGHTMODE.png",
+  "logoUrlDark": "./assets/OHL_DARKMODE.png",
+  "theSportsDBConfig": {
+    "leagueId": "5159",
+    "leagueName": "Canadian OHL"
+  }
+}
+```
+
+**Optional Fields:**
+- `logoUrl`: Custom league logo URL or local path (light mode)
+- `logoUrlDark`: Custom dark mode league logo URL or local path
+- `aliases`: Array of alternative names for the league
+- `fallbackLeague`: League code to fall back to when team not found
 
 For more details on the technical implementation, see [Technical Details](technical-details.html).
