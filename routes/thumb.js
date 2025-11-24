@@ -17,11 +17,21 @@ module.exports = {
     method: "get",
     handler: async (req, res) => {
         const { league, team1, team2 } = req.params;
-        const { logo, style, fallback } = req.query;
+        const { logo, style, fallback, aspect } = req.query;
+
+        // Determine dimensions based on aspect ratio
+        let width, height;
+        if (aspect === '16-9' || aspect === '16x9') {
+            width = 1920;
+            height = 1080;
+        } else { // default 4:3
+            width = 1440;
+            height = 1080;
+        }
 
         const thumbnailOptions = {
-            width: 1440,
-            height: 1080,
+            width,
+            height,
             style: parseInt(style) || 1,
             league: logo === 'false' ? null : league
         };
@@ -49,8 +59,8 @@ module.exports = {
                     const leagueLogoUrlAlt = await providerManager.getLeagueLogoUrl(leagueObj, true);
                     
                     const fallbackBuffer = await generateLeagueThumb(leagueLogoUrl, {
-                        width: 1440,
-                        height: 1080,
+                        width,
+                        height,
                         leagueLogoUrlAlt: leagueLogoUrlAlt
                     });
                     

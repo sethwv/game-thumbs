@@ -45,12 +45,31 @@ class ESPNProvider extends BaseProvider {
         return Object.keys(leagues).filter(key => leagues[key].providerId === this.getProviderId());
     }
 
+    getLeagueConfig(league) {
+        // Check for config in providers array (preferred)
+        if (league.providers && Array.isArray(league.providers)) {
+            for (const providerConfig of league.providers) {
+                if (typeof providerConfig === 'object' && (providerConfig.espn || providerConfig.espnConfig)) {
+                    return providerConfig.espn || providerConfig.espnConfig;
+                }
+            }
+        }
+        
+        // DEPRECATED: Check for direct config (for backward compatibility)
+        if (league.espn || league.espnConfig) {
+            return league.espn || league.espnConfig;
+        }
+        
+        return null;
+    }
+
     async resolveTeam(league, teamIdentifier) {
         if (!league || !teamIdentifier) {
             throw new Error('Both league and team identifier are required');
         }
 
-        if (!league.espnConfig) {
+        const espnConfig = this.getLeagueConfig(league);
+        if (!espnConfig) {
             throw new Error(`League ${league.shortName} is missing ESPN configuration`);
         }
 
@@ -210,7 +229,8 @@ class ESPNProvider extends BaseProvider {
     }
 
     async getLeagueLogoUrl(league, darkLogoPreferred = true) {
-        if (!league.espnConfig) {
+        const espnConfig = this.getLeagueConfig(league);
+        if (!espnConfig) {
             throw new Error(`League ${league.shortName} is missing ESPN configuration`);
         }
 
@@ -261,7 +281,11 @@ class ESPNProvider extends BaseProvider {
             return cached.data;
         }
 
-        const { espnSport, espnSlug } = league.espnConfig;
+        const espnConfig = this.getLeagueConfig(league);
+        if (!espnConfig) {
+            throw new Error(`League ${league.shortName} is missing ESPN configuration`);
+        }
+        const { espnSport, espnSlug } = espnConfig;
         const teamApiUrl = `https://site.api.espn.com/apis/site/v2/sports/${espnSport}/${espnSlug}/teams?limit=1000`;
         
         return new Promise((resolve, reject) => {
@@ -360,7 +384,11 @@ class ESPNProvider extends BaseProvider {
             return cached.data;
         }
 
-        const { espnSport, espnSlug } = league.espnConfig;
+        const espnConfig = this.getLeagueConfig(league);
+        if (!espnConfig) {
+            throw new Error(`League ${league.shortName} is missing ESPN configuration`);
+        }
+        const { espnSport, espnSlug } = espnConfig;
         const leagueApiUrl = `https://sports.core.api.espn.com/v2/sports/${espnSport}/leagues/${espnSlug}`;
         
         return new Promise((resolve, reject) => {

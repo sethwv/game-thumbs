@@ -28,6 +28,7 @@ Generates a portrait matchup cover with horizontal split.
 | `style` | number | `1` | Visual style (1-4) |
 | `logo` | boolean | `true` | Show league logo |
 | `fallback` | boolean | `false` | Return league cover if teams not found |
+| `aspect` | string | `3-4` | Aspect ratio (`3-4` or `9-16`) |
 
 ---
 
@@ -49,10 +50,12 @@ GET /nfl/chiefs/49ers/cover?style=2
 GET /mlb/yankees/redsox/cover?style=3
 GET /ncaam/duke/unc/cover?style=4&logo=false
 GET /nfl/badteam/faketeam/cover?fallback=true
+GET /nba/lakers/celtics/cover?aspect=9-16
 ```
 
 ---
 
 ## Output
 
-1080x1440 PNG image (3:4 aspect ratio)
+- **3-4 aspect ratio** (default): 1080x1440 PNG image
+- **9-16 aspect ratio**: 1080x1920 PNG image

@@ -27,7 +27,8 @@ nav_order: 4
 | National Hockey League | `nhl` | ESPN |
 | National Lacrosse League | `nll` | ESPN |
 | Ontario Hockey League | `ohl` | TheSportsDB |
-| English Premier League | `epl` | ESPN |
+| American Hockey League | `ahl` | TheSportsDB |
+| English Premier League | `epl` | TheSportsDB / ESPN |
 | La Liga (Spain) | `laliga` | ESPN |
 | Bundesliga (Germany) | `bundesliga` | ESPN |
 | Serie A (Italy) | `seriea` | ESPN |
@@ -166,16 +167,54 @@ Some leagues use TheSportsDB's free API v1:
 
 **Supported Leagues:**
 - Ontario Hockey League (OHL)
+- American Hockey League (AHL)
+- English Premier League (EPL - primary provider)
 
 **Team Data:**
-- `https://www.thesportsdb.com/api/v1/json/3/search_all_teams.php?l={league}`
+- `https://www.thesportsdb.com/api/v1/json/3/search_all_teams.php?l={leagueName}`
 
 **League Data:**
 - `https://www.thesportsdb.com/api/v1/json/3/lookupleague.php?id={leagueId}`
 
+**Finding Configuration Values:**
+
+To add a new league from TheSportsDB:
+
+1. Visit the league page on [TheSportsDB.com](https://www.thesportsdb.com)
+2. The `leagueId` is in the URL (e.g., `https://www.thesportsdb.com/league/4328` → `leagueId: "4328"`)
+3. The `leagueName` is displayed at the top of the page (e.g., "English Premier League")
+
+Both values are required in the configuration.
+
+**API Limits:**
+
+TheSportsDB free API (v1) has rate limiting restrictions:
+- Limited to a certain number of requests per day
+- Requests may be throttled during high traffic periods
+- For production use with high traffic, consider upgrading to a paid TheSportsDB API key
+
+To minimize API calls, the system implements 72-hour caching for all TheSportsDB data (team rosters, league info, and extracted colors). This significantly reduces the number of requests made to the API.
+
+**Premium API Key:**
+
+To use a premium TheSportsDB API key, set the `THESPORTSDB_API_KEY` environment variable:
+
+```bash
+export THESPORTSDB_API_KEY=your_premium_key_here
+```
+
+Or in your `.env` file:
+
+```
+THESPORTSDB_API_KEY=your_premium_key_here
+```
+
+If not set, the system defaults to the free tier API key (`3`).
+
 ### Caching
 
-- Team data is cached for 24 hours to minimize API calls
+- ESPN team data is cached for 24 hours to minimize API calls
+- TheSportsDB team data is cached for 72 hours to minimize API calls (due to free tier limits)
 - League logos are cached for 24 hours
 - Generated images are cached for 24 hours based on content hash
 
@@ -189,43 +228,93 @@ New leagues can be added by configuring them in `leagues.json`. Each league requ
 
 - **shortName**: League code used in API endpoints
 - **name**: Full league name for display
-- **providerId**: Data provider (`espn` or `thesportsdb`)
-- Provider-specific configuration (see examples below)
+- **providers**: Array of provider configurations (tried in order)
 
-### ESPN Provider Configuration
+### Single Provider Configuration
 
+**ESPN Provider:**
 ```javascript
 {
   "shortName": "nba",
   "name": "National Basketball Association",
-  "providerId": "espn",
-  "espnConfig": {
-    "espnSport": "basketball",
-    "espnSlug": "nba"
-  }
+  "providers": [
+    {
+      "espn": {
+        "espnSport": "basketball",
+        "espnSlug": "nba"
+      }
+    }
+  ]
 }
 ```
 
-### TheSportsDB Provider Configuration
+The provider type is automatically inferred from the config field (`espn` = ESPN provider).
+
+**TheSportsDB Provider:**
+```javascript
+{
+  "shortName": "ohl",
+  "name": "Ontario Hockey League",
+  "logoUrl": "./assets/OHL_LIGHTMODE.png",
+  "logoUrlDark": "./assets/OHL_DARKMODE.png",
+  "providers": [
+    {
+      "theSportsDB": {
+        "leagueId": "5159",
+        "leagueName": "Canadian OHL"
+      }
+    }
+  ]
+}
+```
+
+The provider type is automatically inferred from the config field (`theSportsDB` = TheSportsDB provider).
+
+### Multiple Providers with Priority
+
+Configure multiple providers for the same league. They are tried in order (top to bottom) before falling back to `fallbackLeague`:
 
 ```javascript
 {
   "shortName": "ohl",
   "name": "Ontario Hockey League",
-  "providerId": "thesportsdb",
   "logoUrl": "./assets/OHL_LIGHTMODE.png",
   "logoUrlDark": "./assets/OHL_DARKMODE.png",
-  "theSportsDBConfig": {
-    "leagueId": "5159",
-    "leagueName": "Canadian OHL"
-  }
+  "providers": [
+    {
+      "theSportsDB": {
+        "leagueId": "5159",
+        "leagueName": "Canadian OHL"
+      }
+    },
+    {
+      "espn": {
+        "espnSport": "hockey",
+        "espnSlug": "ohl"
+      }
+    }
+  ],
+  "fallbackLeague": "nhl"
 }
 ```
 
-**Optional Fields:**
+Provider types are automatically inferred: `theSportsDB` = TheSportsDB, `espn` = ESPN.
+
+**Resolution Order (top to bottom):**
+1. Try TheSportsDB first
+2. If team not found, try ESPN
+3. If still not found, fall back to NHL league
+
+### Configuration Fields
+
+**Required:**
+- `name`: Full league name for display
+- `providers`: Array of provider configurations (tried in priority order)
+
+**Optional:**
 - `logoUrl`: Custom league logo URL or local path (light mode)
 - `logoUrlDark`: Custom dark mode league logo URL or local path
 - `aliases`: Array of alternative names for the league
-- `fallbackLeague`: League code to fall back to when team not found
+- `fallbackLeague`: League code to fall back to when team not found (checked after all providers)
 
 For more details on the technical implementation, see [Technical Details](technical-details.html).

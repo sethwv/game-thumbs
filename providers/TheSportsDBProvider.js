@@ -27,8 +27,9 @@ class TheSportsDBProvider extends BaseProvider {
         super();
         this.teamCache = new Map();
         this.colorCache = new Map();
-        this.CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
-        this.API_KEY = '3'; // Free API key
+        this.CACHE_DURATION = 72 * 60 * 60 * 1000; // 72 hours
+        // Use premium API key from env var if available, otherwise use free tier
+        this.API_KEY = process.env.THESPORTSDB_API_KEY || '3';
     }
 
     getProviderId() {
@@ -40,12 +41,31 @@ class TheSportsDBProvider extends BaseProvider {
         return Object.keys(leagues).filter(key => leagues[key].providerId === this.getProviderId());
     }
 
+    getLeagueConfig(league) {
+        // Check for config in providers array (preferred)
+        if (league.providers && Array.isArray(league.providers)) {
+            for (const providerConfig of league.providers) {
+                if (typeof providerConfig === 'object' && (providerConfig.theSportsDB || providerConfig.theSportsDBConfig)) {
+                    return providerConfig.theSportsDB || providerConfig.theSportsDBConfig;
+                }
+            }
+        }
+        
+        // DEPRECATED: Check for direct config (for backward compatibility)
+        if (league.theSportsDB || league.theSportsDBConfig) {
+            return league.theSportsDB || league.theSportsDBConfig;
+        }
+        
+        return null;
+    }
+
     async resolveTeam(league, teamIdentifier) {
         if (!league || !teamIdentifier) {
             throw new Error('Both league and team identifier are required');
         }
 
-        if (!league.theSportsDBConfig) {
+        const theSportsDBConfig = this.getLeagueConfig(league);
+        if (!theSportsDBConfig) {
             throw new Error(`League ${league.shortName} is missing TheSportsDB configuration`);
         }
 
@@ -77,8 +97,16 @@ class TheSportsDBProvider extends BaseProvider {
             }
 
             // Extract colors from logo if not provided by API
-            let primaryColor = bestMatch.strColour1 ? `#${bestMatch.strColour1}` : null;
-            let alternateColor = bestMatch.strColour2 ? `#${bestMatch.strColour2}` : null;
+            // Handle colors that may or may not have # prefix
+            let primaryColor = null;
+            let alternateColor = null;
+            
+            if (bestMatch.strColour1 && bestMatch.strColour1.trim()) {
+                primaryColor = bestMatch.strColour1.startsWith('#') ? bestMatch.strColour1 : `#${bestMatch.strColour1}`;
+            }
+            if (bestMatch.strColour2 && bestMatch.strColour2.trim()) {
+                alternateColor = bestMatch.strColour2.startsWith('#') ? bestMatch.strColour2 : `#${bestMatch.strColour2}`;
+            }
             
             const logoUrl = bestMatch.strBadge || bestMatch.strLogo;
             
@@ -128,7 +156,7 @@ class TheSportsDBProvider extends BaseProvider {
                 conference: bestMatch.strDivision || null,
                 division: bestMatch.strDivision || null,
                 logo: logoUrl,
-                logoAlt: bestMatch.strLogo || bestMatch.strBadge,
+                logoAlt: bestMatch.strBadge || bestMatch.strLogo,
                 color: primaryColor,
                 alternateColor: alternateColor
             };
@@ -142,7 +170,8 @@ class TheSportsDBProvider extends BaseProvider {
     }
 
     async getLeagueLogoUrl(league, darkLogoPreferred = true) {
-        if (!league.theSportsDBConfig) {
+        const theSportsDBConfig = this.getLeagueConfig(league);
+        if (!theSportsDBConfig) {
             throw new Error(`League ${league.shortName} is missing TheSportsDB configuration`);
         }
 
@@ -159,7 +188,7 @@ class TheSportsDBProvider extends BaseProvider {
             const leagueData = await this.fetchLeagueData(league);
             
             // TheSportsDB provides logo and badge
-            return leagueData.strLogo || leagueData.strBadge || leagueData.strPoster;
+            return leagueData.strBadge || leagueData.strLogo || leagueData.strPoster;
         } catch (error) {
             console.warn(`Failed to get league logo for ${league.shortName}:`, error.message);
             // Return null if no fallback available
@@ -185,7 +214,16 @@ class TheSportsDBProvider extends BaseProvider {
             return cached.data;
         }
 
-        const { leagueName } = league.theSportsDBConfig;
+        const theSportsDBConfig = this.getLeagueConfig(league);
+        if (!theSportsDBConfig) {
+            throw new Error(`League ${league.shortName} is missing TheSportsDB configuration`);
+        }
+        const { leagueName } = theSportsDBConfig;
+        
+        if (!leagueName) {
+            throw new Error(`League ${league.shortName} requires leagueName in TheSportsDB configuration`);
+        }
+        
         const encodedLeague = encodeURIComponent(leagueName);
         const teamApiUrl = `https://www.thesportsdb.com/api/v1/json/${this.API_KEY}/search_all_teams.php?l=${encodedLeague}`;
         
@@ -233,7 +271,11 @@ class TheSportsDBProvider extends BaseProvider {
             return cached.data;
         }
 
-        const { leagueId } = league.theSportsDBConfig;
+        const theSportsDBConfig = this.getLeagueConfig(league);
+        if (!theSportsDBConfig) {
+            throw new Error(`League ${league.shortName} is missing TheSportsDB configuration`);
+        }
+        const { leagueId } = theSportsDBConfig;
         const leagueApiUrl = `https://www.thesportsdb.com/api/v1/json/${this.API_KEY}/lookupleague.php?id=${leagueId}`;
         
         return new Promise((resolve, reject) => {
