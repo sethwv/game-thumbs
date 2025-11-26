@@ -1,0 +1,320 @@
+---
+layout: default
+title: Supported Leagues
+nav_order: 4
+---
+
+# Supported Leagues
+{: .no_toc }
+
+## Table of contents
+{: .no_toc .text-delta }
+
+1. TOC
+{:toc}
+
+---
+
+## Professional Leagues
+
+| League Name | Code | Provider |
+|-------------|------|----------|
+| National Basketball Association | `nba` | ESPN |
+| Women's National Basketball Association | `wnba` | ESPN |
+| National Football League | `nfl` | ESPN |
+| United Football League | `ufl` | ESPN |
+| Major League Baseball | `mlb` | ESPN |
+| National Hockey League | `nhl` | ESPN |
+| National Lacrosse League | `nll` | ESPN |
+| Ontario Hockey League | `ohl` | TheSportsDB |
+| American Hockey League | `ahl` | TheSportsDB |
+| English Premier League | `epl` | TheSportsDB / ESPN |
+| La Liga (Spain) | `laliga` | ESPN |
+| Bundesliga (Germany) | `bundesliga` | ESPN |
+| Serie A (Italy) | `seriea` | ESPN |
+| Ligue 1 (France) | `ligue1` | ESPN |
+| Major League Soccer | `mls` | ESPN |
+| UEFA Champions League | `uefa` | ESPN |
+| UEFA Europa League | `europa` | ESPN |
+| UEFA Europa Conference League | `conference` | ESPN |
+| FIFA World Cup | `worldcup` | ESPN |
+
+---
+
+## NCAA Men's Sports
+
+| Sport | Code | Provider |
+|-------|------|----------|
+| NCAA Football | `ncaaf` | ESPN |
+| NCAA Men's Basketball | `ncaam` | ESPN |
+| NCAA Ice Hockey (Men's) | `ncaah` | ESPN |
+| NCAA Soccer (Men's) | `ncaas` | ESPN |
+| NCAA Baseball | `ncaabb` | ESPN |
+| NCAA Lacrosse (Men's) | `ncaalax` | ESPN |
+| NCAA Volleyball (Men's) | `ncaavb` | ESPN |
+| NCAA Water Polo (Men's) | `ncaawp` | ESPN |
+
+---
+
+## NCAA Women's Sports
+
+| Sport | Code | Provider | Fallback |
+|-------|------|----------|----------|
+| NCAA Women's Basketball | `ncaaw` | ESPN | Men's Basketball |
+| NCAA Ice Hockey (Women's) | `ncaawh` | ESPN | Men's Hockey |
+| NCAA Soccer (Women's) | `ncaaws` | ESPN | Men's Soccer |
+| NCAA Softball | `ncaasbw` | ESPN | Football |
+| NCAA Lacrosse (Women's) | `ncaawlax` | ESPN | Football |
+| NCAA Volleyball (Women's) | `ncaawvb` | ESPN | Football |
+| NCAA Water Polo (Women's) | `ncaawwp` | ESPN | Football |
+| NCAA Field Hockey (Women's) | `ncaawfh` | ESPN | Football |
+
+**Note:** Women's NCAA sports automatically fall back to the indicated sport when a team is not found. This ensures maximum compatibility when teams don't have dedicated women's programs.
+
+---
+
+## NCAA Shorthand
+
+The `/ncaa/:sport/:team1/:team2/:type` endpoint accepts these sport identifiers:
+
+### Men's Sports
+
+| Primary Sport | Additional Aliases | Maps to League Code |
+|---------------|-------------------|---------------------|
+| `football` | `footballm` | `ncaaf` |
+| `basketball` | `basketballm`, `march-madness` | `ncaam` |
+| `hockey` | `ice-hockey`, `hockeym`, `ice-hockeym` | `ncaah` |
+| `soccer` | `soccerm` | `ncaas` |
+| `baseball` | `baseballm` | `ncaabb` |
+| `lacrosse` | `lacrossem`, `mens-lacrosse` | `ncaalax` |
+| `volleyball` | `volleyballm`, `mens-volleyball` | `ncaavb` |
+| `water-polo` | `waterpolo`, `waterpolom`, `mens-water-polo` | `ncaawp` |
+
+### Women's Sports
+
+| Primary Sport | Additional Aliases | Maps to League Code |
+|---------------|-------------------|---------------------|
+| `womens-basketball` | `basketballw`, `womens-college-basketball` | `ncaaw` |
+| `womens-hockey` | `hockeyw`, `womens-college-hockey` | `ncaawh` |
+| `womens-soccer` | `soccerw`, `womens-college-soccer` | `ncaaws` |
+| `softball` | `softballw`, `womens-softball` | `ncaasbw` |
+| `womens-lacrosse` | `lacrossew`, `womens-college-lacrosse` | `ncaawlax` |
+| `womens-volleyball` | `volleyballw`, `womens-college-volleyball` | `ncaawvb` |
+| `womens-water-polo` | `waterpolow`, `womens-college-water-polo` | `ncaawwp` |
+| `field-hockey` | `fieldhockey`, `womens-field-hockey`, `womens-college-field-hockey` | `ncaawfh` |
+
+### Examples
+
+```
+/ncaa/football/alabama/georgia/thumb
+/ncaa/march-madness/duke/unc/cover
+/ncaa/womens-basketball/uconn/stanford/logo
+/ncaa/ice-hockey/minnesota/wisconsin/thumb
+/ncaa/softball/oklahoma/alabama/cover
+```
+
+---
+
+## Usage Examples
+
+### Professional Leagues
+
+```
+GET /nba/lakers/celtics/thumb
+GET /nfl/chiefs/49ers/cover
+GET /mlb/yankees/redsox/logo
+GET /nhl/maple-leafs/canadiens/thumb
+GET /ohl/london-knights/ottawa-67s/cover
+GET /epl/manchester-united/chelsea/thumb
+GET /mls/lafc/galaxy/cover
+```
+
+### NCAA Leagues (Direct)
+
+```
+GET /ncaaf/alabama/georgia/thumb
+GET /ncaam/duke/unc/cover
+GET /ncaaw/uconn/stanford/logo
+GET /ncaah/minnesota/wisconsin/thumb
+```
+
+### NCAA Shorthand
+
+```
+GET /ncaa/football/alabama/georgia/thumb
+GET /ncaa/basketball/duke/unc/cover
+GET /ncaa/womens-basketball/uconn/stanford/logo
+GET /ncaa/hockey/minnesota/wisconsin/thumb
+```
+
+---
+
+## Data Providers
+
+### ESPN
+
+Most leagues use ESPN as the data provider. Team data is fetched from ESPN's public APIs:
+
+**Professional Leagues:**
+- `https://site.api.espn.com/apis/site/v2/sports/{sport}/{league}/teams`
+
+**NCAA Leagues:**
+- `https://site.api.espn.com/apis/site/v2/sports/{sport}/{league}/teams`
+
+### TheSportsDB
+
+Some leagues use TheSportsDB's free API v1:
+
+**Supported Leagues:**
+- Ontario Hockey League (OHL)
+- American Hockey League (AHL)
+- English Premier League (EPL - primary provider)
+
+**Team Data:**
+- `https://www.thesportsdb.com/api/v1/json/3/search_all_teams.php?l={leagueName}`
+
+**League Data:**
+- `https://www.thesportsdb.com/api/v1/json/3/lookupleague.php?id={leagueId}`
+
+**Finding Configuration Values:**
+
+To add a new league from TheSportsDB:
+
+1. Visit the league page on [TheSportsDB.com](https://www.thesportsdb.com)
+2. The `leagueId` is in the URL (e.g., `https://www.thesportsdb.com/league/4328` → `leagueId: "4328"`)
+3. The `leagueName` is displayed at the top of the page (e.g., "English Premier League")
+
+Both values are required in the configuration.
+
+**API Limits:**
+
+TheSportsDB free API (v1) has rate limiting restrictions:
+- Limited to a certain number of requests per day
+- Requests may be throttled during high traffic periods
+- For production use with high traffic, consider upgrading to a paid TheSportsDB API key
+
+To minimize API calls, the system implements 72-hour caching for all TheSportsDB data (team rosters, league info, and extracted colors). This significantly reduces the number of requests made to the API.
+
+**Premium API Key:**
+
+To use a premium TheSportsDB API key, set the `THESPORTSDB_API_KEY` environment variable:
+
+```bash
+export THESPORTSDB_API_KEY=your_premium_key_here
+```
+
+Or in your `.env` file:
+
+```
+THESPORTSDB_API_KEY=your_premium_key_here
+```
+
+If not set, the system defaults to the free tier API key (`3`).
+
+### Caching
+
+- ESPN team data is cached for 24 hours to minimize API calls
+- TheSportsDB team data is cached for 72 hours to minimize API calls (due to free tier limits)
+- League logos are cached for 24 hours
+- Generated images are cached for 24 hours based on content hash
+
+See [Technical Details](technical-details.html) for more information on caching and data sources.
+
+---
+
+## Adding New Leagues
+
+New leagues can be added by configuring them in `leagues.json`. Each league requires:
+
+- **shortName**: League code used in API endpoints
+- **name**: Full league name for display
+- **providers**: Array of provider configurations (tried in order)
+
+### Single Provider Configuration
+
+**ESPN Provider:**
+```javascript
+{
+  "shortName": "nba",
+  "name": "National Basketball Association",
+  "providers": [
+    {
+      "espn": {
+        "espnSport": "basketball",
+        "espnSlug": "nba"
+      }
+    }
+  ]
+}
+```
+
+The provider type is automatically inferred from the config field (`espn` = ESPN provider).
+
+**TheSportsDB Provider:**
+```javascript
+{
+  "shortName": "ohl",
+  "name": "Ontario Hockey League",
+  "logoUrl": "./assets/OHL_LIGHTMODE.png",
+  "logoUrlDark": "./assets/OHL_DARKMODE.png",
+  "providers": [
+    {
+      "theSportsDB": {
+        "leagueId": "5159",
+        "leagueName": "Canadian OHL"
+      }
+    }
+  ]
+}
+```
+
+The provider type is automatically inferred from the config field (`theSportsDB` = TheSportsDB provider).
+
+### Multiple Providers with Priority
+
+Configure multiple providers for the same league. They are tried in order (top to bottom) before falling back to `fallbackLeague`:
+
+```javascript
+{
+  "shortName": "ohl",
+  "name": "Ontario Hockey League",
+  "logoUrl": "./assets/OHL_LIGHTMODE.png",
+  "logoUrlDark": "./assets/OHL_DARKMODE.png",
+  "providers": [
+    {
+      "theSportsDB": {
+        "leagueId": "5159",
+        "leagueName": "Canadian OHL"
+      }
+    },
+    {
+      "espn": {
+        "espnSport": "hockey",
+        "espnSlug": "ohl"
+      }
+    }
+  ],
+  "fallbackLeague": "nhl"
+}
+```
+
+Provider types are automatically inferred: `theSportsDB` = TheSportsDB, `espn` = ESPN.
+
+**Resolution Order (top to bottom):**
+1. Try TheSportsDB first
+2. If team not found, try ESPN
+3. If still not found, fall back to NHL league
+
+### Configuration Fields
+
+**Required:**
+- `name`: Full league name for display
+- `providers`: Array of provider configurations (tried in priority order)
+
+**Optional:**
+- `logoUrl`: Custom league logo URL or local path (light mode)
+- `logoUrlDark`: Custom dark mode league logo URL or local path
+- `aliases`: Array of alternative names for the league
+- `fallbackLeague`: League code to fall back to when team not found (checked after all providers)
+
+For more details on the technical implementation, see [Technical Details](technical-details.html).
