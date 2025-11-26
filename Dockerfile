@@ -1,8 +1,9 @@
 # Use Node.js LTS version
 FROM node:lts-alpine
 
-# Install canvas dependencies
+# Install canvas dependencies and git
 # canvas requires Cairo, Pango, and other libraries for image manipulation
+# git is needed for /info endpoint to display git information
 RUN apk add --no-cache \
     build-base \
     g++ \
@@ -11,7 +12,8 @@ RUN apk add --no-cache \
     pango-dev \
     giflib-dev \
     pixman-dev \
-    ttf-dejavu
+    ttf-dejavu \
+    git
 
 # Set working directory
 WORKDIR /app
