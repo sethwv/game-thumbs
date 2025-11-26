@@ -71,7 +71,7 @@ Configure the server behavior using environment variables:
 - Rate limiting only applies to uncached requests; cached images are served without limits
 - General API endpoints (like `/raw`) have 3x the image generation rate limit
 - Set `TRUST_PROXY` to the number of proxies between the internet and your app for accurate IP detection
-- When `RATE_LIMIT_PER_MINUTE=0`, there are no request limits (use with caution in production)
+- When `RATE_LIMIT_PER_MINUTE=0`, there are no request limits (use with caution if exposed to the internet)
 
 ### Logging
 

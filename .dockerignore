@@ -5,10 +5,10 @@ node_modules
 .cache
 
 # Development files
-.git
-.gitignore
-*.md
-README.md
+# .git
+# .gitignore
+# *.md
+# README.md
 
 # Test files
 test-thumbnail.png

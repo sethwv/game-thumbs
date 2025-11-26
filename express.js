@@ -177,8 +177,21 @@ function init(port) {
     const fs = require('fs');
     const path = require('path');
     const routesPath = path.join(__dirname, 'routes');
+    const APP_MODE = process.env.APP_MODE || 'standard';
+    
+    if (APP_MODE === 'xcproxy') {
+        logger.info('XC Proxy mode - loading only xcproxy route');
+        // Auto-enable XC_PROXY when in xcproxy mode
+        process.env.XC_PROXY = 'true';
+    }
+    
     fs.readdirSync(routesPath).forEach(file => {
         if (file.endsWith('.js')) {
+            // In xcproxy mode, only load xcproxy.js
+            if (APP_MODE === 'xcproxy' && file !== 'xcproxy.js') {
+                return;
+            }
+            
             const route = require(path.join(routesPath, file));
             if (route.paths) {
                 for (const path of route.paths) {

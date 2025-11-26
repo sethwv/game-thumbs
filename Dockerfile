@@ -37,10 +37,13 @@ ENV IMAGE_CACHE_HOURS=24
 ENV RATE_LIMIT_PER_MINUTE=30
 ENV FORCE_COLOR=1
 ENV NODE_ENV=production
+ENV APP_MODE=standard
 
 # Add health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD node -e "require('http').get('http://localhost:3000/health', (r) => {let d='';r.on('data', (c) => d+=c);r.on('end', () => {if (r.statusCode !== 200) process.exit(1);const j=JSON.parse(d);process.exit(j.status==='ok'?0:1)})}).on('error', () => process.exit(1))"
 
-# Start the application
+# Start the application based on APP_MODE
+# APP_MODE=standard (default) - runs full game-thumbs API
+# APP_MODE=xcproxy - runs only XC proxy functionality (XC_PROXY is auto-enabled)
 CMD ["node", "index.js"]
