@@ -347,8 +347,8 @@ async function generateCircleBadges(teamA, teamB, width, height, league, useLigh
     ctx.fill();
     ctx.restore();
     
-    // Draw teamA logo
-    const logoSize = badgeSize * 0.95;
+    // Draw teamA logo (80% to fit within circle)
+    const logoSize = badgeSize * 0.80;
     const logoAX = badgeAX + (badgeSize - logoSize) / 2;
     const logoAY = badgeAY + (badgeSize - logoSize) / 2;
     
@@ -650,11 +650,22 @@ async function generateCircleBadgesWithLeague(teamA, teamB, width, height, leagu
         ctx.fill();
         ctx.restore();
         
-        const logoSize = badgeSize * 0.95;
-        const logoX = badgeX + (badgeSize - logoSize) / 2;
-        const logoY = badgeY + (badgeSize - logoSize) / 2;
+        const logoMaxSize = badgeSize * 0.80;
+        const aspectRatio = badge.logo.width / badge.logo.height;
+        let drawWidth, drawHeight;
         
-        ctx.drawImage(badge.logo, logoX, logoY, logoSize, logoSize);
+        if (aspectRatio > 1) {
+            drawWidth = logoMaxSize;
+            drawHeight = logoMaxSize / aspectRatio;
+        } else {
+            drawHeight = logoMaxSize;
+            drawWidth = logoMaxSize * aspectRatio;
+        }
+        
+        const logoX = badgeX + (badgeSize - drawWidth) / 2;
+        const logoY = badgeY + (badgeSize - drawHeight) / 2;
+        
+        ctx.drawImage(badge.logo, logoX, logoY, drawWidth, drawHeight);
     });
     
     return canvas.toBuffer('image/png');
@@ -728,11 +739,22 @@ async function generateSquareBadgesWithLeague(teamA, teamB, width, height, leagu
         ctx.fillStyle = badge.bgColor;
         ctx.fillRect(badge.x, badgeY, badgeSize, badgeSize);
         
-        const logoSize = badgeSize * 0.8;
-        const logoX = badge.x + (badgeSize - logoSize) / 2;
-        const logoY = badgeY + (badgeSize - logoSize) / 2;
+        const logoMaxSize = badgeSize * 0.8;
+        const aspectRatio = badge.logo.width / badge.logo.height;
+        let drawWidth, drawHeight;
         
-        ctx.drawImage(badge.logo, logoX, logoY, logoSize, logoSize);
+        if (aspectRatio > 1) {
+            drawWidth = logoMaxSize;
+            drawHeight = logoMaxSize / aspectRatio;
+        } else {
+            drawHeight = logoMaxSize;
+            drawWidth = logoMaxSize * aspectRatio;
+        }
+        
+        const logoX = badge.x + (badgeSize - drawWidth) / 2;
+        const logoY = badgeY + (badgeSize - drawHeight) / 2;
+        
+        ctx.drawImage(badge.logo, logoX, logoY, drawWidth, drawHeight);
     });
     
     return canvas.toBuffer('image/png');

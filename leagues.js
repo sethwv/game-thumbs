@@ -4,7 +4,16 @@
 // League definitions are stored in leagues.json
 // ------------------------------------------------------------------------------
 
-const leagues = require('./leagues.json');
+const leaguesRaw = require('./leagues.json');
+
+// Add shortName to each league from its key
+const leagues = {};
+for (const key in leaguesRaw) {
+    leagues[key] = {
+        ...leaguesRaw[key],
+        shortName: leaguesRaw[key].shortName || key.toUpperCase()
+    };
+}
 
 // ------------------------------------------------------------------------------
 

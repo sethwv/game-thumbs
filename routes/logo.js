@@ -17,7 +17,7 @@ module.exports = {
     method: "get",
     handler: async (req, res) => {
         const { league, team1, team2 } = req.params;
-        const { size, logo, style, useLight, trim } = req.query;
+        const { size, logo, style, useLight, trim, fallback } = req.query;
 
         const styleValue = parseInt(style) || 1;
         // Styles 5 and 6 require the league logo
@@ -49,8 +49,35 @@ module.exports = {
                 return res.status(400).json({ error: `Unsupported league: ${league}` });
             }
 
-            const resolvedTeam1 = await providerManager.resolveTeam(leagueObj, team1);
-            const resolvedTeam2 = await providerManager.resolveTeam(leagueObj, team2);
+            let resolvedTeam1, resolvedTeam2;
+            try {
+                resolvedTeam1 = await providerManager.resolveTeam(leagueObj, team1);
+                resolvedTeam2 = await providerManager.resolveTeam(leagueObj, team2);
+            } catch (teamError) {
+                // If fallback is enabled and team lookup fails, return raw league logo instead
+                if (fallback === 'true' && teamError.name === 'TeamNotFoundError') {
+                    const { downloadImage } = require('../helpers/imageUtils');
+                    const darkLogoPreferred = useLight !== 'true';
+                    const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj, darkLogoPreferred);
+                    
+                    const fallbackBuffer = await downloadImage(leagueLogoUrl);
+                    
+                    res.set('Content-Type', 'image/png');
+                    res.send(fallbackBuffer);
+                    
+                    try {
+                        require('../helpers/imageCache').addToCache(req, res, fallbackBuffer);
+                    } catch (cacheError) {
+                        logger.error('Failed to cache image', {
+                            Error: cacheError.message,
+                            URL: req.url
+                        });
+                    }
+                    return;
+                }
+                // If fallback is disabled or it's a different error, rethrow
+                throw teamError;
+            }
 
             // Get league logo URL if needed
             let leagueInfo = null;

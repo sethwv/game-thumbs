@@ -17,11 +17,21 @@ module.exports = {
     method: "get",
     handler: async (req, res) => {
         const { league, team1, team2 } = req.params;
-        const { logo, style } = req.query;
+        const { logo, style, fallback, aspect } = req.query;
+
+        // Determine dimensions based on aspect ratio
+        let width, height;
+        if (aspect === '9-16' || aspect === '9x16') {
+            width = 1080;
+            height = 1920;
+        } else { // default 3:4
+            width = 1080;
+            height = 1440;
+        }
 
         const coverOptions = {
-            width: 1080,
-            height: 1440,
+            width,
+            height,
             style: parseInt(style) || 1,
             league: logo === 'false' ? null : league
         };
@@ -37,8 +47,39 @@ module.exports = {
                 return res.status(400).json({ error: `Unsupported league: ${league}` });
             }
 
-            const resolvedTeam1 = await providerManager.resolveTeam(leagueObj, team1);
-            const resolvedTeam2 = await providerManager.resolveTeam(leagueObj, team2);
+            let resolvedTeam1, resolvedTeam2;
+            try {
+                resolvedTeam1 = await providerManager.resolveTeam(leagueObj, team1);
+                resolvedTeam2 = await providerManager.resolveTeam(leagueObj, team2);
+            } catch (teamError) {
+                // If fallback is enabled and team lookup fails, generate league cover instead
+                if (fallback === 'true' && teamError.name === 'TeamNotFoundError') {
+                    const { generateLeagueCover } = require('../helpers/leagueImageGenerator');
+                    const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj, false);
+                    const leagueLogoUrlAlt = await providerManager.getLeagueLogoUrl(leagueObj, true);
+                    
+                    const fallbackBuffer = await generateLeagueCover(leagueLogoUrl, {
+                        width,
+                        height,
+                        leagueLogoUrlAlt: leagueLogoUrlAlt
+                    });
+                    
+                    res.set('Content-Type', 'image/png');
+                    res.send(fallbackBuffer);
+                    
+                    try {
+                        require('../helpers/imageCache').addToCache(req, res, fallbackBuffer);
+                    } catch (cacheError) {
+                        logger.error('Failed to cache image', {
+                            Error: cacheError.message,
+                            URL: req.url
+                        });
+                    }
+                    return;
+                }
+                // If fallback is disabled or it's a different error, rethrow
+                throw teamError;
+            }
 
             // Get league logo URL if needed
             let leagueInfo = null;

@@ -45,37 +45,70 @@ class ESPNProvider extends BaseProvider {
         return Object.keys(leagues).filter(key => leagues[key].providerId === this.getProviderId());
     }
 
+    getLeagueConfig(league) {
+        // Check for config in providers array (preferred)
+        if (league.providers && Array.isArray(league.providers)) {
+            for (const providerConfig of league.providers) {
+                if (typeof providerConfig === 'object' && (providerConfig.espn || providerConfig.espnConfig)) {
+                    return providerConfig.espn || providerConfig.espnConfig;
+                }
+            }
+        }
+        
+        // DEPRECATED: Check for direct config (for backward compatibility)
+        if (league.espn || league.espnConfig) {
+            return league.espn || league.espnConfig;
+        }
+        
+        return null;
+    }
+
     async resolveTeam(league, teamIdentifier) {
         if (!league || !teamIdentifier) {
             throw new Error('Both league and team identifier are required');
         }
 
-        if (!league.espnConfig) {
+        const espnConfig = this.getLeagueConfig(league);
+        if (!espnConfig) {
             throw new Error(`League ${league.shortName} is missing ESPN configuration`);
         }
 
         try {
             const teams = await this.fetchTeamData(league);
+            const { findTeamByAlias } = require('../helpers/teamOverrides');
 
-            // Find best matching team using weighted scoring
-            let bestMatch = null;
-            let bestScore = 0;
+            // First, check if the input matches any custom aliases
+            const teamsWithIds = teams.map(team => ({
+                ...team,
+                espnId: team.team?.slug || team.team?.id
+            }));
+            
+            const aliasMatch = findTeamByAlias(teamIdentifier, league.shortName.toLowerCase(), teamsWithIds);
+            if (aliasMatch) {
+                // Use the alias match as the best match
+                var bestMatch = aliasMatch;
+                var bestScore = 1000; // High score for alias matches
+            } else {
+                // Find best matching team using weighted scoring
+                var bestMatch = null;
+                var bestScore = 0;
 
-            for (const team of teams) {
-                // Convert ESPN team format to standardized format for matching
-                const teamObj = team.team || {};
-                const standardizedTeam = {
-                    fullName: teamObj.displayName,
-                    shortDisplayName: teamObj.shortDisplayName,
-                    name: teamObj.nickname,
-                    city: teamObj.location,
-                    abbreviation: teamObj.abbreviation
-                };
-                
-                const score = getTeamMatchScore(teamIdentifier, standardizedTeam);
-                if (score > bestScore) {
-                    bestScore = score;
-                    bestMatch = team;
+                for (const team of teams) {
+                    // Convert ESPN team format to standardized format for matching
+                    const teamObj = team.team || {};
+                    const standardizedTeam = {
+                        fullName: teamObj.displayName,
+                        shortDisplayName: teamObj.shortDisplayName,
+                        name: teamObj.nickname,
+                        city: teamObj.location,
+                        abbreviation: teamObj.abbreviation
+                    };
+                    
+                    const score = getTeamMatchScore(teamIdentifier, standardizedTeam);
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestMatch = team;
+                    }
                 }
             }
 
@@ -161,8 +194,9 @@ class ESPNProvider extends BaseProvider {
             if (!primaryColor) primaryColor = '#000000';
             if (!alternateColor) alternateColor = '#ffffff';
 
-            return {
+            const teamData = {
                 id: teamObj.id,
+                slug: teamObj.slug,
                 city: teamObj.location,
                 name: teamObj.nickname,
                 fullName: teamObj.displayName,
@@ -174,6 +208,17 @@ class ESPNProvider extends BaseProvider {
                 color: primaryColor,
                 alternateColor: alternateColor
             };
+
+            // Apply team overrides from teams.json
+            const { applyTeamOverrides } = require('../helpers/teamOverrides');
+            let teamIdentifierForOverride = teamObj.slug || teamObj.id;
+            // Extract slug without league prefix (e.g., 'eng.nottm_forest' -> 'nottm-forest')
+            if (teamIdentifierForOverride && teamIdentifierForOverride.includes('.')) {
+                teamIdentifierForOverride = teamIdentifierForOverride.split('.')[1];
+            }
+            // Normalize underscores to hyphens
+            teamIdentifierForOverride = teamIdentifierForOverride?.replace(/_/g, '-');
+            return applyTeamOverrides(teamData, league.shortName.toLowerCase(), teamIdentifierForOverride);
         } catch (error) {
             // Re-throw TeamNotFoundError as-is to preserve error type
             if (error instanceof TeamNotFoundError) {
@@ -184,11 +229,15 @@ class ESPNProvider extends BaseProvider {
     }
 
     async getLeagueLogoUrl(league, darkLogoPreferred = true) {
-        if (!league.espnConfig) {
+        const espnConfig = this.getLeagueConfig(league);
+        if (!espnConfig) {
             throw new Error(`League ${league.shortName} is missing ESPN configuration`);
         }
 
-        // Check if league has a custom logo URL defined
+        // Check if league has custom logo URLs defined
+        if (darkLogoPreferred && league.logoUrlDark) {
+            return league.logoUrlDark;
+        }
         if (league.logoUrl) {
             return league.logoUrl;
         }
@@ -232,7 +281,11 @@ class ESPNProvider extends BaseProvider {
             return cached.data;
         }
 
-        const { espnSport, espnSlug } = league.espnConfig;
+        const espnConfig = this.getLeagueConfig(league);
+        if (!espnConfig) {
+            throw new Error(`League ${league.shortName} is missing ESPN configuration`);
+        }
+        const { espnSport, espnSlug } = espnConfig;
         const teamApiUrl = `https://site.api.espn.com/apis/site/v2/sports/${espnSport}/${espnSlug}/teams?limit=1000`;
         
         return new Promise((resolve, reject) => {
@@ -331,7 +384,11 @@ class ESPNProvider extends BaseProvider {
             return cached.data;
         }
 
-        const { espnSport, espnSlug } = league.espnConfig;
+        const espnConfig = this.getLeagueConfig(league);
+        if (!espnConfig) {
+            throw new Error(`League ${league.shortName} is missing ESPN configuration`);
+        }
+        const { espnSport, espnSlug } = espnConfig;
         const leagueApiUrl = `https://sports.core.api.espn.com/v2/sports/${espnSport}/leagues/${espnSlug}`;
         
         return new Promise((resolve, reject) => {

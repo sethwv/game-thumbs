@@ -27,12 +27,19 @@ function init(port) {
     logger.info(`Trust proxy set to: ${trustProxyHops} hop(s)`);
 
     const corsOptions = {
-        origin: '*',
-        optionsSuccessStatus: 200
+        origin: process.env.CORS_ORIGIN || '*',
+        optionsSuccessStatus: 200,
+        credentials: false,
+        methods: ['GET', 'HEAD', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization'],
+        exposedHeaders: ['Content-Type', 'Content-Length'],
+        maxAge: parseInt(process.env.CORS_MAX_AGE || '86400', 10),
     };
 
     app.use(cors(corsOptions));
-    app.use(helmet());
+    app.use(helmet({
+        crossOriginResourcePolicy: { policy: "cross-origin" }
+    }));
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
 
@@ -81,7 +88,7 @@ function init(port) {
     // Check cache first to determine if we need strict rate limiting
     const { checkCacheMiddleware } = require('./helpers/imageCache');
     app.use((req, res, next) => {
-        if (['thumb', 'logo', 'cover', 'teamlogo', 'leaguelogo'].some(path => req.path.includes(path))) {
+        if (['thumb', 'logo', 'cover', 'teamlogo', 'leaguelogo', 'leaguethumb', 'leaguecover'].some(path => req.path.includes(path))) {
             return checkCacheMiddleware(req, res, next);
         }
         next();
@@ -131,10 +138,19 @@ function init(port) {
 
     // Apply rate limiting
     app.use((req, res, next) => {
-        if (['thumb', 'logo', 'cover', 'teamlogo', 'leaguelogo'].some(path => req.path.includes(path))) {
+        if (['thumb', 'logo', 'cover', 'teamlogo', 'leaguelogo', 'leaguethumb', 'leaguecover'].some(path => req.path.includes(path))) {
             return imageGenerationLimiter(req, res, next);
         }
         return generalLimiter(req, res, next);
+    });
+
+    // Ignore browser icon requests early (before logging)
+    const ignoredPaths = ['/favicon.ico', '/apple-touch-icon.png', '/apple-touch-icon-precomposed.png'];
+    app.use((req, res, next) => {
+        if (ignoredPaths.includes(req.path)) {
+            return res.status(204).end();
+        }
+        next();
     });
 
     // Log all requests that make it past rate limiting and cache
@@ -161,8 +177,21 @@ function init(port) {
     const fs = require('fs');
     const path = require('path');
     const routesPath = path.join(__dirname, 'routes');
+    const APP_MODE = process.env.APP_MODE || 'standard';
+    
+    if (APP_MODE === 'xcproxy') {
+        logger.info('XC Proxy mode - loading only xcproxy route');
+        // Auto-enable XC_PROXY when in xcproxy mode
+        process.env.XC_PROXY = 'true';
+    }
+    
     fs.readdirSync(routesPath).forEach(file => {
         if (file.endsWith('.js')) {
+            // In xcproxy mode, only load xcproxy.js
+            if (APP_MODE === 'xcproxy' && file !== 'xcproxy.js') {
+                return;
+            }
+            
             const route = require(path.join(routesPath, file));
             if (route.paths) {
                 for (const path of route.paths) {
