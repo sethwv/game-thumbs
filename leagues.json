@@ -1,26 +1,6 @@
 {
-  "nba": {
-    "name": "National Basketball Association",
-    "providers": [
-      {
-        "espn": {
-          "espnSlug": "nba",
-          "espnSport": "basketball"
-        }
-      }
-    ]
-  },
-  "wnba": {
-    "name": "Women's National Basketball Association",
-    "providers": [
-      {
-        "espn": {
-          "espnSlug": "wnba",
-          "espnSport": "basketball"
-        }
-      }
-    ]
-  },
+  "__MAJOR_PROFESSIONAL_LEAGUES__": "===========================================",
+
   "nfl": {
     "name": "National Football League",
     "providers": [
@@ -32,13 +12,13 @@
       }
     ]
   },
-  "ufl": {
-    "name": "United Football League",
+  "nba": {
+    "name": "National Basketball Association",
     "providers": [
       {
         "espn": {
-          "espnSlug": "ufl",
-          "espnSport": "football"
+          "espnSlug": "nba",
+          "espnSport": "basketball"
         }
       }
     ]
@@ -65,6 +45,17 @@
       }
     ]
   },
+  "wnba": {
+    "name": "Women's National Basketball Association",
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "wnba",
+          "espnSport": "basketball"
+        }
+      }
+    ]
+  },
   "nll": {
     "name": "National Lacrosse League",
     "providers": [
@@ -76,68 +67,48 @@
       }
     ]
   },
-  "epl": {
-    "name": "English Premier League",
+
+  "__OTHER_FOOTBALL_LEAGUES__": "===========================================",
+
+  "ufl": {
+    "name": "United Football League",
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "ufl",
+          "espnSport": "football"
+        }
+      }
+    ]
+  },
+  "cfl": {
+    "name": "Canadian Football League",
     "aliases": [
-      "premier league",
-      "premier",
-      "england",
-      "eng.1"
+      "grey cup"
     ],
     "providers": [
       {
         "theSportsDB": {
-          "leagueId": "4328",
-          "leagueName": "English Premier League"
-        }
-      },
-      {
-        "espn": {
-          "espnSlug": "eng.1",
-          "espnSport": "soccer"
+          "leagueId": "4405",
+          "leagueName": "CFL"
         }
       }
     ]
   },
-  "laliga": {
-    "name": "La Liga",
+
+  "__SOCCER_LEAGUES__": "===========================================",
+
+  "uefa": {
+    "name": "UEFA Champions League",
+    "aliases": [
+      "champions league",
+      "ucl",
+      "uefa.champions"
+    ],
     "providers": [
       {
         "espn": {
-          "espnSlug": "esp.1",
-          "espnSport": "soccer"
-        }
-      }
-    ]
-  },
-  "bundesliga": {
-    "name": "Bundesliga",
-    "providers": [
-      {
-        "espn": {
-          "espnSlug": "ger.1",
-          "espnSport": "soccer"
-        }
-      }
-    ]
-  },
-  "seriea": {
-    "name": "Serie A",
-    "providers": [
-      {
-        "espn": {
-          "espnSlug": "ita.1",
-          "espnSport": "soccer"
-        }
-      }
-    ]
-  },
-  "ligue1": {
-    "name": "Ligue 1",
-    "providers": [
-      {
-        "espn": {
-          "espnSlug": "fra.1",
+          "espnSlug": "uefa.champions",
           "espnSport": "soccer"
         }
       }
@@ -177,6 +148,217 @@
       }
     ]
   },
+  "worldcup": {
+    "name": "FIFA World Cup",
+    "aliases": [
+      "world cup",
+      "fifa",
+      "fifa world cup",
+      "fifa.world"
+    ],
+    "feederLeagues": [
+      "wcq-uefa",
+      "wcq-conmebol",
+      "wcq-concacaf",
+      "wcq-afc",
+      "wcq-caf",
+      "wcq-ofc"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "fifa.world",
+          "espnSport": "soccer"
+        }
+      }
+    ]
+  },
+  "wcq-uefa": {
+    "name": "FIFA World Cup Qualifiers - UEFA",
+    "aliases": [
+      "world cup qualifiers uefa",
+      "wcq uefa",
+      "europe qualifiers",
+      "fifa.worldq.uefa"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "fifa.worldq.uefa",
+          "espnSport": "soccer"
+        }
+      }
+    ]
+  },
+  "wcq-conmebol": {
+    "name": "FIFA World Cup Qualifiers - CONMEBOL",
+    "aliases": [
+      "world cup qualifiers conmebol",
+      "wcq conmebol",
+      "south america qualifiers",
+      "fifa.worldq.conmebol"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "fifa.worldq.conmebol",
+          "espnSport": "soccer"
+        }
+      }
+    ]
+  },
+  "wcq-concacaf": {
+    "name": "FIFA World Cup Qualifiers - CONCACAF",
+    "aliases": [
+      "world cup qualifiers concacaf",
+      "wcq concacaf",
+      "north america qualifiers",
+      "fifa.worldq.concacaf"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "fifa.worldq.concacaf",
+          "espnSport": "soccer"
+        }
+      }
+    ]
+  },
+  "wcq-afc": {
+    "name": "FIFA World Cup Qualifiers - AFC",
+    "aliases": [
+      "world cup qualifiers afc",
+      "wcq afc",
+      "asia qualifiers",
+      "fifa.worldq.afc"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "fifa.worldq.afc",
+          "espnSport": "soccer"
+        }
+      }
+    ]
+  },
+  "wcq-caf": {
+    "name": "FIFA World Cup Qualifiers - CAF",
+    "aliases": [
+      "world cup qualifiers caf",
+      "wcq caf",
+      "africa qualifiers",
+      "fifa.worldq.caf"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "fifa.worldq.caf",
+          "espnSport": "soccer"
+        }
+      }
+    ]
+  },
+  "wcq-ofc": {
+    "name": "FIFA World Cup Qualifiers - OFC",
+    "aliases": [
+      "world cup qualifiers ofc",
+      "wcq ofc",
+      "oceania qualifiers",
+      "fifa.worldq.ofc"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "fifa.worldq.ofc",
+          "espnSport": "soccer"
+        }
+      }
+    ]
+  },
+  "epl": {
+    "name": "English Premier League",
+    "aliases": [
+      "premier league",
+      "premier",
+      "england",
+      "eng.1"
+    ],
+    "feederLeagues": [
+      "championship",
+      "league-one",
+      "league-two"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4328",
+          "leagueName": "English Premier League"
+        }
+      },
+      {
+        "espn": {
+          "espnSlug": "eng.1",
+          "espnSport": "soccer"
+        }
+      }
+    ]
+  },
+  "laliga": {
+    "name": "La Liga",
+    "feederLeagues": [
+      "segunda"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "esp.1",
+          "espnSport": "soccer"
+        }
+      }
+    ]
+  },
+  "bundesliga": {
+    "name": "Bundesliga",
+    "feederLeagues": [
+      "2-bundesliga"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "ger.1",
+          "espnSport": "soccer"
+        }
+      }
+    ]
+  },
+  "seriea": {
+    "name": "Serie A",
+    "feederLeagues": [
+      "serieb"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "ita.1",
+          "espnSport": "soccer"
+        }
+      }
+    ]
+  },
+  "ligue1": {
+    "name": "Ligue 1",
+    "feederLeagues": [
+      "ligue2"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "fra.1",
+          "espnSport": "soccer"
+        }
+      }
+    ]
+  },
   "mls": {
     "name": "Major League Soccer",
     "aliases": [
@@ -192,39 +374,127 @@
       }
     ]
   },
-  "uefa": {
-    "name": "UEFA Champions League",
+  "championship": {
+    "name": "EFL Championship",
     "aliases": [
-      "champions league",
-      "ucl",
-      "uefa.champions"
+      "championship",
+      "efl championship",
+      "english championship",
+      "eng.2"
     ],
     "providers": [
       {
         "espn": {
-          "espnSlug": "uefa.champions",
+          "espnSlug": "eng.2",
           "espnSport": "soccer"
         }
       }
     ]
   },
-  "worldcup": {
-    "name": "FIFA World Cup",
+  "league-one": {
+    "name": "EFL League One",
     "aliases": [
-      "world cup",
-      "fifa",
-      "fifa world cup",
-      "fifa.world"
+      "league one",
+      "efl league one",
+      "english league one",
+      "eng.3"
     ],
     "providers": [
       {
         "espn": {
-          "espnSlug": "fifa.world",
+          "espnSlug": "eng.3",
           "espnSport": "soccer"
         }
       }
     ]
   },
+  "league-two": {
+    "name": "EFL League Two",
+    "aliases": [
+      "league two",
+      "efl league two",
+      "english league two",
+      "eng.4"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "eng.4",
+          "espnSport": "soccer"
+        }
+      }
+    ]
+  },
+  "segunda": {
+    "name": "Segunda División",
+    "aliases": [
+      "segunda",
+      "segunda division",
+      "la liga 2",
+      "laliga2",
+      "esp.2"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "esp.2",
+          "espnSport": "soccer"
+        }
+      }
+    ]
+  },
+  "2-bundesliga": {
+    "name": "2. Bundesliga",
+    "aliases": [
+      "2 bundesliga",
+      "2. bundesliga",
+      "bundesliga 2",
+      "ger.2"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "ger.2",
+          "espnSport": "soccer"
+        }
+      }
+    ]
+  },
+  "serieb": {
+    "name": "Serie B",
+    "aliases": [
+      "serie b",
+      "italian serie b",
+      "ita.2"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "ita.2",
+          "espnSport": "soccer"
+        }
+      }
+    ]
+  },
+  "ligue2": {
+    "name": "Ligue 2",
+    "aliases": [
+      "ligue 2",
+      "french ligue 2",
+      "fra.2"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "fra.2",
+          "espnSport": "soccer"
+        }
+      }
+    ]
+  },
+
+  "__NCAA_SPORTS__": "===========================================",
+
   "ncaaf": {
     "name": "NCAA Football",
     "aliases": [
@@ -237,39 +507,6 @@
         "espn": {
           "espnSlug": "college-football",
           "espnSport": "football"
-        }
-      }
-    ]
-  },
-  "ncaah": {
-    "name": "NCAA Ice Hockey",
-    "aliases": [
-      "college ice hockey",
-      "mens college ice hockey"
-    ],
-    "fallbackLeague": "ncaaf",
-    "logoUrl": "https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/icehockey.png",
-    "providers": [
-      {
-        "espn": {
-          "espnSlug": "mens-college-hockey",
-          "espnSport": "hockey"
-        }
-      }
-    ]
-  },
-  "ncaawh": {
-    "name": "NCAA Women's Ice Hockey",
-    "aliases": [
-      "womens college ice hockey"
-    ],
-    "fallbackLeague": "ncaah",
-    "logoUrl": "https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/icehockey.png",
-    "providers": [
-      {
-        "espn": {
-          "espnSlug": "womens-college-hockey",
-          "espnSport": "hockey"
         }
       }
     ]
@@ -310,39 +547,6 @@
       }
     ]
   },
-  "ncaas": {
-    "name": "NCAA Soccer",
-    "aliases": [
-      "college soccer",
-      "mens college soccer"
-    ],
-    "fallbackLeague": "ncaaf",
-    "logoUrl": "https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/soccer.png",
-    "providers": [
-      {
-        "espn": {
-          "espnSlug": "usa.ncaa.m.1",
-          "espnSport": "soccer"
-        }
-      }
-    ]
-  },
-  "ncaaws": {
-    "name": "NCAA Women's Soccer",
-    "aliases": [
-      "womens college soccer"
-    ],
-    "fallbackLeague": "ncaas",
-    "logoUrl": "https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/soccer.png",
-    "providers": [
-      {
-        "espn": {
-          "espnSlug": "usa.ncaa.w.1",
-          "espnSport": "soccer"
-        }
-      }
-    ]
-  },
   "ncaabb": {
     "name": "NCAA Baseball",
     "aliases": [
@@ -373,6 +577,72 @@
         "espn": {
           "espnSlug": "college-softball",
           "espnSport": "baseball"
+        }
+      }
+    ]
+  },
+  "ncaah": {
+    "name": "NCAA Ice Hockey",
+    "aliases": [
+      "college ice hockey",
+      "mens college ice hockey"
+    ],
+    "fallbackLeague": "ncaaf",
+    "logoUrl": "https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/icehockey.png",
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "mens-college-hockey",
+          "espnSport": "hockey"
+        }
+      }
+    ]
+  },
+  "ncaawh": {
+    "name": "NCAA Women's Ice Hockey",
+    "aliases": [
+      "womens college ice hockey"
+    ],
+    "fallbackLeague": "ncaah",
+    "logoUrl": "https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/icehockey.png",
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "womens-college-hockey",
+          "espnSport": "hockey"
+        }
+      }
+    ]
+  },
+  "ncaas": {
+    "name": "NCAA Soccer",
+    "aliases": [
+      "college soccer",
+      "mens college soccer"
+    ],
+    "fallbackLeague": "ncaaf",
+    "logoUrl": "https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/soccer.png",
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "usa.ncaa.m.1",
+          "espnSport": "soccer"
+        }
+      }
+    ]
+  },
+  "ncaaws": {
+    "name": "NCAA Women's Soccer",
+    "aliases": [
+      "womens college soccer"
+    ],
+    "fallbackLeague": "ncaas",
+    "logoUrl": "https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/soccer.png",
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "usa.ncaa.w.1",
+          "espnSport": "soccer"
         }
       }
     ]
@@ -500,6 +770,9 @@
       }
     ]
   },
+
+  "__MINOR_REGIONAL_LEAGUES__": "===========================================",
+
   "ohl": {
     "name": "Ontario Hockey League",
     "aliases": [

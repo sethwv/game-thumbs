@@ -42,6 +42,28 @@ The system checks for matches in this order (highest to lowest priority):
 /mls/losangelesfc/lafc/thumb       ✓ Expanded location variations
 ```
 
+### League Hierarchies with Feeder Leagues
+
+Many leagues are configured with feeder leagues that are automatically searched when a team isn't found in the primary league. This is especially useful for:
+
+**Promotion/Relegation Systems (Soccer):**
+- **English Premier League** → EFL Championship → EFL League One → EFL League Two
+- **La Liga** → Segunda División
+- **Bundesliga** → 2. Bundesliga
+- **Serie A** → Serie B
+- **Ligue 1** → Ligue 2
+
+**International Competitions:**
+- **FIFA World Cup** → All World Cup Qualifiers (UEFA, CONMEBOL, CONCACAF, AFC, CAF, OFC)
+
+When you request a team that exists in a feeder league (e.g., a Championship team), the API will automatically find it even when using the top-tier league code. This works seamlessly for promoted/relegated teams.
+
+**Example:**
+```
+GET /epl/leeds/burnley/thumb
+```
+Even if Leeds United is currently in the Championship, the API will find it by searching through EPL's feeder leagues.
+
 ### NCAA Women's Sports Fallback
 
 Women's NCAA sports automatically fall back to men's teams when a team is not found:
@@ -396,3 +418,24 @@ docker logs <container-id>
   ```bash
   docker restart <container-id>
   ```
+
+### Understanding "Team Not Found" Errors
+
+When a team isn't found, the error message includes **all available teams** from:
+- The primary league
+- All configured feeder leagues (if any)
+- The fallback league (if configured)
+
+**Example for EPL:**
+```json
+{
+  "error": "Team not found: 'invalid-team' in EPL. Available teams: Arsenal, Aston Villa, ..., [Championship teams], [League One teams], [League Two teams]"
+}
+```
+
+This comprehensive list helps you identify:
+- The correct team name to use
+- Whether the team exists in a feeder league
+- All teams that can be matched for that league endpoint
+
+**For leagues with feeder leagues** (EPL, La Liga, Bundesliga, etc.), the list includes teams from lower divisions, making it easier to find promoted/relegated teams.

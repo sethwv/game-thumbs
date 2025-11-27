@@ -120,6 +120,7 @@ docker run -p 3000:3000 \
     "aliases": ["alias1", "alias2"],
     "providerId": "espn",
     "logoUrl": "https://...",
+    "feederLeagues": ["league1", "league2"],
     "fallbackLeague": "otherleague",
     "espnConfig": {
       "espnSport": "sport",
@@ -145,7 +146,8 @@ docker run -p 3000:3000 \
 |-------|------|-------------|
 | `aliases` | array | Alternative names for league matching |
 | `logoUrl` | string | Custom league logo URL (overrides ESPN) |
-| `fallbackLeague` | string | League to fall back to when team not found |
+| `feederLeagues` | array | Array of league keys to try when team not found (in order) |
+| `fallbackLeague` | string | Legacy fallback league (prefer `feederLeagues` for new configurations) |
 
 #### Example: Adding a New League
 
@@ -180,6 +182,66 @@ docker run -p 3000:3000 \
   }
 }
 ```
+
+#### Example: League Hierarchy with Feeder Leagues
+
+```json
+{
+  "epl": {
+    "name": "English Premier League",
+    "shortName": "EPL",
+    "aliases": ["premier league", "premier"],
+    "providerId": "espn",
+    "feederLeagues": ["championship", "league-one", "league-two"],
+    "espnConfig": {
+      "espnSport": "soccer",
+      "espnSlug": "eng.1"
+    }
+  },
+  "championship": {
+    "name": "EFL Championship",
+    "shortName": "Championship",
+    "aliases": ["efl championship"],
+    "providerId": "espn",
+    "espnConfig": {
+      "espnSport": "soccer",
+      "espnSlug": "eng.2"
+    }
+  },
+  "league-one": {
+    "name": "EFL League One",
+    "shortName": "League One",
+    "providerId": "espn",
+    "espnConfig": {
+      "espnSport": "soccer",
+      "espnSlug": "eng.3"
+    }
+  },
+  "league-two": {
+    "name": "EFL League Two",
+    "shortName": "League Two",
+    "providerId": "espn",
+    "espnConfig": {
+      "espnSport": "soccer",
+      "espnSlug": "eng.4"
+    }
+  }
+}
+```
+
+**How Feeder Leagues Work:**
+
+When a team is not found in the main league (e.g., EPL), the system automatically searches through the feeder leagues in order:
+1. First tries `championship` (EFL Championship)
+2. If not found, tries `league-one` (EFL League One)
+3. If not found, tries `league-two` (EFL League Two)
+
+This is useful for:
+- **Promotion/Relegation Systems** (soccer leagues)
+- **Minor League Systems** (baseball farm systems)
+- **Development Leagues** (G League for NBA, AHL for NHL)
+
+**Note:** Feeder leagues must reference existing league keys defined elsewhere in the configuration.
 
 #### Finding ESPN Slugs
 
