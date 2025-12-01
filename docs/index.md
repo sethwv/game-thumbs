@@ -77,13 +77,19 @@ GET http://localhost:3000/mls/lafc/raw
 
 | Type | Endpoint | Dimensions |
 |------|----------|------------|
-| Thumbnail | `/:league/:team1/:team2/thumb` | 1440x1080 |
-| Cover | `/:league/:team1/:team2/cover` | 1080x1440 |
-| Logo | `/:league/:team1/:team2/logo` | 1024x1024 |
-| Team Logo | `/:league/:team/teamlogo` | Original |
-| League Logo | `/:league/leaguelogo` | Original |
-| League Thumb | `/:league/leaguethumb` | 1440x1080 |
+| **Unified Endpoints** | | |
+| Thumbnail | `/:league/thumb` | 1440x1080 |
+| | `/:league/:team1/thumb` | 1440x1080 |
+| | `/:league/:team1/:team2/thumb` | 1440x1080 |
+| Cover | `/:league/cover` | 1080x1440 |
+| | `/:league/:team1/cover` | 1080x1440 |
+| | `/:league/:team1/:team2/cover` | 1080x1440 |
+| Logo | `/:league/logo` | Original |
+| | `/:league/:team1/logo` | Original |
+| | `/:league/:team1/:team2/logo` | 1024x1024 |
+| **Other** | | |
 | Raw Data | `/:league/:team/raw` | JSON |
+| NCAA Shorthand | `/ncaa/:sport/:type` | Varies |
 
 See the [API Reference](api-reference.html) for complete documentation.
 

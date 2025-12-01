@@ -1,42 +1,30 @@
 // ------------------------------------------------------------------------------
 // logo.js
-// Route to generate game logo images
+// Unified route to generate logo images
+// - League logo: /:league/logo
+// - Team logo: /:league/:team/logo
+// - Matchup logo: /:league/:team1/:team2/logo
 // ------------------------------------------------------------------------------
 
 const providerManager = require('../providers/ProviderManager');
 const { generateLogo } = require('../helpers/logoGenerator');
+const { downloadImage } = require('../helpers/imageUtils');
 const { findLeague } = require('../leagues');
 const logger = require('../helpers/logger');
 
-
 module.exports = {
     paths: [
+        "/:league/logo",
+        "/:league/logo.png",
+        "/:league/:team1/logo",
+        "/:league/:team1/logo.png",
         "/:league/:team1/:team2/logo",
         "/:league/:team1/:team2/logo.png"
     ],
     method: "get",
     handler: async (req, res) => {
         const { league, team1, team2 } = req.params;
-        const { size, logo, style, useLight, trim, fallback } = req.query;
-
-        const styleValue = parseInt(style) || 1;
-        // Styles 5 and 6 require the league logo
-        const requiresLeagueLogo = styleValue === 5 || styleValue === 6;
-        
-        const logoOptions = {
-            width: 1024,
-            height: 1024,
-            style: styleValue,
-            league: (logo === 'true' || requiresLeagueLogo) ? league : null,
-            useLight: useLight === 'true',
-            trim: trim !== 'false'
-        };
-        const validSizes = [256, 512, 1024, 2048];
-        const sizeValue = parseInt(size);
-        if (validSizes.includes(sizeValue)) {
-            logoOptions.width = sizeValue;
-            logoOptions.height = sizeValue;
-        }
+        const { size, logo, style, useLight, trim, fallback, variant } = req.query;
 
         try {
             const leagueObj = findLeague(league);
@@ -49,59 +37,140 @@ module.exports = {
                 return res.status(400).json({ error: `Unsupported league: ${league}` });
             }
 
-            let resolvedTeam1, resolvedTeam2;
-            try {
-                resolvedTeam1 = await providerManager.resolveTeam(leagueObj, team1);
-                resolvedTeam2 = await providerManager.resolveTeam(leagueObj, team2);
-            } catch (teamError) {
-                // If fallback is enabled and team lookup fails, return raw league logo instead
-                if (fallback === 'true' && teamError.name === 'TeamNotFoundError') {
-                    const { downloadImage } = require('../helpers/imageUtils');
-                    const darkLogoPreferred = useLight !== 'true';
-                    const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj, darkLogoPreferred);
+            let logoBuffer;
+
+            // Case 1: League logo (/:league/logo)
+            if (!team1 && !team2) {
+                // Determine which logo variant to fetch
+                const darkLogoPreferred = variant === 'dark';
+                
+                // Validate variant parameter if provided
+                if (variant && variant !== 'light' && variant !== 'dark') {
+                    return res.status(400).json({ 
+                        error: `Invalid variant: ${variant}. Use 'light' or 'dark'` 
+                    });
+                }
+
+                // Get league logo URL
+                const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj, darkLogoPreferred);
+
+                if (!leagueLogoUrl) {
+                    return res.status(404).json({ error: 'League logo not found' });
+                }
+
+                // Download the image
+                logoBuffer = await downloadImage(leagueLogoUrl);
+            }
+            // Case 2: Single team logo (/:league/:team1/logo)
+            else if (team1 && !team2) {
+                const teamIdentifier = team1;
+                
+                try {
+                    const resolvedTeam = await providerManager.resolveTeam(leagueObj, teamIdentifier);
                     
-                    const fallbackBuffer = await downloadImage(leagueLogoUrl);
-                    
-                    res.set('Content-Type', 'image/png');
-                    res.send(fallbackBuffer);
-                    
-                    try {
-                        require('../helpers/imageCache').addToCache(req, res, fallbackBuffer);
-                    } catch (cacheError) {
-                        logger.error('Failed to cache image', {
-                            Error: cacheError.message,
-                            URL: req.url
+                    // Determine which logo URL to use based on variant parameter
+                    let logoUrl;
+                    if (variant === 'dark' && resolvedTeam.logoAlt) {
+                        logoUrl = resolvedTeam.logoAlt;
+                    } else if (variant === 'light' || !variant) {
+                        logoUrl = resolvedTeam.logo;
+                    } else {
+                        // If variant specified but not 'dark' or 'light', return error
+                        return res.status(400).json({ 
+                            error: `Invalid variant: ${variant}. Use 'light' or 'dark'` 
                         });
                     }
-                    return;
-                }
-                // If fallback is disabled or it's a different error, rethrow
-                throw teamError;
-            }
 
-            // Get league logo URL if needed
-            let leagueInfo = null;
-            if (logoOptions.league) {
-                // For styles 5 and 6, fetch both default and dark logos for contrast checking
-                const requiresLeagueLogo = logoOptions.style === 5 || logoOptions.style === 6;
-                if (requiresLeagueLogo) {
-                    // For white background: default logo is primary (colored, for light bg), dark logo is alternate (light colored, for dark bg)
-                    const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj, false); // default (primary - works on light backgrounds)
-                    const leagueLogoUrlAlt = await providerManager.getLeagueLogoUrl(leagueObj, true); // dark (alternate - works on dark backgrounds)
-                    leagueInfo = { 
-                        logoUrl: leagueLogoUrl,
-                        logoUrlAlt: leagueLogoUrlAlt !== leagueLogoUrl ? leagueLogoUrlAlt : null
-                    };
-                } else {
-                    const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj);
-                    leagueInfo = { logoUrl: leagueLogoUrl };
+                    if (!logoUrl) {
+                        return res.status(404).json({ error: 'Logo not found for team' });
+                    }
+
+                    // Download and return the team logo
+                    logoBuffer = await downloadImage(logoUrl);
+                } catch (teamError) {
+                    // If fallback is enabled and team lookup fails, return league logo instead
+                    if (fallback === 'true' && teamError.name === 'TeamNotFoundError') {
+                        const darkLogoPreferred = variant === 'dark';
+                        const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj, darkLogoPreferred);
+                        
+                        logoBuffer = await downloadImage(leagueLogoUrl);
+                    } else {
+                        throw teamError;
+                    }
                 }
             }
+            // Case 3: Matchup logo (/:league/:team1/:team2/logo)
+            else {
+                const styleValue = parseInt(style) || 1;
+                // Styles 5 and 6 require the league logo
+                const requiresLeagueLogo = styleValue === 5 || styleValue === 6;
+                
+                const logoOptions = {
+                    width: 1024,
+                    height: 1024,
+                    style: styleValue,
+                    league: (logo === 'true' || requiresLeagueLogo) ? league : null,
+                    useLight: useLight === 'true',
+                    trim: trim !== 'false'
+                };
+                const validSizes = [256, 512, 1024, 2048];
+                const sizeValue = parseInt(size);
+                if (validSizes.includes(sizeValue)) {
+                    logoOptions.width = sizeValue;
+                    logoOptions.height = sizeValue;
+                }
 
-            const logoBuffer = await generateLogo(resolvedTeam1, resolvedTeam2, {
-                ...logoOptions,
-                league: leagueInfo
-            });
+                let resolvedTeam1, resolvedTeam2;
+                try {
+                    resolvedTeam1 = await providerManager.resolveTeam(leagueObj, team1);
+                    resolvedTeam2 = await providerManager.resolveTeam(leagueObj, team2);
+                } catch (teamError) {
+                    // If fallback is enabled and team lookup fails, return raw league logo instead
+                    if (fallback === 'true' && teamError.name === 'TeamNotFoundError') {
+                        const darkLogoPreferred = useLight !== 'true';
+                        const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj, darkLogoPreferred);
+                        
+                        logoBuffer = await downloadImage(leagueLogoUrl);
+                        
+                        res.set('Content-Type', 'image/png');
+                        res.send(logoBuffer);
+                        
+                        try {
+                            require('../helpers/imageCache').addToCache(req, res, logoBuffer);
+                        } catch (cacheError) {
+                            logger.error('Failed to cache image', {
+                                Error: cacheError.message,
+                                URL: req.url
+                            });
+                        }
+                        return;
+                    }
+                    throw teamError;
+                }
+
+                // Get league logo URL if needed
+                let leagueInfo = null;
+                if (logoOptions.league) {
+                    // For styles 5 and 6, fetch both default and dark logos for contrast checking
+                    if (requiresLeagueLogo) {
+                        // For white background: default logo is primary (colored, for light bg), dark logo is alternate (light colored, for dark bg)
+                        const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj, false); // default (primary - works on light backgrounds)
+                        const leagueLogoUrlAlt = await providerManager.getLeagueLogoUrl(leagueObj, true); // dark (alternate - works on dark backgrounds)
+                        leagueInfo = { 
+                            logoUrl: leagueLogoUrl,
+                            logoUrlAlt: leagueLogoUrlAlt !== leagueLogoUrl ? leagueLogoUrlAlt : null
+                        };
+                    } else {
+                        const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj);
+                        leagueInfo = { logoUrl: leagueLogoUrl };
+                    }
+                }
+
+                logoBuffer = await generateLogo(resolvedTeam1, resolvedTeam2, {
+                    ...logoOptions,
+                    league: leagueInfo
+                });
+            }
 
             // Send successful response
             res.set('Content-Type', 'image/png');
@@ -120,10 +189,15 @@ module.exports = {
             const errorDetails = {
                 Error: error.message,
                 League: league,
-                Teams: `${team1} vs ${team2}`,
                 URL: req.url,
                 IP: req.ip
             };
+
+            if (team1 && team2) {
+                errorDetails.Teams = `${team1} vs ${team2}`;
+            } else if (team1) {
+                errorDetails.Team = team1;
+            }
 
             // For TeamNotFoundError, use a cleaner console message
             if (error.name === 'TeamNotFoundError') {

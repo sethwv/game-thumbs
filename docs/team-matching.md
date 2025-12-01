@@ -40,6 +40,8 @@ The system checks for matches in this order (highest to lowest priority):
 /nfl/chiefs/49ers/thumb            ✓ Mixed formats
 /ncaaf/alabama/georgia/thumb       ✓ Works with NCAA too
 /mls/losangelesfc/lafc/thumb       ✓ Expanded location variations
+/liga/atletico%20madrid/real/thumb ✓ Accents optional (Atlético works too)
+/ligue1/psg/monaco/thumb           ✓ Montréal or Montreal both work
 ```
 
 ### League Hierarchies with Feeder Leagues

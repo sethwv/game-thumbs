@@ -1,23 +1,31 @@
 // ------------------------------------------------------------------------------
 // thumb.js
-// Route to generate game thumbnail images
+// Unified route to generate thumbnail images
+// - League thumbnail: /:league/thumb
+// - Team thumbnail: /:league/:team/thumb
+// - Matchup thumbnail: /:league/:team1/:team2/thumb
 // Thumb size is 1440W x 1080H by default
 // ------------------------------------------------------------------------------
 
 const providerManager = require('../providers/ProviderManager');
 const { generateThumbnail } = require('../helpers/thumbnailGenerator');
+const { generateLeagueThumb, generateTeamThumb } = require('../helpers/genericImageGenerator');
 const { findLeague } = require('../leagues');
 const logger = require('../helpers/logger');
 
 module.exports = {
     paths: [
+        "/:league/thumb",
+        "/:league/thumb.png",
+        "/:league/:team1/thumb",
+        "/:league/:team1/thumb.png",
         "/:league/:team1/:team2/thumb",
         "/:league/:team1/:team2/thumb.png"
     ],
     method: "get",
     handler: async (req, res) => {
         const { league, team1, team2 } = req.params;
-        const { logo, style, fallback, aspect } = req.query;
+        const { logo, style, fallback, aspect, variant } = req.query;
 
         // Determine dimensions based on aspect ratio
         let width, height;
@@ -28,13 +36,6 @@ module.exports = {
             width = 1440;
             height = 1080;
         }
-
-        const thumbnailOptions = {
-            width,
-            height,
-            style: parseInt(style) || 1,
-            league: logo === 'false' ? null : league
-        };
 
         try {
             const leagueObj = findLeague(league);
@@ -47,59 +48,125 @@ module.exports = {
                 return res.status(400).json({ error: `Unsupported league: ${league}` });
             }
 
-            let resolvedTeam1, resolvedTeam2;
-            try {
-                resolvedTeam1 = await providerManager.resolveTeam(leagueObj, team1);
-                resolvedTeam2 = await providerManager.resolveTeam(leagueObj, team2);
-            } catch (teamError) {
-                // If fallback is enabled and team lookup fails, generate league thumbnail instead
-                if (fallback === 'true' && teamError.name === 'TeamNotFoundError') {
-                    const { generateLeagueThumb } = require('../helpers/leagueImageGenerator');
-                    const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj, false);
-                    const leagueLogoUrlAlt = await providerManager.getLeagueLogoUrl(leagueObj, true);
-                    
-                    const fallbackBuffer = await generateLeagueThumb(leagueLogoUrl, {
-                        width,
-                        height,
-                        leagueLogoUrlAlt: leagueLogoUrlAlt
-                    });
-                    
-                    res.set('Content-Type', 'image/png');
-                    res.send(fallbackBuffer);
-                    
-                    try {
-                        require('../helpers/imageCache').addToCache(req, res, fallbackBuffer);
-                    } catch (cacheError) {
-                        logger.error('Failed to cache image', {
-                            Error: cacheError.message,
-                            URL: req.url
-                        });
-                    }
-                    return;
+            let buffer;
+
+            // Case 1: League thumbnail (/:league/thumb)
+            if (!team1 && !team2) {
+                const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj, false);
+                const leagueLogoUrlAlt = await providerManager.getLeagueLogoUrl(leagueObj, true);
+                
+                if (!leagueLogoUrl) {
+                    return res.status(404).json({ error: 'League logo not found' });
                 }
-                // If fallback is disabled or it's a different error, rethrow
-                throw teamError;
+                
+                buffer = await generateLeagueThumb(leagueLogoUrl, {
+                    width,
+                    height,
+                    leagueLogoUrlAlt: leagueLogoUrlAlt
+                });
             }
-
-            // Get league logo URL if needed
-            let leagueInfo = null;
-            if (thumbnailOptions.league) {
-                const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj);
-                leagueInfo = { logoUrl: leagueLogoUrl };
+            // Case 2: Single team thumbnail (/:league/:team1/thumb)
+            else if (team1 && !team2) {
+                const teamIdentifier = team1;
+                
+                try {
+                    const resolvedTeam = await providerManager.resolveTeam(leagueObj, teamIdentifier);
+                    
+                    if (!resolvedTeam.logo && !resolvedTeam.logoAlt) {
+                        return res.status(404).json({ error: 'Team logo not found' });
+                    }
+                    
+                    // Prefer logoAlt (dark variant) for dark gradient backgrounds
+                    const primaryLogo = resolvedTeam.logoAlt || resolvedTeam.logo;
+                    const altLogo = resolvedTeam.logo;
+                    
+                    buffer = await generateTeamThumb(
+                        primaryLogo,
+                        resolvedTeam.color || '#1a1d2e',
+                        resolvedTeam.alternateColor || '#0f1419',
+                        {
+                            width,
+                            height,
+                            teamLogoUrlAlt: altLogo
+                        }
+                    );
+                } catch (teamError) {
+                    // If fallback is enabled and team lookup fails, generate league thumbnail instead
+                    if (fallback === 'true' && teamError.name === 'TeamNotFoundError') {
+                        const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj, false);
+                        const leagueLogoUrlAlt = await providerManager.getLeagueLogoUrl(leagueObj, true);
+                        
+                        buffer = await generateLeagueThumb(leagueLogoUrl, {
+                            width,
+                            height,
+                            leagueLogoUrlAlt: leagueLogoUrlAlt
+                        });
+                    } else {
+                        throw teamError;
+                    }
+                }
             }
+            // Case 3: Matchup thumbnail (/:league/:team1/:team2/thumb)
+            else {
+                const thumbnailOptions = {
+                    width,
+                    height,
+                    style: parseInt(style) || 1,
+                    league: logo === 'false' ? null : league
+                };
 
-            const thumbnailBuffer = await generateThumbnail(resolvedTeam1, resolvedTeam2, {
-                ...thumbnailOptions,
-                league: leagueInfo
-            });
+                let resolvedTeam1, resolvedTeam2;
+                try {
+                    resolvedTeam1 = await providerManager.resolveTeam(leagueObj, team1);
+                    resolvedTeam2 = await providerManager.resolveTeam(leagueObj, team2);
+                } catch (teamError) {
+                    // If fallback is enabled and team lookup fails, generate league thumbnail instead
+                    if (fallback === 'true' && teamError.name === 'TeamNotFoundError') {
+                        const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj, false);
+                        const leagueLogoUrlAlt = await providerManager.getLeagueLogoUrl(leagueObj, true);
+                        
+                        buffer = await generateLeagueThumb(leagueLogoUrl, {
+                            width,
+                            height,
+                            leagueLogoUrlAlt: leagueLogoUrlAlt
+                        });
+                        
+                        res.set('Content-Type', 'image/png');
+                        res.send(buffer);
+                        
+                        try {
+                            require('../helpers/imageCache').addToCache(req, res, buffer);
+                        } catch (cacheError) {
+                            logger.error('Failed to cache image', {
+                                Error: cacheError.message,
+                                URL: req.url
+                            });
+                        }
+                        return;
+                    }
+                    throw teamError;
+                }
+
+                // Get league logo URL if needed
+                let leagueInfo = null;
+                if (thumbnailOptions.league) {
+                    const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj);
+                    leagueInfo = { logoUrl: leagueLogoUrl };
+                }
+
+                buffer = await generateThumbnail(resolvedTeam1, resolvedTeam2, {
+                    ...thumbnailOptions,
+                    league: leagueInfo
+                });
+            }
             
             // Send successful response
             res.set('Content-Type', 'image/png');
-            res.send(thumbnailBuffer);
+            res.send(buffer);
             
             // Cache successful result (don't let caching errors affect the response)
             try {
-                require('../helpers/imageCache').addToCache(req, res, thumbnailBuffer);
+                require('../helpers/imageCache').addToCache(req, res, buffer);
             } catch (cacheError) {
                 logger.error('Failed to cache image', {
                     Error: cacheError.message,
@@ -110,10 +177,15 @@ module.exports = {
             const errorDetails = {
                 Error: error.message,
                 League: league,
-                Teams: `${team1} vs ${team2}`,
                 URL: req.url,
                 IP: req.ip
             };
+
+            if (team1 && team2) {
+                errorDetails.Teams = `${team1} vs ${team2}`;
+            } else if (team1) {
+                errorDetails.Team = team1;
+            }
 
             // For TeamNotFoundError, use a cleaner console message
             if (error.name === 'TeamNotFoundError') {

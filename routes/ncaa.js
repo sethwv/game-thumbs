@@ -9,6 +9,7 @@ const { findLeague } = require('../leagues');
 const logger = require('../helpers/logger');
 
 module.exports = {
+    priority: 1,
     paths: [
         "/ncaa/:sport/:team1/:team2/:type",
         "/ncaa/:sport/:team1/:type",
