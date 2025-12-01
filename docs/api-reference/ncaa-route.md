@@ -18,7 +18,7 @@ A convenience endpoint for NCAA sports that uses sport names instead of league c
 - `sport` - NCAA sport identifier (e.g., `football`, `basketball`, `womens-basketball`)
 - `team1` - First team (name, city, or abbreviation) *(optional for `leaguelogo`)*
 - `team2` - Second team (name, city, or abbreviation) *(only required for matchup types)*
-- `type` - Image type: `thumb`, `cover`, `logo`, `teamlogo`, or `leaguelogo`
+- `type` - Image type: `thumb`, `cover`, `logo`, `teamlogo`, `leaguelogo`, or `raw`
 
 ---
 
@@ -47,11 +47,35 @@ A convenience endpoint for NCAA sports that uses sport names instead of league c
 
 ## Examples
 
+### Matchup Images
+
 ```
 GET /ncaa/football/alabama/georgia/thumb
 GET /ncaa/basketball/duke/unc/cover
 GET /ncaa/womens-basketball/uconn/south-carolina/thumb?style=2
 GET /ncaa/softball/oklahoma/alabama/cover
-GET /ncaa/football/alabama/teamlogo
-GET /ncaa/basketball/leaguelogo
 ```
+
+### Single Team Images
+
+```
+GET /ncaa/football/alabama/teamlogo
+GET /ncaa/basketball/duke/logo
+```
+
+### League Images
+
+```
+GET /ncaa/basketball/leaguelogo
+GET /ncaa/football/leaguethumb
+```
+
+### Raw Data
+
+```
+GET /ncaa/football/alabama/raw
+GET /ncaa/basketball/duke/raw
+GET /ncaa/womens-basketball/uconn/raw
+```
+
+Returns the raw team data in JSON format.

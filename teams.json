@@ -14,5 +14,15 @@
       "aliases": ["notts forest", "forest", "nffc", "nottingham forest"],
       "override": {}
     }
+  },
+  "ncaaf": {
+    "app-state-mountaineers": {
+      "aliases": ["app state", "appalachian state", "appalachian st"],
+      "override": {}
+    },
+    "indianapolis-greyhounds": {
+      "aliases": ["indianapolis", "uindy", "university of indianapolis"],
+      "override": {}
+    }
   }
 }

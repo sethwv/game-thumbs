@@ -507,6 +507,10 @@
         "espn": {
           "espnSlug": "college-football",
           "espnSport": "football"
+        },
+        "theSportsDB": {
+          "leagueId": "4479",
+          "leagueName": "NCAA Division 1"
         }
       }
     ]
