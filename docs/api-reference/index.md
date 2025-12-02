@@ -43,14 +43,10 @@ Complete documentation for all API endpoints.
 
 Browse detailed documentation for each endpoint:
 
+- [Logo Endpoint](/logo.html) - League, team, and matchup logos
+- [Thumbnail Endpoint](/thumb.html) - League, team, and matchup thumbnails
+- [Cover Endpoint](/cover.html) - League, team, and matchup covers
 - [NCAA Shorthand](/ncaa-route.html) - Convenience route for NCAA sports
-- [Matchup Thumbnail](/matchup-thumb.html) - Landscape matchup images
-- [Matchup Cover](/matchup-cover.html) - Portrait matchup images
-- [Matchup Logo](/matchup-logo.html) - Transparent matchup logos
-- [Team Logo](/team-logo.html) - Raw team logos
-- [League Logo](/league-logo.html) - Raw league logos
-- [League Thumbnail](/league-thumb.html) - League landscape images
-- [League Cover](/league-cover.html) - League portrait images
 - [Raw Team Data](/raw-data.html) - JSON team data
 - [Server Info](/server-info.html) - Server version info
 - [XC API Proxy](/xc-proxy.html) - Proxy XC API with EPG logo replacement (Dev only)
