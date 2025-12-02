@@ -25,40 +25,53 @@ jobs:
 
       - name: Rebase dev onto main
         run: |
-          echo "::group::Fetching branches"
           git fetch origin main
           git fetch origin dev
-          echo "::endgroup::"
-          
-          echo "::group::Checking out dev branch"
           git checkout dev
-          echo "::endgroup::"
           
-          echo "::group::Rebasing dev onto main"
           # Attempt rebase with auto-resolution strategy
           if ! git rebase origin/main; then
-            echo "::warning::Rebase conflict detected, attempting to resolve automatically..."
+            echo "⚠️ Rebase conflict detected, attempting to resolve automatically..."
             
             # For workflow files, prefer the version from dev
             if [ -f .github/workflows/rebase-dev.yml ]; then
-              echo "::notice::Resolving conflict in rebase-dev.yml (keeping dev version)"
+              echo "📝 Resolving conflict in rebase-dev.yml (keeping dev version)"
               git checkout --ours .github/workflows/rebase-dev.yml
               git add .github/workflows/rebase-dev.yml
             fi
             
             # Try to continue the rebase
             if ! git rebase --continue; then
-              echo "::error::Automatic conflict resolution failed. Aborting rebase."
+              echo "❌ Automatic conflict resolution failed. Aborting rebase."
               git rebase --abort
               exit 1
             fi
             
-            echo "::notice::Successfully resolved conflicts and completed rebase"
+            echo "✅ Successfully resolved conflicts and completed rebase"
           else
-            echo "::notice::Rebase completed without conflicts"
+            echo "✅ Rebase completed without conflicts"
           fi
-          echo "::endgroup::"
 
       - name: Force push rebased dev branch
         run: |
           git push origin dev --force-with-lease
+
+      - name: Create summary
+        if: always()
+        run: |
+          echo "## 🔄 Dev Branch Rebase Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** \`dev\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Base:** \`main\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ ${{ job.status }} == 'success' ]; then
+            echo "✅ **Status:** Successfully rebased and force-pushed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Latest Commits on Dev" >> $GITHUB_STEP_SUMMARY
+            git log --oneline -5 >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Status:** Rebase failed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Check the logs above for conflict details." >> $GITHUB_STEP_SUMMARY
+          fi
