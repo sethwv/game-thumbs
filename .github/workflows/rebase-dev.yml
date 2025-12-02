@@ -25,10 +25,39 @@ jobs:
 
       - name: Rebase dev onto main
         run: |
+          echo "::group::Fetching branches"
           git fetch origin main
           git fetch origin dev
+          echo "::endgroup::"
+          
+          echo "::group::Checking out dev branch"
           git checkout dev
-          git rebase origin/main
+          echo "::endgroup::"
+          
+          echo "::group::Rebasing dev onto main"
+          # Attempt rebase with auto-resolution strategy
+          if ! git rebase origin/main; then
+            echo "::warning::Rebase conflict detected, attempting to resolve automatically..."
+            
+            # For workflow files, prefer the version from dev
+            if [ -f .github/workflows/rebase-dev.yml ]; then
+              echo "::notice::Resolving conflict in rebase-dev.yml (keeping dev version)"
+              git checkout --ours .github/workflows/rebase-dev.yml
+              git add .github/workflows/rebase-dev.yml
+            fi
+            
+            # Try to continue the rebase
+            if ! git rebase --continue; then
+              echo "::error::Automatic conflict resolution failed. Aborting rebase."
+              git rebase --abort
+              exit 1
+            fi
+            
+            echo "::notice::Successfully resolved conflicts and completed rebase"
+          else
+            echo "::notice::Rebase completed without conflicts"
+          fi
+          echo "::endgroup::"
 
       - name: Force push rebased dev branch
         run: |
