@@ -27,6 +27,15 @@ RUN yarn install --frozen-lockfile
 # Copy application code
 COPY . .
 
+# Create internal backups for backward compatibility with old mounting approach
+# If users mount teams.json or leagues.json directly, we can still merge with internal data
+RUN cp teams.json teams-internal.json && \
+    cp leagues.json leagues-internal.json
+
+# Create directories for additional JSON configuration files
+# Users can mount volumes with custom teams/leagues here for additive merging (recommended)
+RUN mkdir -p json/teams json/leagues
+
 # Create cache directory
 RUN mkdir -p .cache
 

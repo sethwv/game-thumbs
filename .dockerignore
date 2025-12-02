@@ -4,6 +4,12 @@ node_modules
 # Cache directory (will be created in container)
 .cache
 
+# Custom JSON configuration directories (will be created/mounted in container)
+json/
+
+# Internal JSON backups (created during Docker build)
+*-internal.json
+
 # Development files
 # .git
 # .gitignore
