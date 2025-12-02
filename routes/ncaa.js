@@ -9,6 +9,7 @@ const { findLeague } = require('../leagues');
 const logger = require('../helpers/logger');
 
 module.exports = {
+    priority: 1,
     paths: [
         "/ncaa/:sport/:team1/:team2/:type",
         "/ncaa/:sport/:team1/:type",
@@ -82,6 +83,8 @@ module.exports = {
             case 'leaguecover':
             case 'leaguecover.png':
                 return require('./leaguecover').handler(req, res);
+            case 'raw':
+                return require('./raw').handler(req, res);
             default:
                 logger.warn('Unsupported NCAA endpoint type', {
                     Type: type,

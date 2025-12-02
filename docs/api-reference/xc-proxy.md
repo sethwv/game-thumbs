@@ -15,6 +15,9 @@ nav_order: 11
 
 The XC API Proxy wraps an Xtream Codes (XC) API and automatically replaces channel logos with logos from the EPG/XML guide in both M3U playlists and JSON API responses.
 
+{: .note }
+**Support Notice**: Minimal support will be given for this feature. Feel free to request specific features and submit PRs.
+
 ---
 
 ## Security Considerations

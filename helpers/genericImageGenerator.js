@@ -1,5 +1,5 @@
 // ------------------------------------------------------------------------------
-// leagueImageGenerator.js
+// genericImageGenerator.js
 // This helper generates league and team-themed images with gradient backgrounds
 // ------------------------------------------------------------------------------
 

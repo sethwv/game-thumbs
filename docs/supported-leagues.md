@@ -17,27 +17,40 @@ nav_order: 4
 
 ## Professional Leagues
 
-| League Name | Code | Provider |
-|-------------|------|----------|
-| National Basketball Association | `nba` | ESPN |
-| Women's National Basketball Association | `wnba` | ESPN |
-| National Football League | `nfl` | ESPN |
-| United Football League | `ufl` | ESPN |
-| Major League Baseball | `mlb` | ESPN |
-| National Hockey League | `nhl` | ESPN |
-| National Lacrosse League | `nll` | ESPN |
-| Ontario Hockey League | `ohl` | TheSportsDB |
-| American Hockey League | `ahl` | TheSportsDB |
-| English Premier League | `epl` | TheSportsDB / ESPN |
-| La Liga (Spain) | `laliga` | ESPN |
-| Bundesliga (Germany) | `bundesliga` | ESPN |
-| Serie A (Italy) | `seriea` | ESPN |
-| Ligue 1 (France) | `ligue1` | ESPN |
-| Major League Soccer | `mls` | ESPN |
-| UEFA Champions League | `uefa` | ESPN |
-| UEFA Europa League | `europa` | ESPN |
-| UEFA Europa Conference League | `conference` | ESPN |
-| FIFA World Cup | `worldcup` | ESPN |
+| League Name | Code | Provider | Feeder Leagues |
+|-------------|------|----------|----------------|
+| National Basketball Association | `nba` | ESPN | |
+| Women's National Basketball Association | `wnba` | ESPN | |
+| National Football League | `nfl` | ESPN | |
+| United Football League | `ufl` | ESPN | |
+| Major League Baseball | `mlb` | ESPN | |
+| National Hockey League | `nhl` | ESPN | |
+| National Lacrosse League | `nll` | ESPN | |
+| Ontario Hockey League | `ohl` | TheSportsDB | |
+| American Hockey League | `ahl` | TheSportsDB | |
+| English Premier League | `epl` | TheSportsDB / ESPN | Championship, League One, League Two |
+| EFL Championship | `championship` | ESPN | |
+| EFL League One | `league-one` | ESPN | |
+| EFL League Two | `league-two` | ESPN | |
+| La Liga (Spain) | `laliga` | ESPN | Segunda División |
+| Segunda División (Spain) | `segunda` | ESPN | |
+| Bundesliga (Germany) | `bundesliga` | ESPN | 2. Bundesliga |
+| 2. Bundesliga (Germany) | `2-bundesliga` | ESPN | |
+| Serie A (Italy) | `seriea` | ESPN | Serie B |
+| Serie B (Italy) | `serieb` | ESPN | |
+| Ligue 1 (France) | `ligue1` | ESPN | Ligue 2 |
+| Ligue 2 (France) | `ligue2` | ESPN | |
+| Major League Soccer | `mls` | ESPN | |
+| UEFA Champions League | `uefa` | ESPN | |
+| UEFA Europa League | `europa` | ESPN | |
+| UEFA Europa Conference League | `conference` | ESPN | |
+| FIFA World Cup | `worldcup` | ESPN | All WCQ Confederations |
+| FIFA WCQ - UEFA | `wcq-uefa` | ESPN | |
+| FIFA WCQ - CONMEBOL | `wcq-conmebol` | ESPN | |
+| FIFA WCQ - CONCACAF | `wcq-concacaf` | ESPN | |
+| FIFA WCQ - AFC | `wcq-afc` | ESPN | |
+| FIFA WCQ - CAF | `wcq-caf` | ESPN | |
+| FIFA WCQ - OFC | `wcq-ofc` | ESPN | |
 
 ---
 

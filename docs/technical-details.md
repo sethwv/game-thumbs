@@ -146,15 +146,19 @@ The application implements multi-layer caching to optimize performance and reduc
 Text is normalized for matching using two approaches:
 
 1. **Standard Normalization**:
+   - Remove accents and diacritical marks (e.g., "Montréal" → "Montreal")
    - Convert to lowercase
    - Replace non-alphanumeric characters with spaces
    - Collapse multiple spaces
    - Trim whitespace
 
 2. **Compact Normalization**:
+   - Remove accents and diacritical marks
    - Convert to lowercase
    - Remove all non-alphanumeric characters
    - No spaces (e.g., "Los Angeles" → "losangeles")
+
+**Accent Handling**: The system uses Unicode NFD normalization to strip diacritical marks, allowing teams like "Atlético Madrid", "São Paulo", or "Montréal" to match with or without accents.
 
 ### Location Abbreviations
 
@@ -194,6 +198,37 @@ The team with the highest score is selected. Teams with zero score are rejected.
 - **Location prefixes**: "losangelesfc" matches "LAFC" (LA + FC)
 - **Flexible spacing**: "Man Utd" matches "manutd"
 - **Case insensitive**: "LAKERS" matches "lakers"
+- **Accent insensitive**: "Atlético" matches "Atletico", "Montréal" matches "Montreal"
+- **Unicode normalization**: All diacritical marks are stripped during matching
+
+---
+
+## Route Loading System
+
+### Priority-Based Loading
+
+Routes are loaded in a specific order to prevent conflicts between similar patterns:
+
+1. **Priority Routes**: Routes with an explicit `priority` field are loaded first (lower numbers = higher priority)
+2. **Alphabetical Routes**: Routes without a priority field are loaded alphabetically
+
+**Example:**
+```javascript
+module.exports = {
+    priority: 1,  // Load before other routes
+    paths: ["/ncaa/:sport/:type"],
+    method: "get",
+    handler: async (req, res) => { ... }
+}
+```
+
+### Why Priority Matters
+
+The NCAA shorthand route (`/ncaa/:sport/:type`) needs to be registered before the unified routes (`/:league/:team1/:type`) to prevent the more generic pattern from matching NCAA requests first. The priority system ensures:
+
+- NCAA routes are registered first (priority: 1)
+- Other routes load alphabetically (no priority field = lowest priority)
+- No route conflicts or unexpected matching
 
 ---
 
