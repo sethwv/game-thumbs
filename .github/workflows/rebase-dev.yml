@@ -41,10 +41,16 @@ jobs:
           git fetch origin dev
           git checkout dev
           
+          # Initialize conflict tracking
+          echo "HAD_CONFLICTS=false" >> $GITHUB_ENV
+          echo "RESOLVED_CONFLICTS=" >> $GITHUB_ENV
+          echo "FAILED_CONFLICTS=" >> $GITHUB_ENV
+          
           # Attempt rebase with recursive merge strategy and patience diff algorithm
           # The -X options provide automatic conflict resolution strategies
           if ! git rebase -X ours -X patience origin/main; then
             echo "⚠️ Rebase conflict detected, attempting to resolve automatically..."
+            echo "HAD_CONFLICTS=true" >> $GITHUB_ENV
             
             # Check for conflicts
             CONFLICTS=$(git diff --name-only --diff-filter=U)
@@ -56,6 +62,9 @@ jobs:
               echo "📋 Files with conflicts:"
               echo "$CONFLICTS"
               
+              RESOLVED=""
+              FAILED=""
+              
               # Attempt to auto-resolve conflicts
               for file in $CONFLICTS; do
                 echo "🔧 Attempting to resolve: $file"
@@ -65,22 +74,26 @@ jobs:
                   echo "📝 Keeping dev version of workflow file: $file"
                   git checkout --ours "$file"
                   git add "$file"
+                  RESOLVED="$RESOLVED\n- \`$file\` (kept dev version)"
                 # For documentation, prefer incoming changes from main (theirs)
                 elif [[ "$file" == docs/* ]] || [[ "$file" == *.md ]]; then
                   echo "📝 Accepting main version of documentation: $file"
                   git checkout --theirs "$file"
                   git add "$file"
+                  RESOLVED="$RESOLVED\n- \`$file\` (accepted main version)"
                 # For package.json and package-lock.json, try to merge both
                 elif [[ "$file" == "package.json" ]] || [[ "$file" == "package-lock.json" ]]; then
                   echo "🔀 Attempting to merge package file: $file"
                   # Accept theirs and we'll regenerate lock file if needed
                   git checkout --theirs "$file"
                   git add "$file"
+                  RESOLVED="$RESOLVED\n- \`$file\` (accepted main version)"
                 else
                   # For other files, try accepting theirs (changes from main)
                   echo "🔀 Accepting changes from main for: $file"
                   git checkout --theirs "$file"
                   git add "$file"
+                  RESOLVED="$RESOLVED\n- \`$file\` (accepted main version)"
                 fi
               done
               
@@ -88,26 +101,65 @@ jobs:
               REMAINING=$(git diff --name-only --diff-filter=U)
               if [ -z "$REMAINING" ]; then
                 echo "✅ All conflicts resolved, continuing rebase..."
+                echo "RESOLVED_CONFLICTS<<EOF" >> $GITHUB_ENV
+                echo -e "$RESOLVED" >> $GITHUB_ENV
+                echo "EOF" >> $GITHUB_ENV
+                
                 if ! git rebase --continue; then
                   echo "❌ Rebase continuation failed after conflict resolution"
                   git rebase --abort
                   exit 1
                 fi
-              else
-                echo "❌ Unable to auto-resolve all conflicts:"
-                echo "$REMAINING"
-                git rebase --abort
-                exit 1
-              fi
+      - name: Create summary
+        if: always()
+        run: |
+          echo "## 🔄 Dev Branch Rebase Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** \`dev\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Base:** \`main\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ **Status:** Successfully rebased and force-pushed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            # Show conflict information if there were any
+            if [ "${{ env.HAD_CONFLICTS }}" == "true" ]; then
+              echo "### ⚠️ Conflicts Detected and Auto-Resolved" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "The following conflicts were automatically resolved:" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "${{ env.RESOLVED_CONFLICTS }}" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "> **Note:** Please review these files to ensure the automatic resolution was correct." >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
             fi
             
-            echo "✅ Successfully resolved conflicts and completed rebase"
+            echo "### 📝 Latest Commits on Dev" >> $GITHUB_STEP_SUMMARY
+            git log --oneline -5 >> $GITHUB_STEP_SUMMARY
           else
-            echo "✅ Rebase completed without conflicts"
-          fi
-
-      - name: Force push rebased dev branch
-        run: |
+            echo "❌ **Status:** Rebase failed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            # Show which conflicts could not be resolved
+            if [ -n "${{ env.FAILED_CONFLICTS }}" ]; then
+              echo "### 🚨 Unresolvable Conflicts" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "The following files have conflicts that could not be automatically resolved:" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              echo "${{ env.FAILED_CONFLICTS }}" >> $GITHUB_STEP_SUMMARY
+              echo '```' >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "**Action Required:** Manual intervention needed to resolve these conflicts." >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "1. Pull the latest changes from both branches" >> $GITHUB_STEP_SUMMARY
+              echo "2. Manually resolve the conflicts in the files listed above" >> $GITHUB_STEP_SUMMARY
+              echo "3. Complete the rebase locally and force-push to dev" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "Check the logs above for details." >> $GITHUB_STEP_SUMMARY
+            fi
+          fi |
           git push origin dev --force-with-lease
 
       - name: Create summary
