@@ -22,6 +22,18 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Configure merge tool for automatic conflict resolution
+          git config merge.tool "union"
+          git config merge.conflictstyle "diff3"
+          
+          # Enable rerere (reuse recorded resolution) for repeated conflicts
+          git config rerere.enabled true
+          
+          # Set merge strategies
+          git config pull.rebase true
+          git config rebase.autoStash true
+          git config rebase.autoSquash true
 
       - name: Rebase dev onto main
         run: |
@@ -29,22 +41,64 @@ jobs:
           git fetch origin dev
           git checkout dev
           
-          # Attempt rebase with auto-resolution strategy
-          if ! git rebase origin/main; then
+          # Attempt rebase with recursive merge strategy and patience diff algorithm
+          # The -X options provide automatic conflict resolution strategies
+          if ! git rebase -X ours -X patience origin/main; then
             echo "⚠️ Rebase conflict detected, attempting to resolve automatically..."
             
-            # For workflow files, prefer the version from dev
-            if [ -f .github/workflows/rebase-dev.yml ]; then
-              echo "📝 Resolving conflict in rebase-dev.yml (keeping dev version)"
-              git checkout --ours .github/workflows/rebase-dev.yml
-              git add .github/workflows/rebase-dev.yml
-            fi
+            # Check for conflicts
+            CONFLICTS=$(git diff --name-only --diff-filter=U)
             
-            # Try to continue the rebase
-            if ! git rebase --continue; then
-              echo "❌ Automatic conflict resolution failed. Aborting rebase."
-              git rebase --abort
-              exit 1
+            if [ -z "$CONFLICTS" ]; then
+              echo "✅ No unresolved conflicts found, continuing rebase..."
+              git rebase --continue
+            else
+              echo "📋 Files with conflicts:"
+              echo "$CONFLICTS"
+              
+              # Attempt to auto-resolve conflicts
+              for file in $CONFLICTS; do
+                echo "🔧 Attempting to resolve: $file"
+                
+                # For workflow files, prefer the version from dev (ours in rebase context)
+                if [[ "$file" == .github/workflows/* ]]; then
+                  echo "📝 Keeping dev version of workflow file: $file"
+                  git checkout --ours "$file"
+                  git add "$file"
+                # For documentation, prefer incoming changes from main (theirs)
+                elif [[ "$file" == docs/* ]] || [[ "$file" == *.md ]]; then
+                  echo "📝 Accepting main version of documentation: $file"
+                  git checkout --theirs "$file"
+                  git add "$file"
+                # For package.json and package-lock.json, try to merge both
+                elif [[ "$file" == "package.json" ]] || [[ "$file" == "package-lock.json" ]]; then
+                  echo "🔀 Attempting to merge package file: $file"
+                  # Accept theirs and we'll regenerate lock file if needed
+                  git checkout --theirs "$file"
+                  git add "$file"
+                else
+                  # For other files, try accepting theirs (changes from main)
+                  echo "🔀 Accepting changes from main for: $file"
+                  git checkout --theirs "$file"
+                  git add "$file"
+                fi
+              done
+              
+              # Check if all conflicts are resolved
+              REMAINING=$(git diff --name-only --diff-filter=U)
+              if [ -z "$REMAINING" ]; then
+                echo "✅ All conflicts resolved, continuing rebase..."
+                if ! git rebase --continue; then
+                  echo "❌ Rebase continuation failed after conflict resolution"
+                  git rebase --abort
+                  exit 1
+                fi
+              else
+                echo "❌ Unable to auto-resolve all conflicts:"
+                echo "$REMAINING"
+                git rebase --abort
+                exit 1
+              fi
             fi
             
             echo "✅ Successfully resolved conflicts and completed rebase"
