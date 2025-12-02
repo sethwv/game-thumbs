@@ -7,7 +7,7 @@ on:
       - dev
   pull_request:
     branches:
-      # - main
+      - main
       - dev
   workflow_dispatch:  # Allows manual trigger
 
