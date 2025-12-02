@@ -5,6 +5,7 @@
 
 const { createCanvas, loadImage } = require('canvas');
 const { drawLogoWithShadow, downloadImage, selectBestLogo, adjustColors } = require('./imageUtils');
+const logger = require('./logger');
 
 module.exports = {
     generateLogo
@@ -186,7 +187,7 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league, useLig
             
             ctx.restore();
         } catch (error) {
-            console.error('Error loading league logo:', error.message);
+            logger.warn('Error loading league logo', { error: error.message });
             // Continue without league logo if it fails
         }
     }
@@ -289,7 +290,7 @@ async function generateSideBySide(teamA, teamB, width, height, league, useLight)
             
             ctx.restore();
         } catch (error) {
-            console.error('Error loading league logo:', error.message);
+            logger.warn('Error loading league logo', { error: error.message });
         }
     }
     
@@ -422,7 +423,7 @@ async function generateCircleBadges(teamA, teamB, width, height, league, useLigh
             
             ctx.restore();
         } catch (error) {
-            console.error('Error loading league logo:', error.message);
+            logger.warn('Error loading league logo', { error: error.message });
         }
     }
     
@@ -543,7 +544,7 @@ async function generateSquareBadges(teamA, teamB, width, height, league, useLigh
             
             ctx.restore();
         } catch (error) {
-            console.error('Error loading league logo:', error.message);
+            logger.warn('Error loading league logo', { error: error.message });
         }
     }
     

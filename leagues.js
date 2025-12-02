@@ -1,10 +1,14 @@
 // ------------------------------------------------------------------------------
 // leagues.js
 // League lookup and matching logic
-// League definitions are stored in leagues.json
+// League definitions are loaded from leagues.json (built-in)
+// and merged with all .json files in json/leagues/ directory (user-provided)
 // ------------------------------------------------------------------------------
 
-const leaguesRaw = require('./leagues.json');
+const { loadAndMergeJSON } = require('./helpers/jsonMerger');
+
+// Load base leagues.json + all files from json/leagues/ directory
+const leaguesRaw = loadAndMergeJSON('leagues.json', 'json/leagues', 'leagues');
 
 // Add shortName to each league from its key
 const leagues = {};

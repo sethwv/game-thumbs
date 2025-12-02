@@ -24,21 +24,45 @@ Game Thumbs supports customization through two configuration files:
 
 Both files can be mounted as Docker volumes to customize the API without modifying the source code.
 
+**Important:** These files are **additive** - they merge with the built-in data rather than replacing it. You only need to specify the teams or leagues you want to customize. All built-in data remains available.
+
 ---
 
 ## Custom Team Overrides
 
 ### teams.json
 
-Mount a custom `teams.json` file to add team aliases or override ESPN's team data.
+Add custom team aliases or override ESPN's team data. Your files are **additive** - they merge with built-in teams, so you only need to include the teams you want to customize.
 
-#### Docker Mount
+#### Docker Mount (Recommended: Directory)
+
+Mount a directory containing one or more JSON files:
+
+```bash
+docker run -p 3000:3000 \
+  -v /path/to/custom-teams:/app/json/teams:ro \
+  ghcr.io/sethwv/game-thumbs:latest
+```
+
+All `.json` files in the directory will be loaded and merged in alphabetical order.
+
+#### Docker Mount (Alternative: Single File)
+
+For backward compatibility, you can still mount a single file:
 
 ```bash
 docker run -p 3000:3000 \
   -v /path/to/your/teams.json:/app/teams.json:ro \
   ghcr.io/sethwv/game-thumbs:latest
 ```
+
+#### How Merging Works
+
+- Built-in teams remain available
+- Custom teams are added or merged with existing teams
+- Aliases from all sources are combined (duplicates removed)
+- Your override values take precedence over built-in values
+- Files in `json/teams/` directory are processed in alphabetical order
 
 #### File Structure
 
@@ -100,15 +124,37 @@ See the [Team Matching](team-matching.html) documentation for complete details.
 
 ### leagues.json
 
-Mount a custom `leagues.json` file to add new leagues or modify existing league configurations.
+Add new leagues or modify existing league configurations. Like teams, your files are **additive** - they merge with built-in leagues.
 
-#### Docker Mount
+#### Docker Mount (Recommended: Directory)
+
+Mount a directory containing one or more JSON files:
+
+```bash
+docker run -p 3000:3000 \
+  -v /path/to/custom-leagues:/app/json/leagues:ro \
+  ghcr.io/sethwv/game-thumbs:latest
+```
+
+All `.json` files in the directory will be loaded and merged in alphabetical order.
+
+#### Docker Mount (Alternative: Single File)
+
+For backward compatibility, you can still mount a single file:
 
 ```bash
 docker run -p 3000:3000 \
   -v /path/to/your/leagues.json:/app/leagues.json:ro \
   ghcr.io/sethwv/game-thumbs:latest
 ```
+
+#### How Merging Works
+
+- Built-in leagues remain available
+- Custom leagues are added or merged with existing leagues
+- Aliases from all sources are combined (duplicates removed)
+- Your values take precedence over built-in values
+- Files in `json/leagues/` directory are processed in alphabetical order
 
 #### File Structure
 

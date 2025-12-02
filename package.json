@@ -16,6 +16,16 @@
   "scripts": {
     "start": "NODE_ENV=production SHOW_TIMESTAMP=false node index.js",
     "dev": "NODE_ENV=development TRUST_PROXY=0 IMAGE_CACHE_HOURS=0 RATE_LIMIT_PER_MINUTE=0 SHOW_TIMESTAMP=false LOG_TO_FILE=true XC_PROXY=true XC_PROXY_UPSTREAM='local=http://127.0.0.1:9191' node index.js",
-    "xcproxy": "NODE_ENV=production SHOW_TIMESTAMP=false APP_MODE=xcproxy XC_PROXY_UPSTREAM='local=http://127.0.0.1:9191' node index.js"
+    "xcproxy": "NODE_ENV=production SHOW_TIMESTAMP=false APP_MODE=xcproxy XC_PROXY_UPSTREAM='local=http://127.0.0.1:9191' node index.js",
+    "test": "for file in test/*.test.js; do [ -f \"$file\" ] && node \"$file\" || exit 1; done",
+    "test:endpoints": "node test/endpoints.test.js",
+    "test:leagues": "node test/leagues.test.js",
+    "test:aliases": "node test/aliases.test.js",
+    "test:ncaa": "node test/ncaa.test.js",
+    "test:matchups": "node test/matchups.test.js",
+    "test:errors": "node test/error-handling.test.js",
+    "test:providers": "node test/providers.test.js",
+    "test:performance": "node test/performance.test.js",
+    "test:server": "node test/server-behavior.test.js"
   }
 }

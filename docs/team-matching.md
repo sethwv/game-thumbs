@@ -83,6 +83,8 @@ This ensures maximum compatibility when teams don't have dedicated women's progr
 
 For cases where ESPN's API doesn't match common team nicknames or has incorrect data, you can define custom aliases and data overrides in a `teams.json` file.
 
+**Important:** Your custom `teams.json` file is **additive** - it merges with the built-in team data rather than replacing it. You only need to include the specific teams you want to customize. All built-in teams and their aliases remain available.
+
 ### File Structure
 
 The `teams.json` file is organized by league, with each team having optional aliases and overrides:
@@ -291,7 +293,14 @@ docker run -p 3000:3000 \
 
 Replace `/path/to/your/teams.json` with the absolute path to your custom file. The `:ro` flag makes it read-only.
 
-The file is loaded on server startup. Restart the container to reload changes.
+**Additive Merging:** Your custom file is merged with the built-in team data at runtime:
+- Built-in teams remain available
+- Your custom teams are added to the system
+- For teams that exist in both files, aliases are combined (duplicates removed)
+- Your override values take precedence
+- No need to maintain a complete copy of all teams
+
+The file is loaded on server startup. Restart the container to reload changes. Check logs for merge confirmation messages.
 
 ---
 
