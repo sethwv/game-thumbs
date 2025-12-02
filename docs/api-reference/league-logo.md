@@ -1,44 +1,12 @@
 ---
 layout: default
-title: League Logo
+title: League Logo (Redirect)
 parent: API Reference
-nav_order: 6
+nav_exclude: true
 ---
 
-# League Logo
+# Redirecting...
 
-**Endpoint:** `/:league/leaguelogo[.png]`
+This page has moved to [Logo Endpoint](logo.html).
 
-Returns the raw league logo image directly from the provider (proxied through the server).
-
----
-
-## Parameters
-
-- `league` - Sport league code (see [Supported Leagues](supported-leagues.html))
-
----
-
-## Query Parameters
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `variant` | string | `dark` | Logo variant: `light` or `dark` |
-
----
-
-## Examples
-
-```
-GET /nba/leaguelogo
-GET /nfl/leaguelogo.png
-GET /epl/leaguelogo?variant=dark
-GET /ncaaf/leaguelogo?variant=light
-GET /mls/leaguelogo
-```
-
----
-
-## Output
-
-PNG image (original resolution from provider)
+<meta http-equiv="refresh" content="0; url=logo.html">

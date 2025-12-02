@@ -57,18 +57,21 @@ Browse detailed documentation for each endpoint:
 
 ---
 
-## NCAA Shorthand Route (Legacy)
+## NCAA Shorthand Route
 
-**Endpoint:** `/ncaa/:sport/:team1/:team2/:type`
+**Endpoints:** 
+- `/ncaa/:sport/:type` (league-only)
+- `/ncaa/:sport/:team/:type` (single team)
+- `/ncaa/:sport/:team1/:team2/:type` (matchup)
 
 A convenience endpoint for NCAA sports that uses sport names instead of league codes.
 
 ### Parameters
 
 - `sport` - NCAA sport identifier (e.g., `football`, `basketball`, `womens-basketball`)
-- `team1` - First team (name, city, or abbreviation) *(optional for `leaguelogo`)*
-- `team2` - Second team (name, city, or abbreviation) *(only required for matchup types)*
-- `type` - Image type: `thumb`, `cover`, `logo`, `teamlogo`, or `leaguelogo`
+- `team` / `team1` - First team (name, city, or abbreviation) *(optional for league-only)*
+- `team2` - Second team (name, city, or abbreviation) *(optional for single team)*
+- `type` - Image type: `thumb`, `cover`, `logo`, or `raw`
 
 ### Supported Sports
 
@@ -94,10 +97,19 @@ A convenience endpoint for NCAA sports that uses sport names instead of league c
 ### Examples
 
 ```
+# League images
+GET /ncaa/football/thumb
+GET /ncaa/basketball/logo
+
+# Single team images
+GET /ncaa/football/alabama/thumb
+GET /ncaa/basketball/duke/cover
+
+# Matchup images
 GET /ncaa/football/alabama/georgia/thumb
 GET /ncaa/basketball/duke/unc/cover
 GET /ncaa/womens-basketball/uconn/south-carolina/thumb?style=2
-GET /ncaa/softball/oklahoma/alabama/cover
-GET /ncaa/football/alabama/teamlogo
-GET /ncaa/basketball/leaguelogo
+
+# Raw data
+GET /ncaa/football/alabama/raw
 ```
