@@ -5,6 +5,7 @@
 // ------------------------------------------------------------------------------
 
 const { loadAndMergeJSON } = require('./jsonMerger');
+const logger = require('./logger');
 
 let teamOverrides = {};
 
@@ -13,7 +14,7 @@ function loadTeamOverrides() {
         // Load base teams.json + all files from json/teams/ directory
         teamOverrides = loadAndMergeJSON('teams.json', 'json/teams', 'teams');
     } catch (error) {
-        console.warn('Failed to load team overrides:', error.message);
+        logger.warn('Failed to load team overrides:', { error: error.message });
         teamOverrides = {};
     }
 }

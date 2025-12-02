@@ -8,6 +8,7 @@ const https = require('https');
 const BaseProvider = require('./BaseProvider');
 const { getTeamMatchScore } = require('../helpers/teamMatchingUtils');
 const { extractDominantColors } = require('../helpers/colorExtractor');
+const logger = require('../helpers/logger');
 
 // Custom error class for team not found errors
 class TeamNotFoundError extends Error {
@@ -156,7 +157,7 @@ class TheSportsDBProvider extends BaseProvider {
                         if (!primaryColor) primaryColor = extractedPrimary;
                         if (!alternateColor) alternateColor = extractedAlternate;
                     } catch (error) {
-                        console.warn(`Failed to extract colors for ${bestMatch.strTeam}:`, error.message);
+                        logger.warn('Failed to extract colors', { team: bestMatch.strTeam, error: error.message });
                         if (!primaryColor) primaryColor = '#000000';
                         if (!alternateColor) alternateColor = '#ffffff';
                     }
@@ -221,7 +222,7 @@ class TheSportsDBProvider extends BaseProvider {
             // TheSportsDB provides logo and badge
             return leagueData.strBadge || leagueData.strLogo || leagueData.strPoster;
         } catch (error) {
-            console.warn(`Failed to get league logo for ${league.shortName}:`, error.message);
+            logger.warn('Failed to get league logo', { league: league.shortName, error: error.message });
             // Return null if no fallback available
             return null;
         }
