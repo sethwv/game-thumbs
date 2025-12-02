@@ -8,6 +8,7 @@ const https = require('https');
 const BaseProvider = require('./BaseProvider');
 const { getTeamMatchScore } = require('../helpers/teamMatchingUtils');
 const { extractDominantColors } = require('../helpers/colorExtractor');
+const logger = require('../helpers/logger');
 
 // Custom error class for team not found errors
 class TeamNotFoundError extends Error {
@@ -182,7 +183,7 @@ class ESPNProvider extends BaseProvider {
                         if (!primaryColor) primaryColor = extractedPrimary;
                         if (!alternateColor) alternateColor = extractedAlternate;
                     } catch (error) {
-                        console.warn(`Failed to extract colors for ${teamObj.displayName}:`, error.message);
+                        logger.warn('Failed to extract colors', { team: teamObj.displayName, error: error.message });
                         // Fall back to black and white if extraction fails
                         if (!primaryColor) primaryColor = '#000000';
                         if (!alternateColor) alternateColor = '#ffffff';
@@ -257,7 +258,7 @@ class ESPNProvider extends BaseProvider {
             return darkLogoPreferred ? (darkLogo || defaultLogo) : (defaultLogo || darkLogo) 
                 || `https://a.espncdn.com/i/teamlogos/leagues/500/${league.shortName.toLowerCase()}.png`;
         } catch (error) {
-            console.warn(`Failed to get league logo for ${league.shortName}:`, error.message);
+            logger.warn('Failed to get league logo', { league: league.shortName, error: error.message });
             // Fallback to ESPN CDN logo
             return `https://a.espncdn.com/i/teamlogos/leagues/500/${league.shortName.toLowerCase()}.png`;
         }

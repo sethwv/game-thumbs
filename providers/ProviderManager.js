@@ -3,6 +3,8 @@
 // Manages multiple sports data providers and routes requests to appropriate provider
 // ------------------------------------------------------------------------------
 
+const logger = require('../helpers/logger');
+
 class ProviderManager {
     constructor() {
         this.providers = new Map();
@@ -21,14 +23,14 @@ class ProviderManager {
             const ESPNProvider = require('./ESPNProvider');
             this.registerProvider(new ESPNProvider());
         } catch (error) {
-            console.warn('Failed to load ESPN provider:', error.message);
+            logger.warn('Failed to load ESPN provider', { error: error.message });
         }
 
         try {
             const TheSportsDBProvider = require('./TheSportsDBProvider');
             this.registerProvider(new TheSportsDBProvider());
         } catch (error) {
-            console.warn('Failed to load TheSportsDB provider:', error.message);
+            logger.warn('Failed to load TheSportsDB provider', { error: error.message });
         }
 
         // Add other providers here as they're implemented

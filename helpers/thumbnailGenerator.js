@@ -15,6 +15,7 @@ const {
     rgbToHex,
     getAverageColor
 } = require('./imageUtils');
+const logger = require('./logger');
 
 module.exports = {
     generateThumbnail,
@@ -186,7 +187,7 @@ async function generateSplit(teamA, teamB, width, height, league, orientation) {
             drawLogoWithShadow(ctx, finalLogoImageB, logoBX, logoBY, logoSize);
         }
     } catch (error) {
-        console.error('Error loading team logos:', error.message);
+        logger.warn('Failed to load team logos for split style', { error: error.message });
     }
     
     // Draw league logo in the center if league logo URL is provided
@@ -199,7 +200,7 @@ async function generateSplit(teamA, teamB, width, height, league, orientation) {
             const leagueLogoY = (height - leagueLogoSize) / 2;
             drawLogoMaintainAspect(ctx, leagueLogo, leagueLogoX, leagueLogoY, leagueLogoSize);
         } catch (error) {
-            console.error('Error loading league logo:', error.message);
+            logger.warn('Failed to load league logo for split style', { error: error.message });
         }
     }
     
@@ -263,7 +264,7 @@ async function generateGradient(teamA, teamB, width, height, league, orientation
             drawLogoWithShadow(ctx, finalLogoImageB, logoBX, logoBY, logoSize);
         }
     } catch (error) {
-        console.error('Error loading team logos:', error.message);
+        logger.warn('Failed to load team logos for gradient style', { error: error.message });
     }
     
     // Draw league logo in the center if league logo URL is provided
@@ -276,7 +277,7 @@ async function generateGradient(teamA, teamB, width, height, league, orientation
             const leagueLogoY = (height - leagueLogoSize) / 2;
             drawLogoMaintainAspect(ctx, leagueLogo, leagueLogoX, leagueLogoY, leagueLogoSize);
         } catch (error) {
-            console.error('Error loading league logo:', error.message);
+            logger.warn('Failed to load league logo for gradient style', { error: error.message });
         }
     }
     
@@ -379,7 +380,7 @@ async function generateMinimalist(teamA, teamB, width, height, league, orientati
             ctx.drawImage(finalLogoImageB, logoX, logoY, logoSize, logoSize);
         }
     } catch (error) {
-        console.error('Error loading team logos:', error.message);
+        logger.warn('Failed to load team logos for minimalist style', { error: error.message });
     }
     
     // Draw "VS" text in center
@@ -433,7 +434,7 @@ async function generateMinimalist(teamA, teamB, width, height, league, orientati
             
             ctx.drawImage(leagueLogo, adjustedX, adjustedY, drawWidth, drawHeight);
         } catch (error) {
-            console.error('Error loading league logo:', error.message);
+            logger.warn('Failed to load league logo for minimalist style', { error: error.message });
         }
     }
     

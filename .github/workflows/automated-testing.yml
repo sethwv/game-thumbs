@@ -1,0 +1,164 @@
+name: Test Suite
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:  # Allows manual trigger
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    outputs:
+      test-files: ${{ steps.set-matrix.outputs.test-files }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Discover test files
+        id: set-matrix
+        run: |
+          # Find all .test.js files and create JSON array
+          TEST_FILES=$(find test -name "*.test.js" -type f | jq -R -s -c 'split("\n")[:-1]')
+          echo "test-files=$TEST_FILES" >> $GITHUB_OUTPUT
+          echo "Found test files: $TEST_FILES"
+
+  run-tests:
+    needs: discover
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        test-file: ${{ fromJson(needs.discover.outputs.test-files) }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run test - ${{ matrix.test-file }}
+        id: test
+        run: |
+          echo "Running: ${{ matrix.test-file }}"
+          node "${{ matrix.test-file }}"
+        continue-on-error: true
+
+      - name: Generate summary for ${{ matrix.test-file }}
+        if: always()
+        run: |
+          # Determine the expected result file based on test file name
+          TEST_FILE_BASE=$(basename "${{ matrix.test-file }}" .test.js)
+          
+          # Map test file names to their result file names
+          case "$TEST_FILE_BASE" in
+            "endpoints")
+              RESULTS_FILE="test/output/test-results.json"
+              ;;
+            "leagues")
+              RESULTS_FILE="test/output/leagues-results.json"
+              ;;
+            "aliases")
+              RESULTS_FILE="test/output/aliases-results.json"
+              ;;
+            "ncaa")
+              RESULTS_FILE="test/output/ncaa-results.json"
+              ;;
+            "matchups")
+              RESULTS_FILE="test/output/matchups-results.json"
+              ;;
+            "error-handling")
+              RESULTS_FILE="test/output/error-handling-results.json"
+              ;;
+            "providers")
+              RESULTS_FILE="test/output/providers-results.json"
+              ;;
+            "performance")
+              RESULTS_FILE="test/output/performance-results.json"
+              ;;
+            "server-behavior")
+              RESULTS_FILE="test/output/server-behavior-results.json"
+              ;;
+            *)
+              # Fallback: try to find any results file
+              RESULTS_FILE=$(find test/output -name "*-results.json" -o -name "test-results.json" 2>/dev/null | head -n 1)
+              ;;
+          esac
+          
+          if [ -z "$RESULTS_FILE" ] || [ ! -f "$RESULTS_FILE" ]; then
+            echo "## ❌ Test Results Not Found" >> $GITHUB_STEP_SUMMARY
+            echo "Test file: \`${{ matrix.test-file }}\`" >> $GITHUB_STEP_SUMMARY
+            echo "Expected: \`$RESULTS_FILE\`" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "No test result files were generated. Check the logs above for errors." >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+          
+          # Parse JSON results
+          SUITE_NAME=$(jq -r '.suiteName // "Unknown Test Suite"' "$RESULTS_FILE")
+          TOTAL=$(jq -r '.totalTests' "$RESULTS_FILE")
+          PASSED=$(jq -r '.passed' "$RESULTS_FILE")
+          FAILED=$(jq -r '.failed' "$RESULTS_FILE")
+          TIMESTAMP=$(jq -r '.timestamp' "$RESULTS_FILE")
+          SUCCESS_RATE=$(echo "scale=1; ($PASSED * 100) / $TOTAL" | bc)
+          
+          # Condensed summary
+          echo "### 🧪 $SUITE_NAME" >> $GITHUB_STEP_SUMMARY
+          echo "\`${{ matrix.test-file }}\` • **$PASSED**/$TOTAL passed (${SUCCESS_RATE}%)" >> $GITHUB_STEP_SUMMARY
+          
+          # Failed tests (if any)
+          if [ "$FAILED" -gt 0 ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "<details><summary>❌ $FAILED Failed Test(s)</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            jq -r '.tests[] | select(.passed == false) | "- **\(.name)**: \(.error)"' "$RESULTS_FILE" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+            
+            echo "::error::$FAILED test(s) failed in $SUITE_NAME"
+            exit 1
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload test logs - ${{ matrix.test-file }}
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs-${{ github.run_id }}-${{ strategy.job-index }}
+          path: logs/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Upload test results - ${{ matrix.test-file }}
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ github.run_id }}-${{ strategy.job-index }}
+          path: |
+            test/output/*-results.json
+            test/output/test-results.json
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Upload generated images - ${{ matrix.test-file }}
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-images-${{ github.run_id }}-${{ strategy.job-index }}
+          path: |
+            test/output/*.png
+            test/output/*.jpg
+          retention-days: 7
+          if-no-files-found: ignore

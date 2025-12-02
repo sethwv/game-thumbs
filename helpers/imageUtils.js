@@ -6,6 +6,7 @@
 const { createCanvas, loadImage } = require('canvas');
 const https = require('https');
 const crypto = require('crypto');
+const logger = require('./logger');
 
 // ------------------------------------------------------------------------------
 // Constants
@@ -193,7 +194,7 @@ function hasLightOutline(logoImage) {
         // If average edge brightness is above threshold, logo likely has white/light outline
         return avgEdgeBrightness > EDGE_BRIGHTNESS_THRESHOLD;
     } catch (error) {
-        console.error('Error checking logo outline:', error.message);
+        logger.warn('Error checking logo outline', { error: error.message });
         return false; // Assume no outline if we can't determine
     }
 }
@@ -403,7 +404,7 @@ async function selectBestLogo(team, backgroundColor) {
         // Otherwise use primary logo
         return team.logo;
     } catch (error) {
-        console.error('Error selecting best logo:', error.message);
+        logger.warn('Error selecting best logo', { error: error.message });
         // Fallback to primary logo on error
         return team.logo;
     }

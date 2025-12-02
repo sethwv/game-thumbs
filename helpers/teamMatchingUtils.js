@@ -38,6 +38,24 @@ function normalizeCompact(str) {
         .replace(/[^a-z0-9]/g, '');     // Remove all non-alphanumeric chars
 }
 
+/**
+ * Generate a slug from a team name (kebab-case)
+ * Used for team identifiers in teams.json and raw endpoint
+ * @param {string} str - Team name to slugify
+ * @returns {string} Lowercase kebab-case slug (e.g., "manchester-united")
+ */
+function generateSlug(str) {
+    if (!str) return '';
+    return str
+        .normalize('NFD')               // Decompose accented characters
+        .replace(/[\u0300-\u036f]/g, '') // Remove diacritical marks
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')   // Remove special chars, keep spaces and hyphens
+        .replace(/\s+/g, '-')           // Convert spaces to hyphens
+        .replace(/-+/g, '-')            // Collapse multiple hyphens
+        .replace(/^-|-$/g, '');         // Remove leading/trailing hyphens
+}
+
 // ------------------------------------------------------------------------------
 // Location Abbreviation System
 // ------------------------------------------------------------------------------
@@ -341,6 +359,7 @@ module.exports = {
     // Text normalization
     normalize,
     normalizeCompact,
+    generateSlug,
     
     // Location abbreviations
     LOCATION_ABBREVIATIONS,

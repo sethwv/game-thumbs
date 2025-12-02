@@ -219,7 +219,6 @@ async function extractDominantColors(imageUrl, numColors = 2) {
         return hexColors.slice(0, numColors);
         
     } catch (error) {
-        console.error('Error extracting colors from logo:', error.message);
         // Return default colors on error
         return ['#000000', '#ffffff'];
     }

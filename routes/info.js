@@ -14,7 +14,6 @@ module.exports = {
         try {
             const info = {
                 name: 'Game Thumbs API',
-                // version: getVersion(),
                 git: getGitInfo()
             };
 
@@ -72,15 +71,6 @@ function isWorkingTreeDirty() {
         return status.length > 0;
     } catch (error) {
         return false;
-    }
-}
-
-function getVersion() {
-    try {
-        const packageJson = require('../package.json');
-        return packageJson.version;
-    } catch (error) {
-        return 'unknown';
     }
 }
 

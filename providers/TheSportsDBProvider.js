@@ -8,6 +8,7 @@ const https = require('https');
 const BaseProvider = require('./BaseProvider');
 const { getTeamMatchScore } = require('../helpers/teamMatchingUtils');
 const { extractDominantColors } = require('../helpers/colorExtractor');
+const logger = require('../helpers/logger');
 
 // Custom error class for team not found errors
 class TeamNotFoundError extends Error {
@@ -72,23 +73,44 @@ class TheSportsDBProvider extends BaseProvider {
         try {
             const teams = await this.fetchTeamData(league);
 
-            // Find best matching team using weighted scoring
             let bestMatch = null;
             let bestScore = 0;
 
-            for (const team of teams) {
-                // Convert TheSportsDB team format to standardized format for matching
-                const standardizedTeam = {
-                    fullName: team.strTeam,
-                    name: team.strTeam,
-                    city: team.strLocation || '',
-                    abbreviation: team.strAlternate || team.strTeam.substring(0, 3).toUpperCase()
-                };
-                
-                const score = getTeamMatchScore(teamIdentifier, standardizedTeam);
-                if (score > bestScore) {
-                    bestScore = score;
-                    bestMatch = team;
+            // Check for custom alias match first (highest priority)
+            const { generateSlug } = require('../helpers/teamMatchingUtils');
+            const { findTeamByAlias } = require('../helpers/teamOverrides');
+            
+            // Create slug identifiers for TheSportsDB teams (for alias matching)
+            const teamsWithSlugs = teams.map(t => ({
+                ...t,
+                id: t.idTeam,
+                espnId: generateSlug(t.strTeam) // Generate kebab-case slug from team name
+            }));
+            
+            const aliasMatch = findTeamByAlias(teamIdentifier, league.shortName.toLowerCase(), teamsWithSlugs);
+
+            if (aliasMatch) {
+                // Found via custom alias - use this team directly
+                bestMatch = teams.find(t => t.idTeam === aliasMatch.idTeam);
+                bestScore = 100; // Perfect match via alias
+            }
+
+            // If no alias match, find best matching team using weighted scoring
+            if (!bestMatch) {
+                for (const team of teams) {
+                    // Convert TheSportsDB team format to standardized format for matching
+                    const standardizedTeam = {
+                        fullName: team.strTeam,
+                        name: team.strTeam,
+                        city: team.strLocation || '',
+                        abbreviation: team.strAlternate || team.strTeam.substring(0, 3).toUpperCase()
+                    };
+                    
+                    const score = getTeamMatchScore(teamIdentifier, standardizedTeam);
+                    if (score > bestScore) {
+                        bestScore = score;
+                        bestMatch = team;
+                    }
                 }
             }
 
@@ -135,7 +157,7 @@ class TheSportsDBProvider extends BaseProvider {
                         if (!primaryColor) primaryColor = extractedPrimary;
                         if (!alternateColor) alternateColor = extractedAlternate;
                     } catch (error) {
-                        console.warn(`Failed to extract colors for ${bestMatch.strTeam}:`, error.message);
+                        logger.warn('Failed to extract colors', { team: bestMatch.strTeam, error: error.message });
                         if (!primaryColor) primaryColor = '#000000';
                         if (!alternateColor) alternateColor = '#ffffff';
                     }
@@ -146,9 +168,13 @@ class TheSportsDBProvider extends BaseProvider {
             if (!primaryColor) primaryColor = '#000000';
             if (!alternateColor) alternateColor = '#ffffff';
 
-            // Return standardized format
-            return {
+            // Generate slug from team name for override matching and raw endpoint
+            const teamSlug = generateSlug(bestMatch.strTeam);
+
+            // Build standardized format
+            let teamData = {
                 id: bestMatch.idTeam,
+                slug: teamSlug, // Generated slug for TheSportsDB teams
                 city: bestMatch.strLocation || '',
                 name: bestMatch.strTeam,
                 fullName: bestMatch.strTeam,
@@ -160,6 +186,12 @@ class TheSportsDBProvider extends BaseProvider {
                 color: primaryColor,
                 alternateColor: alternateColor
             };
+
+            // Apply team overrides if any exist
+            const { applyTeamOverrides } = require('../helpers/teamOverrides');
+            teamData = applyTeamOverrides(teamData, league.shortName.toLowerCase(), teamSlug);
+
+            return teamData;
         } catch (error) {
             // Re-throw TeamNotFoundError as-is
             if (error instanceof TeamNotFoundError) {
@@ -190,7 +222,7 @@ class TheSportsDBProvider extends BaseProvider {
             // TheSportsDB provides logo and badge
             return leagueData.strBadge || leagueData.strLogo || leagueData.strPoster;
         } catch (error) {
-            console.warn(`Failed to get league logo for ${league.shortName}:`, error.message);
+            logger.warn('Failed to get league logo', { league: league.shortName, error: error.message });
             // Return null if no fallback available
             return null;
         }
