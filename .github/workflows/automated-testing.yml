@@ -3,14 +3,12 @@ name: Test Suite
 on:
   push:
     branches:
-      - main
+      # - main
       - dev
-      - test-suite-workflow
   pull_request:
     branches:
-      - main
+      # - main
       - dev
-      - test-suite-workflow
   workflow_dispatch:  # Allows manual trigger
 
 concurrency:
@@ -82,6 +80,21 @@ jobs:
             "ncaa")
               RESULTS_FILE="test/output/ncaa-results.json"
               ;;
+            "matchups")
+              RESULTS_FILE="test/output/matchups-results.json"
+              ;;
+            "error-handling")
+              RESULTS_FILE="test/output/error-handling-results.json"
+              ;;
+            "providers")
+              RESULTS_FILE="test/output/providers-results.json"
+              ;;
+            "performance")
+              RESULTS_FILE="test/output/performance-results.json"
+              ;;
+            "server-behavior")
+              RESULTS_FILE="test/output/server-behavior-results.json"
+              ;;
             *)
               # Fallback: try to find any results file
               RESULTS_FILE=$(find test/output -name "*-results.json" -o -name "test-results.json" 2>/dev/null | head -n 1)
@@ -105,61 +118,33 @@ jobs:
           TIMESTAMP=$(jq -r '.timestamp' "$RESULTS_FILE")
           SUCCESS_RATE=$(echo "scale=1; ($PASSED * 100) / $TOTAL" | bc)
           
-          # Start summary
-          echo "# 🧪 $SUITE_NAME" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Test File:** \`${{ matrix.test-file }}\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          # Condensed summary
+          echo "### 🧪 $SUITE_NAME" >> $GITHUB_STEP_SUMMARY
+          echo "\`${{ matrix.test-file }}\` • **$PASSED**/$TOTAL passed (${SUCCESS_RATE}%)" >> $GITHUB_STEP_SUMMARY
           
-          # Summary table
-          echo "## Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Total Tests | $TOTAL |" >> $GITHUB_STEP_SUMMARY
-          echo "| ✅ Passed | $PASSED |" >> $GITHUB_STEP_SUMMARY
-          echo "| ❌ Failed | $FAILED |" >> $GITHUB_STEP_SUMMARY
-          echo "| Success Rate | ${SUCCESS_RATE}% |" >> $GITHUB_STEP_SUMMARY
-          echo "| Timestamp | $TIMESTAMP |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          # Detailed results table
-          echo "## Test Results" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Test | Status | Duration | Details |" >> $GITHUB_STEP_SUMMARY
-          echo "|------|--------|----------|---------|" >> $GITHUB_STEP_SUMMARY
-          
-          jq -r '.tests[] | "| \(.name) | \(if .passed then "✅" else "❌" end) | \(.duration)ms | \(if .passed then "Status: \(.statusCode)" else .error end) |"' "$RESULTS_FILE" >> $GITHUB_STEP_SUMMARY
-          
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          # Images section
-          IMAGE_COUNT=$(jq -r '[.tests[] | select(.savedFile != null and .passed == true)] | length' "$RESULTS_FILE")
-          
-          if [ "$IMAGE_COUNT" -gt 0 ]; then
-            echo "## 🖼️ Generated Images" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "Successfully generated $IMAGE_COUNT images:" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            
-            # List generated images
-            jq -r '.tests[] | select(.savedFile != null and .passed == true) | "- **\(.name)**: `\(.savedFile)`"' "$RESULTS_FILE" >> $GITHUB_STEP_SUMMARY
-            
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "> **Note:** Images are available in the artifacts for download." >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-          fi
-          
-          # Failed tests section
+          # Failed tests (if any)
           if [ "$FAILED" -gt 0 ]; then
-            echo "## ❌ Failed Tests" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            
-            jq -r '.tests[] | select(.passed == false) | "### \(.name)\n- **Endpoint:** `\(.endpoint // "N/A")`\n- **Error:** \(.error)\n- **Status Code:** \(.statusCode // "N/A")\n- **Duration:** \(.duration)ms\n"' "$RESULTS_FILE" >> $GITHUB_STEP_SUMMARY
+            echo "<details><summary>❌ $FAILED Failed Test(s)</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            jq -r '.tests[] | select(.passed == false) | "- **\(.name)**: \(.error)"' "$RESULTS_FILE" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
             
             echo "::error::$FAILED test(s) failed in $SUITE_NAME"
             exit 1
           fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload test logs - ${{ matrix.test-file }}
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs-${{ github.run_id }}-${{ strategy.job-index }}
+          path: logs/
+          retention-days: 7
+          if-no-files-found: ignore
 
       - name: Upload test results - ${{ matrix.test-file }}
         if: always()
@@ -180,14 +165,5 @@ jobs:
           path: |
             test/output/*.png
             test/output/*.jpg
-          retention-days: 30
-          if-no-files-found: warn
-
-      - name: Upload test logs - ${{ matrix.test-file }}
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-logs-${{ github.run_id }}-${{ strategy.job-index }}
-          path: logs/
           retention-days: 7
           if-no-files-found: ignore

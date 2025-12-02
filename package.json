@@ -21,6 +21,11 @@
     "test:endpoints": "node test/endpoints.test.js",
     "test:leagues": "node test/leagues.test.js",
     "test:aliases": "node test/aliases.test.js",
-    "test:ncaa": "node test/ncaa.test.js"
+    "test:ncaa": "node test/ncaa.test.js",
+    "test:matchups": "node test/matchups.test.js",
+    "test:errors": "node test/error-handling.test.js",
+    "test:providers": "node test/providers.test.js",
+    "test:performance": "node test/performance.test.js",
+    "test:server": "node test/server-behavior.test.js"
   }
 }

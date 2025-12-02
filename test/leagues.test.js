@@ -314,6 +314,9 @@ function printSummary() {
         }
     }
 
+    // Save results to file
+    const json = JSON.stringify(results, null, 2);
+    fs.writeFileSync(RESULTS_FILE, json);
     console.log(`\n📊 Results saved to: ${RESULTS_FILE}`);
 }
 
