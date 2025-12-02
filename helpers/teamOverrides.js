@@ -1,20 +1,19 @@
 // ------------------------------------------------------------------------------
 // teamOverrides.js
-// Handles team-specific overrides from teams.json
+// Handles team-specific overrides from teams.json (built-in)
+// and merged with all .json files in json/teams/ directory (user-provided)
 // ------------------------------------------------------------------------------
 
-const fs = require('fs');
-const path = require('path');
+const { loadAndMergeJSON } = require('./jsonMerger');
 
 let teamOverrides = {};
 
 function loadTeamOverrides() {
     try {
-        const teamsPath = path.join(__dirname, '..', 'teams.json');
-        const teamsData = fs.readFileSync(teamsPath, 'utf8');
-        teamOverrides = JSON.parse(teamsData);
+        // Load base teams.json + all files from json/teams/ directory
+        teamOverrides = loadAndMergeJSON('teams.json', 'json/teams', 'teams');
     } catch (error) {
-        console.warn('Failed to load teams.json:', error.message);
+        console.warn('Failed to load team overrides:', error.message);
         teamOverrides = {};
     }
 }
