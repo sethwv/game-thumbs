@@ -4,11 +4,14 @@ on:
     push:
         branches: [ 'dev', 'test/.*' ]
         tags: [ 'v*' ]
+        paths-ignore:
+          - 'docs/**'
     workflow_dispatch:
 
 jobs:     
   build-and-publish:
     runs-on: ubuntu-latest
+    if: github.actor != 'dependabot[bot]' && github.actor != 'github-actions[bot]'
     steps:
     - uses: actions/checkout@v4
 
