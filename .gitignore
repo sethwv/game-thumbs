@@ -14,6 +14,8 @@ yarn-error.log*
 # Test files
 test-thumbnail.png
 helpers/test.js
+test/output/*
+!test/output/.gitkeep
 
 # IDE files
 .vscode
