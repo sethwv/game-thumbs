@@ -98,17 +98,46 @@ Configure the server behavior using environment variables:
 
 ## Volume Mounts
 
-### Custom Team Overrides
+### Custom Team and League Overrides
 
-Mount a custom `teams.json` file to add team aliases and override team data:
+Game Thumbs supports **additive configuration** - your custom files merge with built-in data rather than replacing it. You only need to specify what you want to customize.
+
+#### Recommended: Directory-Based Configuration
+
+Mount a directory with multiple JSON files. All `.json` files in the directory will be loaded and merged:
+
+```bash
+docker run -p 3000:3000 \
+  -v /path/to/custom-teams:/app/json/teams:ro \
+  -v /path/to/custom-leagues:/app/json/leagues:ro \
+  ghcr.io/sethwv/game-thumbs:latest
+```
+
+**Benefits:**
+- Organize configurations into multiple files (e.g., `my-teams.json`, `ncaa-teams.json`)
+- Easy to add/remove specific configuration sets
+- Files are loaded in alphabetical order and merged together
+
+**Example directory structure:**
+```
+custom-teams/
+  ├── premier-league.json
+  ├── ncaa-football.json
+  └── my-favorites.json
+
+custom-leagues/
+  └── custom-leagues.json
+```
+
+#### Alternative: Single File Mount (Backward Compatible)
+
+Mount a single `teams.json` or `leagues.json` file:
 
 ```bash
 docker run -p 3000:3000 \
   -v /path/to/your/teams.json:/app/teams.json:ro \
   ghcr.io/sethwv/game-thumbs:latest
 ```
-
-Replace `/path/to/your/teams.json` with the absolute path to your custom `teams.json` file. The `:ro` flag makes it read-only.
 
 **Example `teams.json`:**
 ```json
@@ -124,7 +153,13 @@ Replace `/path/to/your/teams.json` with the absolute path to your custom `teams.
 }
 ```
 
-See the [Team Matching](team-matching.html) documentation for complete details on the file structure and all available options.
+**How merging works:**
+- Your custom teams/leagues are merged with the built-in data
+- For teams that exist in both, aliases are combined (duplicates removed)
+- Your override values take precedence over built-in values
+- You only need to include what you want to customize
+
+See the [Team Matching](team-matching.html) and [Customization](customization.html) documentation for complete details.
 
 ### Persistent Logs
 
@@ -141,7 +176,7 @@ docker run -p 3000:3000 \
 
 ## Example Configurations
 
-### Production Setup
+### Production Setup with Custom Teams
 
 ```bash
 docker run -d \
@@ -153,7 +188,7 @@ docker run -d \
   -e TRUST_PROXY=1 \
   -e CORS_ORIGIN=https://yourdomain.com \
   -e LOG_TO_FILE=true \
-  -v /path/to/teams.json:/app/teams.json:ro \
+  -v /path/to/custom-teams:/app/json/teams:ro \
   -v /path/to/logs:/app/logs \
   ghcr.io/sethwv/game-thumbs:latest
 ```
@@ -170,7 +205,7 @@ docker run -p 3000:3000 \
   ghcr.io/sethwv/game-thumbs:dev
 ```
 
-### Docker Compose
+### Docker Compose (Recommended Approach)
 
 ```yaml
 version: '3.8'
@@ -186,7 +221,32 @@ services:
       - TRUST_PROXY=1
       - LOG_TO_FILE=true
     volumes:
+      # Recommended: Mount directories
+      - ./custom-teams:/app/json/teams:ro
+      - ./custom-leagues:/app/json/leagues:ro
+      - ./logs:/app/logs
+    restart: unless-stopped
+```
+
+### Docker Compose (Backward Compatible Single File)
+
+```yaml
+version: '3.8'
+
+services:
+  game-thumbs:
+    image: ghcr.io/sethwv/game-thumbs:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - RATE_LIMIT_PER_MINUTE=60
+      - TRUST_PROXY=1
+      - LOG_TO_FILE=true
+    volumes:
+      # Alternative: Mount single files
       - ./teams.json:/app/teams.json:ro
+      - ./leagues.json:/app/leagues.json:ro
       - ./logs:/app/logs
     restart: unless-stopped
 ```
@@ -228,15 +288,114 @@ docker run -p 3000:3000 \
   ghcr.io/sethwv/game-thumbs:latest
 ```
 
-### Team Override Not Loading
+### Custom Configuration Not Loading
 
-Ensure your `teams.json` file:
+Ensure your configuration files:
+- Are valid JSON
+- Use the correct file path in the volume mount
+- Have the correct league keys (lowercase)
+- Use proper team slugs (check via `/raw` endpoint)
+
+Check container logs for merge confirmation messages:
+```bash
+docker logs <container-id>
+```
+
+**You should see:**
+```
+✓ Loaded base teams.json
+✓ Found 2 additional file(s) in json/teams/
+  ✓ Merged my-teams.json
+  ✓ Merged ncaa-teams.json
+```
+
+**Or for backward compatible mode:**
+```
+✓ Loaded base teams.json
+  ✓ Detected external teams.json (backward compatibility mode)
+      {
+        "espn": {
+          "espnSlug": "custom",
+          "espnSport": "football"
+        }
+      }
+    ]
+  }
+}
+```
+
+---
+
+## Deprecated Content
+
+_(The following old examples and troubleshooting sections have been consolidated above)_
+    image: ghcr.io/sethwv/game-thumbs:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - RATE_LIMIT_PER_MINUTE=60
+      - TRUST_PROXY=1
+      - LOG_TO_FILE=true
+    volumes:
+      - ./teams.json:/app/teams.json:ro
+      - ./leagues.json:/app/leagues.json:ro
+      - ./logs:/app/logs
+    restart: unless-stopped
+```
+
+---
+
+## Troubleshooting
+
+### Port Already in Use
+
+If port 3000 is already in use, map to a different host port:
+
+```bash
+docker run -p 8080:3000 ghcr.io/sethwv/game-thumbs:latest
+```
+
+The API will be available at `http://localhost:8080`.
+
+### Rate Limit Issues
+
+If you're hitting rate limits during development or testing:
+
+```bash
+docker run -p 3000:3000 \
+  -e RATE_LIMIT_PER_MINUTE=0 \
+  ghcr.io/sethwv/game-thumbs:latest
+```
+
+**Warning:** Disabling rate limits in production is not recommended.
+
+### Timeout Issues
+
+If you're experiencing timeouts with slow network connections:
+
+```bash
+docker run -p 3000:3000 \
+  -e REQUEST_TIMEOUT=30000 \
+  -e SERVER_TIMEOUT=60000 \
+  ghcr.io/sethwv/game-thumbs:latest
+```
+
+### Team/League Override Not Loading
+
+Ensure your `teams.json` or `leagues.json` file:
 - Is valid JSON
 - Uses the correct file path in the volume mount
 - Has the correct league keys (lowercase)
 - Uses proper team slugs (check via `/raw` endpoint)
 
-Check container logs for errors:
+Check container logs for errors and merge confirmation:
 ```bash
 docker logs <container-id>
+```
+
+You should see messages like:
+```
+✓ Loaded external teams.json for additive merge
+✓ Loaded external leagues.json for additive merge
 ```
