@@ -88,7 +88,7 @@ function init(port) {
     // Check cache first to determine if we need strict rate limiting
     const { checkCacheMiddleware } = require('./helpers/imageCache');
     app.use((req, res, next) => {
-        if (['thumb', 'logo', 'cover', 'teamlogo', 'leaguelogo', 'leaguethumb', 'leaguecover'].some(path => req.path.includes(path))) {
+        if (['thumb', 'logo', 'cover'].some(path => req.path.includes(path))) {
             return checkCacheMiddleware(req, res, next);
         }
         next();
@@ -185,24 +185,42 @@ function init(port) {
         process.env.XC_PROXY = 'true';
     }
     
-    fs.readdirSync(routesPath).forEach(file => {
-        if (file.endsWith('.js')) {
+    // Load route files and sort by priority (lower numbers first), then alphabetically
+    const routeFiles = fs.readdirSync(routesPath)
+        .filter(file => file.endsWith('.js'))
+        .filter(file => {
             // In xcproxy mode, only load xcproxy.js
             if (APP_MODE === 'xcproxy' && file !== 'xcproxy.js') {
-                return;
+                return false;
             }
-            
-            const route = require(path.join(routesPath, file));
-            if (route.paths) {
-                for (const path of route.paths) {
-                    registerRoute(path, route.handler, route.method);
-                    logger.info(`Registered route: [${route.method.toUpperCase()}] ${path}`);
-                }
+            return true;
+        })
+        .map(file => ({
+            file,
+            route: require(path.join(routesPath, file))
+        }))
+        .sort((a, b) => {
+            // Sort by priority first (lower numbers first, undefined = Infinity)
+            const priorityA = a.route.priority ?? Infinity;
+            const priorityB = b.route.priority ?? Infinity;
+            if (priorityA !== priorityB) {
+                return priorityA - priorityB;
             }
-            else if (route.path) {
-                registerRoute(route.path, route.handler, route.method);
-                logger.info(`Registered route: [${route.method.toUpperCase()}] ${route.path}`);
+            // Then sort alphabetically by filename
+            return a.file.localeCompare(b.file);
+        });
+    
+    // Register routes in sorted order
+    routeFiles.forEach(({ file, route }) => {
+        if (route.paths) {
+            for (const path of route.paths) {
+                registerRoute(path, route.handler, route.method);
+                logger.info(`Registered route: [${route.method.toUpperCase()}] ${path}${route.priority ? ` (priority: ${route.priority})` : ''}`);
             }
+        }
+        else if (route.path) {
+            registerRoute(route.path, route.handler, route.method);
+            logger.info(`Registered route: [${route.method.toUpperCase()}] ${route.path}${route.priority ? ` (priority: ${route.priority})` : ''}`);
         }
     });
 

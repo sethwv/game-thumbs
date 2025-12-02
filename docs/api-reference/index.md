@@ -16,17 +16,26 @@ Complete documentation for all API endpoints.
 
 | Type | Endpoint | Dimensions | Description |
 |------|----------|------------|-------------|
-| Thumbnail | `/:league/:team1/:team2/thumb[.png]` | 1440x1080 | Landscape matchup thumbnail |
-| Cover | `/:league/:team1/:team2/cover[.png]` | 1080x1440 | Portrait matchup cover |
-| Logo | `/:league/:team1/:team2/logo[.png]` | 1024x1024 | Matchup logo (transparent) |
-| Team Logo | `/:league/:team/teamlogo[.png]` | Original | Raw team logo |
-| League Logo | `/:league/leaguelogo[.png]` | Original | Raw league logo |
-| League Thumb | `/:league/leaguethumb[.png]` | 1440x1080 | League logo with gradient |
-| League Cover | `/:league/leaguecover[.png]` | 1080x1440 | League cover with gradient |
+| **Unified Endpoints** | | | |
+| Thumbnail | `/:league/thumb[.png]` | 1440x1080 | League landscape thumbnail |
+| | `/:league/:team1/thumb[.png]` | 1440x1080 | Team landscape thumbnail |
+| | `/:league/:team1/:team2/thumb[.png]` | 1440x1080 | Matchup landscape thumbnail |
+| Cover | `/:league/cover[.png]` | 1080x1440 | League portrait cover |
+| | `/:league/:team1/cover[.png]` | 1080x1440 | Team portrait cover |
+| | `/:league/:team1/:team2/cover[.png]` | 1080x1440 | Matchup portrait cover |
+| Logo | `/:league/logo[.png]` | Original | Raw league logo |
+| | `/:league/:team1/logo[.png]` | Original | Raw team logo |
+| | `/:league/:team1/:team2/logo[.png]` | 1024x1024 | Matchup logo (transparent) |
+| **Other Endpoints** | | | |
 | Raw Data | `/:league/:team/raw` | JSON | Team data from provider |
 | Server Info | `/info` | JSON | Version and git info |
+| **Deprecated** | | | |
+| ~~Team Logo~~ | `/:league/:team/teamlogo[.png]` | Original | Use `/:league/:team/logo` |
+| ~~League Logo~~ | `/:league/leaguelogo[.png]` | Original | Use `/:league/logo` |
+| ~~League Thumb~~ | `/:league/leaguethumb[.png]` | 1440x1080 | Use `/:league/thumb` |
+| ~~League Cover~~ | `/:league/leaguecover[.png]` | 1080x1440 | Use `/:league/cover` |
 
-**Note:** The `.png` extension is optional for all image endpoints.
+**Note:** The `.png` extension is optional for all image endpoints. Deprecated endpoints still work but will be removed in a future version.
 
 ---
 

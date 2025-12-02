@@ -15,7 +15,10 @@
  */
 function normalize(str) {
     if (!str) return '';
-    return str.toLowerCase()
+    return str
+        .normalize('NFD')               // Decompose accented characters
+        .replace(/[\u0300-\u036f]/g, '') // Remove diacritical marks
+        .toLowerCase()
         .replace(/[^a-z0-9\s]/g, ' ')  // Convert dashes, underscores, etc. to spaces
         .replace(/\s+/g, ' ')           // Collapse multiple spaces
         .trim();
@@ -28,7 +31,10 @@ function normalize(str) {
  */
 function normalizeCompact(str) {
     if (!str) return '';
-    return str.toLowerCase()
+    return str
+        .normalize('NFD')               // Decompose accented characters
+        .replace(/[\u0300-\u036f]/g, '') // Remove diacritical marks
+        .toLowerCase()
         .replace(/[^a-z0-9]/g, '');     // Remove all non-alphanumeric chars
 }
 

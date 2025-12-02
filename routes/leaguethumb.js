@@ -6,7 +6,7 @@
 
 const providerManager = require('../providers/ProviderManager');
 const { findLeague } = require('../leagues');
-const { generateLeagueThumb } = require('../helpers/leagueImageGenerator');
+const { generateLeagueThumb } = require('../helpers/genericImageGenerator');
 const logger = require('../helpers/logger');
 
 module.exports = {
