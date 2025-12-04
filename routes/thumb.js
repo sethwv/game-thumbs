@@ -29,7 +29,10 @@ module.exports = {
 
         // Determine dimensions based on aspect ratio
         let width, height;
-        if (aspect === '16-9' || aspect === '16x9') {
+        if (aspect === '1-1' || aspect === '1x1' || aspect === 'square') {
+            width = 1080;
+            height = 1080;
+        } else if (aspect === '16-9' || aspect === '16x9') {
             width = 1920;
             height = 1080;
         } else { // default 4:3

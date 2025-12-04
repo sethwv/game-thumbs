@@ -28,7 +28,7 @@ nav_order: 8
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `aspect` | string | `3-4` | Aspect ratio: `3-4` (1080x1440) or `9-16` (1080x1920) |
+| `aspect` | string | `3-4` | Aspect ratio: `3-4` (1080x1440), `9-16` (1080x1920), or `1-1` (1080x1080) |
 | `style` | integer | 1 | Visual style 1-4 (matchup only) |
 | `logo` | boolean | true | Include league logo (matchup only) |
 | `fallback` | boolean | false | Return league cover if team not found |
@@ -53,6 +53,7 @@ nav_order: 8
 GET /nba/cover
 GET /nfl/cover.png
 GET /ncaaf/cover?aspect=9-16
+GET /nba/cover?aspect=1-1
 ```
 
 ### Team Covers
@@ -75,6 +76,7 @@ GET /ncaaf/alabama/georgia/cover?logo=false
 
 - **Default:** 1080x1440 PNG (3:4 aspect ratio)
 - **9:16:** 1080x1920 PNG
+- **1:1 (Square):** 1080x1080 PNG
 
 ---
 
