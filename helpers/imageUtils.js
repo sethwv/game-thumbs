@@ -6,6 +6,9 @@
 const { createCanvas, loadImage } = require('canvas');
 const https = require('https');
 const crypto = require('crypto');
+const fs = require('fs').promises;
+const fsSync = require('fs');
+const path = require('path');
 const logger = require('./logger');
 
 // ------------------------------------------------------------------------------
@@ -21,8 +24,27 @@ const COLOR_SIMILARITY_THRESHOLD = 120; // Colors closer than this need special 
 // Cache
 // ------------------------------------------------------------------------------
 
+// Get cache settings from environment
+const CACHE_HOURS = parseInt(process.env.IMAGE_CACHE_HOURS || '24', 10);
+const CACHE_ENABLED = CACHE_HOURS > 0;
+
 // Cache for white logo versions to avoid recreating them
 const whiteLogoCache = new Map();
+
+// Cache directory for trimmed logos
+const TRIMMED_CACHE_DIR = path.join(__dirname, '..', '.cache', 'trimmed');
+if (!fsSync.existsSync(TRIMMED_CACHE_DIR)) {
+    fsSync.mkdirSync(TRIMMED_CACHE_DIR, { recursive: true });
+} else if (CACHE_ENABLED) {
+    // Clear trimmed cache on startup
+    const files = fsSync.readdirSync(TRIMMED_CACHE_DIR);
+    files.forEach(file => {
+        fsSync.unlinkSync(path.join(TRIMMED_CACHE_DIR, file));
+    });
+    if (files.length > 0) {
+        logger.info(`Cleared ${files.length} cached trimmed logo(s) from previous session`);
+    }
+}
 
 // ------------------------------------------------------------------------------
 // Exports
@@ -39,6 +61,7 @@ module.exports = {
     downloadImage,
     selectBestLogo,
     trimImage,
+    loadTrimmedLogo,
 
     // Color utilities
     hexToRgb,
@@ -52,14 +75,32 @@ module.exports = {
 // Functions
 // ------------------------------------------------------------------------------
 
-function drawLogoWithShadow(ctx, logoImage, x, y, size) {
+function drawLogoWithShadow(ctx, logoImage, x, y, maxSize) {
+    // Calculate dimensions maintaining aspect ratio
+    const aspectRatio = logoImage.width / logoImage.height;
+    let drawWidth, drawHeight;
+    
+    if (aspectRatio > 1) {
+        // Wider than tall
+        drawWidth = maxSize;
+        drawHeight = maxSize / aspectRatio;
+    } else {
+        // Taller than wide or square
+        drawHeight = maxSize;
+        drawWidth = maxSize * aspectRatio;
+    }
+    
+    // Center the logo in the available space
+    const drawX = x + (maxSize - drawWidth) / 2;
+    const drawY = y + (maxSize - drawHeight) / 2;
+    
     // Add drop shadow
     ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
     ctx.shadowBlur = 20;
     ctx.shadowOffsetX = 5;
     ctx.shadowOffsetY = 5;
 
-    ctx.drawImage(logoImage, x, y, size, size);
+    ctx.drawImage(logoImage, drawX, drawY, drawWidth, drawHeight);
 
     // Reset shadow
     ctx.shadowColor = 'transparent';
@@ -257,20 +298,12 @@ function getWhiteLogo(logoImage, size) {
 // Image utilities
 // ------------------------------------------------------------------------------
 
-const fs = require('fs');
-const path = require('path');
-
 const REQUEST_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '10000', 10); // 10 seconds default
 
 function downloadImage(urlOrPath) {
     // If it's a local file path, load from filesystem
     if (typeof urlOrPath === 'string' && (urlOrPath.startsWith('/') || urlOrPath.startsWith('./') || urlOrPath.startsWith('../'))) {
-        return new Promise((resolve, reject) => {
-            fs.readFile(path.resolve(urlOrPath), (err, data) => {
-                if (err) return reject(err);
-                resolve(data);
-            });
-        });
+        return fs.readFile(path.resolve(urlOrPath));
     }
     // Otherwise, treat as URL with timeout protection
     return new Promise((resolve, reject) => {
@@ -410,9 +443,55 @@ async function selectBestLogo(team, backgroundColor) {
     }
 }
 
-function trimImage(imageBuffer) {
+/**
+ * Load a team logo with automatic selection, downloading, and trimming
+ * This is the recommended way to load logos as it handles all processing in one step
+ * @param {Object} team - Team object with logo and logoAlt properties
+ * @param {string} backgroundColor - Background color for contrast checking
+ * @returns {Promise<Image>} Loaded and trimmed logo image ready to use
+ */
+async function loadTrimmedLogo(team, backgroundColor) {
+    try {
+        // Select best logo based on contrast
+        const logoUrl = await selectBestLogo(team, backgroundColor);
+        
+        // Download and trim the logo (with URL as cache key)
+        let logoBuffer = await downloadImage(logoUrl);
+        logoBuffer = await trimImage(logoBuffer, logoUrl);
+        
+        // Load and return the image
+        return await loadImage(logoBuffer);
+    } catch (error) {
+        logger.warn('Error loading trimmed logo', { 
+            team: team.name, 
+            error: error.message 
+        });
+        throw error;
+    }
+}
+
+function trimImage(imageBuffer, enableCache = true) {
     return new Promise(async (resolve, reject) => {
         try {
+            // Only cache if caching is enabled and explicitly requested
+            // Pass false/null to skip caching for final composed outputs
+            const shouldCache = CACHE_ENABLED && enableCache;
+            
+            // Check cache if we should cache
+            // Use hash of original image buffer as cache key to detect if source changed
+            if (shouldCache) {
+                const sourceHash = crypto.createHash('md5').update(imageBuffer).digest('hex');
+                const cachedPath = path.join(TRIMMED_CACHE_DIR, `${sourceHash}.png`);
+                
+                try {
+                    const cachedBuffer = await fs.readFile(cachedPath);
+                    resolve(cachedBuffer);
+                    return;
+                } catch (err) {
+                    // Cache miss, continue with trimming
+                }
+            }
+            
             // Load the image from buffer
             const image = await loadImage(imageBuffer);
             
@@ -457,8 +536,22 @@ function trimImage(imageBuffer) {
             // Draw the trimmed portion
             trimmedCtx.drawImage(image, minX, minY, trimmedWidth, trimmedHeight, 0, 0, trimmedWidth, trimmedHeight);
             
-            // Return trimmed image buffer
-            resolve(trimmedCanvas.toBuffer('image/png'));
+            // Get trimmed image buffer
+            const trimmedBuffer = trimmedCanvas.toBuffer('image/png');
+            
+            // Save to cache if we should cache
+            // Use hash of original image buffer so we can detect if source changed
+            if (shouldCache) {
+                const sourceHash = crypto.createHash('md5').update(imageBuffer).digest('hex');
+                const cachedPath = path.join(TRIMMED_CACHE_DIR, `${sourceHash}.png`);
+                
+                // Save asynchronously, don't wait
+                fs.writeFile(cachedPath, trimmedBuffer).catch(err => {
+                    logger.warn('Failed to cache trimmed logo', { error: err.message });
+                });
+            }
+            
+            resolve(trimmedBuffer);
         } catch (error) {
             reject(error);
         }

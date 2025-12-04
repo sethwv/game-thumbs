@@ -28,7 +28,7 @@ nav_order: 7
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `aspect` | string | `4-3` | Aspect ratio: `4-3` (1440x1080) or `16-9` (1920x1080) |
+| `aspect` | string | `4-3` | Aspect ratio: `4-3` (1440x1080), `16-9` (1920x1080), or `1-1` (1080x1080) |
 | `style` | integer | 1 | Visual style 1-4 (matchup only) |
 | `logo` | boolean | true | Include league logo (matchup only) |
 | `fallback` | boolean | false | Return league thumb if team not found |
@@ -43,6 +43,7 @@ nav_order: 7
 - **Style 2:** Gradient blend between team colors
 - **Style 3:** Minimalist badge with team circles and VS text (light background)
 - **Style 4:** Minimalist badge with team circles and VS text (dark background)
+- **Style 99:** 3D embossed with textured backgrounds, reflections, and metallic VS badge _(credit: @shelf on Dispatcharr Discord)_
 
 ---
 
@@ -53,6 +54,7 @@ nav_order: 7
 GET /nba/thumb
 GET /nfl/thumb.png
 GET /ncaaf/thumb?aspect=16-9
+GET /nba/thumb?aspect=1-1
 ```
 
 ### Team Thumbnails
@@ -67,6 +69,7 @@ GET /mls/lafc/thumb
 GET /nba/lakers/celtics/thumb
 GET /nfl/chiefs/49ers/thumb?style=2
 GET /ncaaf/alabama/georgia/thumb?logo=false
+GET /nhl/tor/mtl/thumb?style=99
 ```
 
 ---
@@ -75,6 +78,7 @@ GET /ncaaf/alabama/georgia/thumb?logo=false
 
 - **Default:** 1440x1080 PNG (4:3 aspect ratio)
 - **16:9:** 1920x1080 PNG
+- **1:1 (Square):** 1080x1080 PNG
 
 ---
 
