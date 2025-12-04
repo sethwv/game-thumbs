@@ -6,7 +6,7 @@
 
 const https = require('https');
 const BaseProvider = require('./BaseProvider');
-const { getTeamMatchScore } = require('../helpers/teamMatchingUtils');
+const { getTeamMatchScoreWithOverrides } = require('../helpers/teamMatchingUtils');
 const { extractDominantColors } = require('../helpers/colorExtractor');
 const logger = require('../helpers/logger');
 
@@ -97,6 +97,14 @@ class ESPNProvider extends BaseProvider {
                 for (const team of teams) {
                     // Convert ESPN team format to standardized format for matching
                     const teamObj = team.team || {};
+                    
+                    // Extract team slug for override lookup
+                    let teamSlug = teamObj.slug || teamObj.id;
+                    if (teamSlug && teamSlug.includes('.')) {
+                        teamSlug = teamSlug.split('.')[1];
+                    }
+                    teamSlug = teamSlug?.replace(/_/g, '-');
+                    
                     const standardizedTeam = {
                         fullName: teamObj.displayName,
                         shortDisplayName: teamObj.shortDisplayName,
@@ -105,7 +113,13 @@ class ESPNProvider extends BaseProvider {
                         abbreviation: teamObj.abbreviation
                     };
                     
-                    const score = getTeamMatchScore(teamIdentifier, standardizedTeam);
+                    const score = getTeamMatchScoreWithOverrides(
+                        teamIdentifier,
+                        standardizedTeam,
+                        teamSlug,
+                        league.shortName.toLowerCase()
+                    );
+                    
                     if (score > bestScore) {
                         bestScore = score;
                         bestMatch = team;
