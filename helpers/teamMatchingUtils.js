@@ -328,6 +328,38 @@ function getTeamMatchScore(input, team) {
 }
 
 /**
+ * Get match score for a team, checking both overridden and original abbreviations
+ * @param {string} input - User search input
+ * @param {Object} team - Standardized team object
+ * @param {string} teamSlug - Team slug for override lookup (optional)
+ * @param {string} leagueKey - League key for override lookup (optional)
+ * @returns {number} Best match score considering overrides
+ */
+function getTeamMatchScoreWithOverrides(input, team, teamSlug, leagueKey) {
+    let bestScore = 0;
+    
+    // If we have league/team info, check for overridden abbreviation
+    if (teamSlug && leagueKey) {
+        const { getLeagueOverrides } = require('./teamOverrides');
+        const leagueOverrides = getLeagueOverrides(leagueKey);
+        const teamOverride = leagueOverrides[teamSlug];
+        const overriddenAbbreviation = teamOverride?.override?.abbreviation;
+        
+        // Check with overridden abbreviation first (full priority)
+        if (overriddenAbbreviation) {
+            const teamWithOverride = { ...team, abbreviation: overriddenAbbreviation };
+            bestScore = getTeamMatchScore(input, teamWithOverride);
+        }
+    }
+    
+    // Check with original abbreviation at 90% priority
+    const originalScore = getTeamMatchScore(input, team) * 0.9;
+    bestScore = Math.max(bestScore, originalScore);
+    
+    return bestScore;
+}
+
+/**
  * Find the best matching team from an array of teams
  * @param {string} input - User search input
  * @param {Object[]} teams - Array of standardized team objects
@@ -367,6 +399,7 @@ module.exports = {
     
     // Team matching
     getTeamMatchScore,
+    getTeamMatchScoreWithOverrides,
     findBestTeamMatch
 };
 
