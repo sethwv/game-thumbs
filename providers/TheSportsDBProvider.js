@@ -6,7 +6,7 @@
 
 const https = require('https');
 const BaseProvider = require('./BaseProvider');
-const { getTeamMatchScore } = require('../helpers/teamMatchingUtils');
+const { getTeamMatchScoreWithOverrides, generateSlug } = require('../helpers/teamMatchingUtils');
 const { extractDominantColors } = require('../helpers/colorExtractor');
 const logger = require('../helpers/logger');
 
@@ -77,7 +77,6 @@ class TheSportsDBProvider extends BaseProvider {
             let bestScore = 0;
 
             // Check for custom alias match first (highest priority)
-            const { generateSlug } = require('../helpers/teamMatchingUtils');
             const { findTeamByAlias } = require('../helpers/teamOverrides');
             
             // Create slug identifiers for TheSportsDB teams (for alias matching)
@@ -98,7 +97,9 @@ class TheSportsDBProvider extends BaseProvider {
             // If no alias match, find best matching team using weighted scoring
             if (!bestMatch) {
                 for (const team of teams) {
-                    // Convert TheSportsDB team format to standardized format for matching
+                    // Extract team slug for override lookup
+                    const teamSlug = generateSlug(team.strTeam);
+                    
                     const standardizedTeam = {
                         fullName: team.strTeam,
                         name: team.strTeam,
@@ -106,7 +107,13 @@ class TheSportsDBProvider extends BaseProvider {
                         abbreviation: team.strAlternate || team.strTeam.substring(0, 3).toUpperCase()
                     };
                     
-                    const score = getTeamMatchScore(teamIdentifier, standardizedTeam);
+                    const score = getTeamMatchScoreWithOverrides(
+                        teamIdentifier,
+                        standardizedTeam,
+                        teamSlug,
+                        league.shortName.toLowerCase()
+                    );
+                    
                     if (score > bestScore) {
                         bestScore = score;
                         bestMatch = team;

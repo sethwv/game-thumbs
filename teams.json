@@ -1,28 +1,27 @@
 {
+  "nhl": {
+    "utah-mammoth": {
+      "override": { "abbreviation": "UTA" }
+    }
+  },
   "epl": {
     "man-utd": {
       "aliases": ["man utd", "man u", "manutd", "mufc", "manchester united"],
-      "override": {
-        "abbreviation": "MUN"
-      }
+      "override": { "abbreviation": "MUN" }
     },
     "tottenham": {
-      "aliases": ["spurs", "thfc", "tottenham hotspur"],
-      "override": {}
+      "aliases": ["spurs", "thfc", "tottenham hotspur"]
     },
     "nottm-forest": {
-      "aliases": ["notts forest", "forest", "nffc", "nottingham forest"],
-      "override": {}
+      "aliases": ["notts forest", "forest", "nffc", "nottingham forest"]
     }
   },
   "ncaaf": {
     "app-state-mountaineers": {
-      "aliases": ["app state", "appalachian state", "appalachian st"],
-      "override": {}
+      "aliases": ["app state", "appalachian state", "appalachian st"]
     },
     "indianapolis-greyhounds": {
-      "aliases": ["indianapolis", "uindy", "university of indianapolis"],
-      "override": {}
+      "aliases": ["indianapolis", "uindy", "university of indianapolis"]
     }
   }
 }
