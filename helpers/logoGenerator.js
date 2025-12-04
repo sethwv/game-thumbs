@@ -4,7 +4,7 @@
 // ------------------------------------------------------------------------------
 
 const { createCanvas, loadImage } = require('canvas');
-const { drawLogoWithShadow, downloadImage, selectBestLogo, adjustColors } = require('./imageUtils');
+const { drawLogoWithShadow, downloadImage, selectBestLogo, adjustColors, trimImage } = require('./imageUtils');
 const logger = require('./logger');
 
 module.exports = {
@@ -48,7 +48,8 @@ async function generateLogo(teamA, teamB, options = {}) {
     // Apply trim if requested
     if (trim) {
         const { trimImage } = require('./imageUtils');
-        logoBuffer = await trimImage(logoBuffer);
+        // Don't cache the final composed output trim
+        logoBuffer = await trimImage(logoBuffer, false);
     }
     
     return logoBuffer;
@@ -72,10 +73,12 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league, useLig
         throw new Error('Both teams must have logos');
     }
     
-    const logoABuffer = await downloadImage(teamALogoUrl);
+    let logoABuffer = await downloadImage(teamALogoUrl);
+    logoABuffer = await trimImage(logoABuffer, teamALogoUrl);
     const logoA = await loadImage(logoABuffer);
     
-    const logoBBuffer = await downloadImage(teamBLogoUrl);
+    let logoBBuffer = await downloadImage(teamBLogoUrl);
+    logoBBuffer = await trimImage(logoBBuffer, teamBLogoUrl);
     const logoB = await loadImage(logoBBuffer);
     
     // Calculate diagonal split points (same as thumbnail)
@@ -214,10 +217,12 @@ async function generateSideBySide(teamA, teamB, width, height, league, useLight)
         throw new Error('Both teams must have logos');
     }
     
-    const logoABuffer = await downloadImage(teamALogoUrl);
+    let logoABuffer = await downloadImage(teamALogoUrl);
+    logoABuffer = await trimImage(logoABuffer, teamALogoUrl);
     const logoA = await loadImage(logoABuffer);
     
-    const logoBBuffer = await downloadImage(teamBLogoUrl);
+    let logoBBuffer = await downloadImage(teamBLogoUrl);
+    logoBBuffer = await trimImage(logoBBuffer, teamBLogoUrl);
     const logoB = await loadImage(logoBBuffer);
     
     // Calculate logo size (50% of canvas for each logo)
@@ -231,28 +236,53 @@ async function generateSideBySide(teamA, teamB, width, height, league, useLight)
     const logoBX = (width / 2) + (spacing / 2);
     const logoBY = (height - logoSize) / 2;
     
-    // Draw teamA logo (left) - outlines disabled, always use shadow
+    // Draw teamA logo (left) with aspect ratio maintained
     ctx.save();
     ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
     ctx.shadowBlur = 15;
     ctx.shadowOffsetX = 3;
     ctx.shadowOffsetY = 3;
-    ctx.drawImage(logoA, logoAX, logoAY, logoSize, logoSize);
+    
+    const aspectRatioA = logoA.width / logoA.height;
+    let drawWidthA, drawHeightA;
+    if (aspectRatioA > 1) {
+        drawWidthA = logoSize;
+        drawHeightA = logoSize / aspectRatioA;
+    } else {
+        drawHeightA = logoSize;
+        drawWidthA = logoSize * aspectRatioA;
+    }
+    const adjustedAX = logoAX + (logoSize - drawWidthA) / 2;
+    const adjustedAY = logoAY + (logoSize - drawHeightA) / 2;
+    ctx.drawImage(logoA, adjustedAX, adjustedAY, drawWidthA, drawHeightA);
     ctx.restore();
     
-    // Draw teamB logo (right) - outlines disabled, always use shadow
+    // Draw teamB logo (right) with aspect ratio maintained
     ctx.save();
     ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
     ctx.shadowBlur = 15;
     ctx.shadowOffsetX = 3;
     ctx.shadowOffsetY = 3;
-    ctx.drawImage(logoB, logoBX, logoBY, logoSize, logoSize);
+    
+    const aspectRatioB = logoB.width / logoB.height;
+    let drawWidthB, drawHeightB;
+    if (aspectRatioB > 1) {
+        drawWidthB = logoSize;
+        drawHeightB = logoSize / aspectRatioB;
+    } else {
+        drawHeightB = logoSize;
+        drawWidthB = logoSize * aspectRatioB;
+    }
+    const adjustedBX = logoBX + (logoSize - drawWidthB) / 2;
+    const adjustedBY = logoBY + (logoSize - drawHeightB) / 2;
+    ctx.drawImage(logoB, adjustedBX, adjustedBY, drawWidthB, drawHeightB);
     ctx.restore();
     
     // Draw league logo as a badge in the bottom center if league logo URL is provided
     if (league && league.logoUrl) {
         try {
-            const leagueLogoBuffer = await downloadImage(league.logoUrl);
+            let leagueLogoBuffer = await downloadImage(league.logoUrl);
+            leagueLogoBuffer = await trimImage(leagueLogoBuffer, league.logoUrl);
             const leagueLogo = await loadImage(leagueLogoBuffer);
             
             ctx.save();
@@ -319,10 +349,12 @@ async function generateCircleBadges(teamA, teamB, width, height, league, useLigh
         throw new Error('Both teams must have logos');
     }
     
-    const logoABuffer = await downloadImage(teamALogoUrl);
+    let logoABuffer = await downloadImage(teamALogoUrl);
+    logoABuffer = await trimImage(logoABuffer, teamALogoUrl);
     const logoA = await loadImage(logoABuffer);
     
-    const logoBBuffer = await downloadImage(teamBLogoUrl);
+    let logoBBuffer = await downloadImage(teamBLogoUrl);
+    logoBBuffer = await trimImage(logoBBuffer, teamBLogoUrl);
     const logoB = await loadImage(logoBBuffer);
     
     // Calculate sizes - circles positioned closer together to avoid overflow
@@ -348,12 +380,25 @@ async function generateCircleBadges(teamA, teamB, width, height, league, useLigh
     ctx.fill();
     ctx.restore();
     
-    // Draw teamA logo (80% to fit within circle)
+    // Draw teamA logo (80% to fit within circle) with aspect ratio maintained
     const logoSize = badgeSize * 0.80;
-    const logoAX = badgeAX + (badgeSize - logoSize) / 2;
-    const logoAY = badgeAY + (badgeSize - logoSize) / 2;
+    const logoContainerX = badgeAX + (badgeSize - logoSize) / 2;
+    const logoContainerY = badgeAY + (badgeSize - logoSize) / 2;
     
-    ctx.drawImage(logoA, logoAX, logoAY, logoSize, logoSize);
+    const aspectRatioA = logoA.width / logoA.height;
+    let drawWidthA, drawHeightA;
+    if (aspectRatioA > 1) {
+        drawWidthA = logoSize;
+        drawHeightA = logoSize / aspectRatioA;
+    } else {
+        drawHeightA = logoSize;
+        drawWidthA = logoSize * aspectRatioA;
+    }
+    
+    const logoAX = logoContainerX + (logoSize - drawWidthA) / 2;
+    const logoAY = logoContainerY + (logoSize - drawHeightA) / 2;
+    
+    ctx.drawImage(logoA, logoAX, logoAY, drawWidthA, drawHeightA);
     
     // Position for teamB (right)
     const badgeBX = centerX + spacing;
@@ -372,16 +417,27 @@ async function generateCircleBadges(teamA, teamB, width, height, league, useLigh
     ctx.fill();
     ctx.restore();
     
-    // Draw teamB logo
-    const logoBX = badgeBX + (badgeSize - logoSize) / 2;
-    const logoBY = badgeBY + (badgeSize - logoSize) / 2;
+    // Draw teamB logo with aspect ratio maintained
+    const aspectRatioB = logoB.width / logoB.height;
+    let drawWidthB, drawHeightB;
+    if (aspectRatioB > 1) {
+        drawWidthB = logoSize;
+        drawHeightB = logoSize / aspectRatioB;
+    } else {
+        drawHeightB = logoSize;
+        drawWidthB = logoSize * aspectRatioB;
+    }
     
-    ctx.drawImage(logoB, logoBX, logoBY, logoSize, logoSize);
+    const logoBX = badgeBX + (badgeSize - drawWidthB) / 2;
+    const logoBY = badgeBY + (badgeSize - drawHeightB) / 2;
+    
+    ctx.drawImage(logoB, logoBX, logoBY, drawWidthB, drawHeightB);
     
     // Draw league logo at bottom center if league logo URL is provided
     if (league && league.logoUrl) {
         try {
-            const leagueLogoBuffer = await downloadImage(league.logoUrl);
+            let leagueLogoBuffer = await downloadImage(league.logoUrl);
+            leagueLogoBuffer = await trimImage(leagueLogoBuffer, leagueLogoUrl || league.logoUrl);
             const leagueLogo = await loadImage(leagueLogoBuffer);
             
             ctx.save();
@@ -390,6 +446,7 @@ async function generateCircleBadges(teamA, teamB, width, height, league, useLigh
             const leagueLogoSize = Math.min(width, height) * 0.2;
             const leagueLogoX = (width - leagueLogoSize) / 2;
             
+            // Calculate bottom edge of square badges
             // Calculate bottom edge of circle badges
             const circleBottomY = badgeAY + badgeSize;
             // Position league logo to overlap the bottom line by 5% of its height
@@ -452,10 +509,12 @@ async function generateSquareBadges(teamA, teamB, width, height, league, useLigh
         throw new Error('Both teams must have logos');
     }
     
-    const logoABuffer = await downloadImage(teamALogoUrl);
+    let logoABuffer = await downloadImage(teamALogoUrl);
+    logoABuffer = await trimImage(logoABuffer, teamALogoUrl);
     const logoA = await loadImage(logoABuffer);
     
-    const logoBBuffer = await downloadImage(teamBLogoUrl);
+    let logoBBuffer = await downloadImage(teamBLogoUrl);
+    logoBBuffer = await trimImage(logoBBuffer, teamBLogoUrl);
     const logoB = await loadImage(logoBBuffer);
     
     // Calculate sizes - two squares that join in the middle to form a rectangle
@@ -488,21 +547,48 @@ async function generateSquareBadges(teamA, teamB, width, height, league, useLigh
     ctx.fillStyle = colorB;
     ctx.fillRect(badgeBX, badgeBY, badgeSize, badgeSize);
 
-    // Draw teamA logo
+    // Draw teamA logo with aspect ratio maintained
     const logoSize = badgeSize * 0.8;
-    const logoAX = badgeAX + (badgeSize - logoSize) / 2;
-    const logoAY = badgeAY + (badgeSize - logoSize) / 2;
-    ctx.drawImage(logoA, logoAX, logoAY, logoSize, logoSize);
+    const logoContainerX = badgeAX + (badgeSize - logoSize) / 2;
+    const logoContainerY = badgeAY + (badgeSize - logoSize) / 2;
+    
+    const aspectRatioA = logoA.width / logoA.height;
+    let drawWidthA, drawHeightA;
+    if (aspectRatioA > 1) {
+        drawWidthA = logoSize;
+        drawHeightA = logoSize / aspectRatioA;
+    } else {
+        drawHeightA = logoSize;
+        drawWidthA = logoSize * aspectRatioA;
+    }
+    
+    const logoAX = logoContainerX + (logoSize - drawWidthA) / 2;
+    const logoAY = logoContainerY + (logoSize - drawHeightA) / 2;
+    ctx.drawImage(logoA, logoAX, logoAY, drawWidthA, drawHeightA);
 
-    // Draw teamB logo
-    const logoBX = badgeBX + (badgeSize - logoSize) / 2;
-    const logoBY = badgeBY + (badgeSize - logoSize) / 2;
-    ctx.drawImage(logoB, logoBX, logoBY, logoSize, logoSize);
+    // Draw teamB logo with aspect ratio maintained
+    const logoContainerBX = badgeBX + (badgeSize - logoSize) / 2;
+    const logoContainerBY = badgeBY + (badgeSize - logoSize) / 2;
+    
+    const aspectRatioB = logoB.width / logoB.height;
+    let drawWidthB, drawHeightB;
+    if (aspectRatioB > 1) {
+        drawWidthB = logoSize;
+        drawHeightB = logoSize / aspectRatioB;
+    } else {
+        drawHeightB = logoSize;
+        drawWidthB = logoSize * aspectRatioB;
+    }
+    
+    const logoBX = logoContainerBX + (logoSize - drawWidthB) / 2;
+    const logoBY = logoContainerBY + (logoSize - drawHeightB) / 2;
+    ctx.drawImage(logoB, logoBX, logoBY, drawWidthB, drawHeightB);
     
     // Draw league logo at bottom center if league logo URL is provided
     if (league && league.logoUrl) {
         try {
-            const leagueLogoBuffer = await downloadImage(league.logoUrl);
+            let leagueLogoBuffer = await downloadImage(league.logoUrl);
+            leagueLogoBuffer = await trimImage(leagueLogoBuffer, leagueLogoUrl || league.logoUrl);
             const leagueLogo = await loadImage(leagueLogoBuffer);
             
             ctx.save();
@@ -573,10 +659,12 @@ async function generateCircleBadgesWithLeague(teamA, teamB, width, height, leagu
         throw new Error('League logo is required for style 5');
     }
     
-    const logoABuffer = await downloadImage(teamALogoUrl);
+    let logoABuffer = await downloadImage(teamALogoUrl);
+    logoABuffer = await trimImage(logoABuffer, teamALogoUrl);
     const logoA = await loadImage(logoABuffer);
     
-    const logoBBuffer = await downloadImage(teamBLogoUrl);
+    let logoBBuffer = await downloadImage(teamBLogoUrl);
+    logoBBuffer = await trimImage(logoBBuffer, teamBLogoUrl);
     const logoB = await loadImage(logoBBuffer);
     
     // For white background, always prefer the default league logo
@@ -586,7 +674,8 @@ async function generateCircleBadgesWithLeague(teamA, teamB, width, height, leagu
         throw new Error('League logo is required for style 5');
     }
     
-    const leagueLogoBuffer = await downloadImage(leagueLogoUrl);
+    let leagueLogoBuffer = await downloadImage(leagueLogoUrl);
+    leagueLogoBuffer = await trimImage(leagueLogoBuffer, leagueLogoUrl || league.logoUrl);
     const leagueLogo = await loadImage(leagueLogoBuffer);
     
     const centerX = width / 2;
@@ -652,6 +741,9 @@ async function generateCircleBadgesWithLeague(teamA, teamB, width, height, leagu
         ctx.restore();
         
         const logoMaxSize = badgeSize * 0.80;
+        const logoContainerX = badgeX + (badgeSize - logoMaxSize) / 2;
+        const logoContainerY = badgeY + (badgeSize - logoMaxSize) / 2;
+        
         const aspectRatio = badge.logo.width / badge.logo.height;
         let drawWidth, drawHeight;
         
@@ -663,8 +755,8 @@ async function generateCircleBadgesWithLeague(teamA, teamB, width, height, leagu
             drawWidth = logoMaxSize * aspectRatio;
         }
         
-        const logoX = badgeX + (badgeSize - drawWidth) / 2;
-        const logoY = badgeY + (badgeSize - drawHeight) / 2;
+        const logoX = logoContainerX + (logoMaxSize - drawWidth) / 2;
+        const logoY = logoContainerY + (logoMaxSize - drawHeight) / 2;
         
         ctx.drawImage(badge.logo, logoX, logoY, drawWidth, drawHeight);
     });
@@ -693,10 +785,12 @@ async function generateSquareBadgesWithLeague(teamA, teamB, width, height, leagu
         throw new Error('League logo is required for style 6');
     }
     
-    const logoABuffer = await downloadImage(teamALogoUrl);
+    let logoABuffer = await downloadImage(teamALogoUrl);
+    logoABuffer = await trimImage(logoABuffer, teamALogoUrl);
     const logoA = await loadImage(logoABuffer);
     
-    const logoBBuffer = await downloadImage(teamBLogoUrl);
+    let logoBBuffer = await downloadImage(teamBLogoUrl);
+    logoBBuffer = await trimImage(logoBBuffer, teamBLogoUrl);
     const logoB = await loadImage(logoBBuffer);
     
     // For white background, always prefer the default league logo
@@ -706,12 +800,16 @@ async function generateSquareBadgesWithLeague(teamA, teamB, width, height, leagu
         throw new Error('League logo is required for style 6');
     }
     
-    const leagueLogoBuffer = await downloadImage(leagueLogoUrl);
+    let leagueLogoBuffer = await downloadImage(leagueLogoUrl);
+    leagueLogoBuffer = await trimImage(leagueLogoBuffer, leagueLogoUrl || league.logoUrl);
     const leagueLogo = await loadImage(leagueLogoBuffer);
     
-    const badgeSize = Math.min(width, height) * 0.35;
     const centerX = width / 2;
     const centerY = height / 2;
+    
+    // Calculate badge size to ensure all 3 fit with some padding
+    const availableWidth = width * 0.95; // Use 95% of width to leave padding
+    const badgeSize = availableWidth / 3;
     
     const totalWidth = badgeSize * 3;
     const startX = centerX - (totalWidth / 2);
@@ -741,6 +839,9 @@ async function generateSquareBadgesWithLeague(teamA, teamB, width, height, leagu
         ctx.fillRect(badge.x, badgeY, badgeSize, badgeSize);
         
         const logoMaxSize = badgeSize * 0.8;
+        const logoContainerX = badge.x + (badgeSize - logoMaxSize) / 2;
+        const logoContainerY = badgeY + (badgeSize - logoMaxSize) / 2;
+        
         const aspectRatio = badge.logo.width / badge.logo.height;
         let drawWidth, drawHeight;
         
@@ -752,8 +853,8 @@ async function generateSquareBadgesWithLeague(teamA, teamB, width, height, leagu
             drawWidth = logoMaxSize * aspectRatio;
         }
         
-        const logoX = badge.x + (badgeSize - drawWidth) / 2;
-        const logoY = badgeY + (badgeSize - drawHeight) / 2;
+        const logoX = logoContainerX + (logoMaxSize - drawWidth) / 2;
+        const logoY = logoContainerY + (logoMaxSize - drawHeight) / 2;
         
         ctx.drawImage(badge.logo, logoX, logoY, drawWidth, drawHeight);
     });

@@ -25,11 +25,17 @@ if (!fsSync.existsSync(CACHE_DIR)) {
     fsSync.mkdirSync(CACHE_DIR);
 } else {
     const files = fsSync.readdirSync(CACHE_DIR);
+    let clearedCount = 0;
     files.forEach(file => {
-        fsSync.unlinkSync(path.join(CACHE_DIR, file));
+        const filePath = path.join(CACHE_DIR, file);
+        const stat = fsSync.statSync(filePath);
+        if (stat.isFile()) {
+            fsSync.unlinkSync(filePath);
+            clearedCount++;
+        }
     });
-    if (files.length > 0) {
-        logger.info(`Cleared ${files.length} cached image(s) from previous session`);
+    if (clearedCount > 0) {
+        logger.info(`Cleared ${clearedCount} cached image(s) from previous session`);
     }
 }
 

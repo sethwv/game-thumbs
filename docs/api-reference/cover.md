@@ -28,7 +28,7 @@ nav_order: 8
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `aspect` | string | `3-4` | Aspect ratio: `3-4` (1080x1440) or `9-16` (1080x1920) |
+| `aspect` | string | `3-4` | Aspect ratio: `3-4` (1080x1440), `9-16` (1080x1920), or `1-1` (1080x1080) |
 | `style` | integer | 1 | Visual style 1-4 (matchup only) |
 | `logo` | boolean | true | Include league logo (matchup only) |
 | `fallback` | boolean | false | Return league cover if team not found |
@@ -43,6 +43,7 @@ nav_order: 8
 - **Style 2:** Gradient blend between team colors
 - **Style 3:** Minimalist badge with team circles and VS text (light background)
 - **Style 4:** Minimalist badge with team circles and VS text (dark background)
+- **Style 99:** 3D embossed with textured backgrounds, reflections, and metallic VS badge _(credit: @shelf on Dispatcharr Discord)_
 
 ---
 
@@ -53,6 +54,7 @@ nav_order: 8
 GET /nba/cover
 GET /nfl/cover.png
 GET /ncaaf/cover?aspect=9-16
+GET /nba/cover?aspect=1-1
 ```
 
 ### Team Covers
@@ -67,6 +69,7 @@ GET /mls/lafc/cover
 GET /nba/lakers/celtics/cover
 GET /nfl/chiefs/49ers/cover?style=2
 GET /ncaaf/alabama/georgia/cover?logo=false
+GET /nhl/tor/mtl/cover?style=99
 ```
 
 ---
@@ -75,6 +78,7 @@ GET /ncaaf/alabama/georgia/cover?logo=false
 
 - **Default:** 1080x1440 PNG (3:4 aspect ratio)
 - **9:16:** 1080x1920 PNG
+- **1:1 (Square):** 1080x1080 PNG
 
 ---
 
