@@ -43,6 +43,7 @@ nav_order: 8
 - **Style 2:** Gradient blend between team colors
 - **Style 3:** Minimalist badge with team circles and VS text (light background)
 - **Style 4:** Minimalist badge with team circles and VS text (dark background)
+- **Style 99:** 3D embossed with textured backgrounds, reflections, and metallic VS badge _(credit: @shelf on Dispatcharr Discord)_
 
 ---
 
@@ -68,6 +69,7 @@ GET /mls/lafc/cover
 GET /nba/lakers/celtics/cover
 GET /nfl/chiefs/49ers/cover?style=2
 GET /ncaaf/alabama/georgia/cover?logo=false
+GET /nhl/tor/mtl/cover?style=99
 ```
 
 ---
