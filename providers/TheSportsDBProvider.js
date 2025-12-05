@@ -4,10 +4,10 @@
 // Handles team resolution and data fetching from TheSportsDB v1 free API
 // ------------------------------------------------------------------------------
 
-const https = require('https');
+const axios = require('axios');
 const BaseProvider = require('./BaseProvider');
 const { getTeamMatchScoreWithOverrides, generateSlug } = require('../helpers/teamMatchingUtils');
-const { extractDominantColors } = require('../helpers/colorExtractor');
+const { extractDominantColors } = require('../helpers/colorUtils');
 const logger = require('../helpers/logger');
 
 // Custom error class for team not found errors
@@ -266,39 +266,28 @@ class TheSportsDBProvider extends BaseProvider {
         const encodedLeague = encodeURIComponent(leagueName);
         const teamApiUrl = `https://www.thesportsdb.com/api/v1/json/${this.API_KEY}/search_all_teams.php?l=${encodedLeague}`;
         
-        return new Promise((resolve, reject) => {
-            https.get(teamApiUrl, (response) => {
-                let data = '';
-
-                response.on('data', (chunk) => {
-                    data += chunk;
-                });
-
-                response.on('end', () => {
-                    try {
-                        const parsed = JSON.parse(data);
-                        const teams = parsed.teams || [];
-
-                        if (teams.length === 0) {
-                            reject(new Error(`No teams found for league: ${leagueName}`));
-                            return;
-                        }
-
-                        // Cache the data
-                        this.teamCache.set(cacheKey, {
-                            data: teams,
-                            timestamp: Date.now()
-                        });
-
-                        resolve(teams);
-                    } catch (error) {
-                        reject(new Error(`Failed to parse API response: ${error.message}`));
-                    }
-                });
-            }).on('error', (error) => {
-                reject(new Error(`API request failed: ${error.message}`));
+        try {
+            const response = await axios.get(teamApiUrl, {
+                timeout: 10000,
+                headers: { 'User-Agent': 'Mozilla/5.0' }
             });
-        });
+            
+            const teams = response.data.teams || [];
+            
+            if (teams.length === 0) {
+                throw new Error(`No teams found for league: ${leagueName}`);
+            }
+            
+            // Cache the data
+            this.teamCache.set(cacheKey, {
+                data: teams,
+                timestamp: Date.now()
+            });
+            
+            return teams;
+        } catch (error) {
+            throw new Error(`API request failed: ${error.message}`);
+        }
     }
 
     async fetchLeagueData(league) {
@@ -317,39 +306,28 @@ class TheSportsDBProvider extends BaseProvider {
         const { leagueId } = theSportsDBConfig;
         const leagueApiUrl = `https://www.thesportsdb.com/api/v1/json/${this.API_KEY}/lookupleague.php?id=${leagueId}`;
         
-        return new Promise((resolve, reject) => {
-            https.get(leagueApiUrl, (response) => {
-                let data = '';
-
-                response.on('data', (chunk) => {
-                    data += chunk;
-                });
-
-                response.on('end', () => {
-                    try {
-                        const parsed = JSON.parse(data);
-                        const league = parsed.leagues?.[0];
-
-                        if (!league) {
-                            reject(new Error('League not found'));
-                            return;
-                        }
-
-                        // Cache the data
-                        this.teamCache.set(cacheKey, {
-                            data: league,
-                            timestamp: Date.now()
-                        });
-
-                        resolve(league);
-                    } catch (error) {
-                        reject(new Error(`Failed to parse league API response: ${error.message}`));
-                    }
-                });
-            }).on('error', (error) => {
-                reject(new Error(`League API request failed: ${error.message}`));
+        try {
+            const response = await axios.get(leagueApiUrl, {
+                timeout: 10000,
+                headers: { 'User-Agent': 'Mozilla/5.0' }
             });
-        });
+            
+            const league = response.data.leagues?.[0];
+            
+            if (!league) {
+                throw new Error('League not found');
+            }
+            
+            // Cache the data
+            this.teamCache.set(cacheKey, {
+                data: league,
+                timestamp: Date.now()
+            });
+            
+            return league;
+        } catch (error) {
+            throw new Error(`League API request failed: ${error.message}`);
+        }
     }
 }
 

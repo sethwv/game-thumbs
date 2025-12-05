@@ -4,8 +4,8 @@
 // ------------------------------------------------------------------------------
 
 const { createCanvas, loadImage } = require('canvas');
-const { drawLogoWithShadow, downloadImage, selectBestLogo, adjustColors, trimImage } = require('./imageUtils');
-const logger = require('./logger');
+const { drawLogoWithShadow, downloadImage, selectBestLogo, adjustColors, trimImage } = require('../helpers/imageUtils');
+const logger = require('../helpers/logger');
 
 module.exports = {
     generateLogo
@@ -47,7 +47,6 @@ async function generateLogo(teamA, teamB, options = {}) {
     
     // Apply trim if requested
     if (trim) {
-        const { trimImage } = require('./imageUtils');
         // Don't cache the final composed output trim
         logoBuffer = await trimImage(logoBuffer, false);
     }
