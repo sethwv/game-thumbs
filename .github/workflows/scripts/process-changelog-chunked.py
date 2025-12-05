@@ -164,8 +164,15 @@ def parse_and_merge_entries(entry_blocks):
         version_match = re.search(PATTERN_BATCH_COMMENT, entry_block)
         if version_match and version_match.group(1):
             # Extract hashes like "v0.6.2: abc123,def456"
-            hash_matches = re.findall(r'([a-f0-9]{7,})', version_match.group(1))
-            commit_hashes.update(hash_matches)
+            # Match format: "v0.6.2: abc1234,def5678 | v0.6.1: ghi9012"
+            hash_matches = re.findall(r':\s*([a-f0-9,]+)', version_match.group(1))
+            for hash_group in hash_matches:
+                # Split comma-separated hashes
+                hashes = [h.strip() for h in hash_group.split(',') if h.strip()]
+                commit_hashes.update(hashes)
+        
+        # Strip batch metadata before processing entries
+        entry_block = strip_batch_comment(entry_block)
         
         current_category = None
         for line in entry_block.split('\n'):
@@ -306,8 +313,15 @@ def merge_changelog_entries(existing_changelog, version_entries, unreleased_entr
     if unreleased_entries:
         result.append("## [Unreleased]")
         result.append("")
-        for entry_block in unreleased_entries:
-            result.append(entry_block.strip())
+        # Parse and merge entries to get metadata
+        merged_unreleased, unreleased_hashes = parse_and_merge_entries(unreleased_entries)
+        if merged_unreleased:
+            # Embed commit hash metadata
+            if unreleased_hashes:
+                hash_list = ','.join(sorted(unreleased_hashes))
+                result.append(f"<!-- Processed commits: {hash_list} -->")
+                result.append("")
+            result.append(merged_unreleased)
             result.append("")
     
     # If this is a release, add the new version section
@@ -315,8 +329,15 @@ def merge_changelog_entries(existing_changelog, version_entries, unreleased_entr
         result.append(f"## [{current_version}] - {date}")
         result.append("")
         if current_version in version_entries:
-            for entry_block in version_entries[current_version]:
-                result.append(entry_block.strip())
+            # Parse and merge entries to get metadata
+            merged_version, version_hashes = parse_and_merge_entries(version_entries[current_version])
+            if merged_version:
+                # Embed commit hash metadata
+                if version_hashes:
+                    hash_list = ','.join(sorted(version_hashes))
+                    result.append(f"<!-- Processed commits: {hash_list} -->")
+                    result.append("")
+                result.append(merged_version)
                 result.append("")
     
     # Copy remaining sections from existing changelog
@@ -818,10 +839,8 @@ def process_in_chunks():
             version_matches = re.findall(PATTERN_VERSION_COMMITS, versions_str)
             
             if version_matches:
-                # Remove the comment line, keep just the entries
-                entry_text = strip_batch_comment(entry_block)
-                
                 # Split entries by version headers (### v0.x.x)
+                entry_text = entry_block
                 # AI formats multi-version batches with headers like "### v0.6.2"
                 version_sections = {}
                 current_version = None
@@ -868,7 +887,7 @@ def process_in_chunks():
                     version_entries[version_tag].append(entry_text)
             else:
                 # Has VERSIONS marker but couldn't parse
-                entry_text = strip_batch_comment(entry_block)
+                entry_text = entry_block
                 if release_version:
                     # Release mode: assign to release version
                     if release_version not in version_entries:
@@ -879,7 +898,7 @@ def process_in_chunks():
                     unreleased_entries.append(entry_text)
         else:
             # No version metadata
-            entry_text = strip_batch_comment(entry_block)
+            entry_text = entry_block
             if release_version:
                 # Release mode: assign to release version
                 if release_version not in version_entries:
