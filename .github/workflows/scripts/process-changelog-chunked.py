@@ -329,7 +329,9 @@ def format_changelog(version_entries, unreleased_entries, tag_dates, current_ver
             lines.append("")
     
     # Version sections (sorted newest first)
-    all_versions = sorted(tag_to_date.keys(), key=lambda v: tag_to_date.get(v, ''), reverse=True)
+    # Include versions from tag_dates AND any versions that exist in the current changelog
+    all_version_tags = set(tag_to_date.keys()) | set(existing_version_data.keys())
+    all_versions = sorted(all_version_tags, key=lambda v: tag_to_date.get(v, ''), reverse=True)
     
     for version_tag in all_versions:
         version_date = tag_to_date.get(version_tag, date)
