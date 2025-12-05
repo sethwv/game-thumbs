@@ -328,11 +328,32 @@ def format_changelog(version_entries, unreleased_entries, tag_dates, current_ver
             lines.append(merged_unreleased)
             lines.append("")
     
-    # Version sections (sorted newest first)
-    # Include versions from tag_dates AND any versions that exist in the current changelog
+    # In UPDATE mode (not a release), preserve existing version sections exactly as-is
+    if existing_changelog and not is_release:
+        # Find where version sections start
+        version_sections_start = re.search(r'\n(## \[v\d+\.\d+\.\d+\])', existing_changelog)
+        if version_sections_start:
+            # Preserve all version sections exactly as they were
+            lines.append(existing_changelog[version_sections_start.start(1):].rstrip())
+            lines.append("")
+        return '\n'.join(lines)
+    
+    # RELEASE or BACKFILL mode: Process version sections
+    # Extract the original order of versions from existing changelog if it exists
+    original_version_order = []
+    if existing_changelog:
+        for match in re.finditer(r'## \[(v\d+\.\d+\.\d+)\]', existing_changelog):
+            original_version_order.append(match.group(1))
+    
+    # Determine which versions need to be written
     all_version_tags = set(tag_to_date.keys()) | set(existing_version_data.keys())
-    # Sort by date (newest first). Versions without dates get '0000-00-00' so they sort to the end (oldest)
-    all_versions = sorted(all_version_tags, key=lambda v: tag_to_date.get(v, '0000-00-00'), reverse=True)
+    
+    # Build final version list: new versions first (by date), then existing versions in original order
+    new_versions = [v for v in all_version_tags if v not in original_version_order]
+    new_versions_sorted = sorted(new_versions, key=lambda v: tag_to_date.get(v, '0000-00-00'), reverse=True)
+    
+    # Combine: new versions first, then existing versions in their original order
+    all_versions = new_versions_sorted + [v for v in original_version_order if v in all_version_tags]
     
     for version_tag in all_versions:
         # Check if this version has new entries to add
