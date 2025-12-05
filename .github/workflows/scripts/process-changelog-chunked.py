@@ -221,13 +221,20 @@ def parse_and_merge_entries(entry_blocks):
     formatted_text = '\n'.join(lines).strip()
     return formatted_text, commit_hashes
 
-def format_changelog(version_entries, unreleased_entries, tag_dates, current_version, date, is_release, existing_changelog=''):
+def format_changelog(version_entries, unreleased_entries, tag_dates, current_version, date, is_release, existing_changelog='', version_commit_hashes=None):
     """Format the complete changelog from organized entries
     
     If existing_changelog is provided (update mode with processed commits),
     merges new entries into existing structure.
     Otherwise, builds complete changelog from scratch (backfill or first run).
+    
+    Args:
+        version_commit_hashes: Dict mapping version tags to sets of commit hashes,
+                              used to embed metadata even for versions without entries
     """
+    
+    if version_commit_hashes is None:
+        version_commit_hashes = {}
     
     # Parse tag_dates into dict
     tag_to_date = {}
@@ -287,8 +294,18 @@ def format_changelog(version_entries, unreleased_entries, tag_dates, current_ver
                     lines.append("")
                 lines.append(merged_version)
                 lines.append("")
+        elif version_tag in version_commit_hashes and version_commit_hashes[version_tag]:
+            # We processed commits for this version but AI didn't return entries
+            # This shouldn't happen in a proper backfill - it means the AI failed to extract entries
+            # Embed metadata and add a note
+            hash_list = ','.join(sorted(version_commit_hashes[version_tag]))
+            lines.append(f"<!-- Processed commits: {hash_list} -->")
+            lines.append("")
+            lines.append("### Changed")
+            lines.append("- Version release (no detailed changes extracted)")
+            lines.append("")
         else:
-            # No entries - placeholder
+            # No commits for this version at all (tag exists but no commits between this and next tag)
             lines.append("### Changed")
             lines.append("- Version release")
             lines.append("")
@@ -819,6 +836,7 @@ def process_in_chunks():
     
     import re
     version_entries = {}  # version -> list of entry blocks
+    version_commit_hashes = {}  # version -> set of commit hashes (for versions without entries)
     unreleased_entries = []
     
     # Special handling for release events: commits without version tags should go to VERSION, not Unreleased
@@ -826,6 +844,16 @@ def process_in_chunks():
     if release_version:
         print(f"   Release mode: mapping untagged commits to {release_version}")
         sys.stdout.flush()
+    
+    # Build a mapping of which commits belong to which version for tracking
+    for block in commit_blocks:
+        commit_hash = get_commit_hash_from_block(block)
+        if commit_hash:
+            commit_ver = commit_version_map.get(commit_hash)
+            if commit_ver:
+                if commit_ver not in version_commit_hashes:
+                    version_commit_hashes[commit_ver] = set()
+                version_commit_hashes[commit_ver].add(commit_hash)
     
     for entry_block in all_entries:
         # Extract version info from the batch comment
@@ -879,12 +907,23 @@ def process_in_chunks():
                                 version_entries[version_tag] = []
                             version_entries[version_tag].append(section_text)
                 else:
-                    # No version headers found - assign to first version in metadata
-                    # This handles single-version batches
-                    version_tag = version_matches[0][0]
-                    if version_tag not in version_entries:
-                        version_entries[version_tag] = []
-                    version_entries[version_tag].append(entry_text)
+                    # No version headers found in AI response
+                    # Strip batch comment before using entries
+                    entry_text = strip_batch_comment(entry_text)
+                    
+                    if len(version_matches) == 1:
+                        # Single version - assign all entries to it
+                        version_tag = version_matches[0][0]
+                        if version_tag not in version_entries:
+                            version_entries[version_tag] = []
+                        version_entries[version_tag].append(entry_text)
+                    else:
+                        # Multiple versions but AI didn't split them with headers
+                        # Add entries to all versions mentioned (will be deduplicated later)
+                        for version_tag, _ in version_matches:
+                            if version_tag not in version_entries:
+                                version_entries[version_tag] = []
+                            version_entries[version_tag].append(entry_text)
             else:
                 # Has VERSIONS marker but couldn't parse
                 entry_text = entry_block
@@ -930,7 +969,8 @@ def process_in_chunks():
         version,
         date,
         is_release,
-        existing_changelog
+        existing_changelog,
+        version_commit_hashes
     )
     
     # Write the final changelog
