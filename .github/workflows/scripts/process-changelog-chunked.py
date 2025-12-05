@@ -477,7 +477,11 @@ def call_api(messages, token, retry_count=0, max_retries=5):
         wait_time = 60  # Default to 60 seconds
         wait_match = re.search(r'wait (\d+) second', response_body)
         if wait_match:
-            wait_time = int(wait_match.group(1)) + 2  # Add 2 second buffer
+            extracted_wait = int(wait_match.group(1))
+            # Cap at 5 minutes (300 seconds) to avoid extremely long waits
+            wait_time = min(extracted_wait + 2, 300)
+            if extracted_wait > 300:
+                print(f"  ⚠️  API suggested waiting {extracted_wait}s, capping at 300s")
         
         print(f"  ⏳ Rate limit hit, waiting {wait_time} seconds (retry {retry_count + 1}/{max_retries})...")
         sys.stdout.flush()
