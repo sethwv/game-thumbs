@@ -4,10 +4,9 @@
 // ------------------------------------------------------------------------------
 
 const { createCanvas, loadImage } = require('canvas');
-const { downloadImage, drawLogoMaintainAspect, hexToRgb } = require('./imageUtils');
-const { extractDominantColors } = require('./colorExtractor');
-const { blendColors, blendColorsWeighted, calculateColorDistance, analyzeColor, adjustVibrancy } = require('./colorUtils');
-const logger = require('./logger');
+const { downloadImage, drawLogoMaintainAspect, hexToRgb } = require('../helpers/imageUtils');
+const { extractDominantColors, blendColors, blendColorsWeighted, calculateColorDistance, analyzeColor, adjustVibrancy } = require('../helpers/colorUtils');
+const logger = require('../helpers/logger');
 
 module.exports = {
     generateLeagueThumb,

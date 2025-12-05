@@ -7,7 +7,7 @@
 const axios = require('axios');
 const BaseProvider = require('./BaseProvider');
 const { getTeamMatchScoreWithOverrides, generateSlug } = require('../helpers/teamMatchingUtils');
-const { extractDominantColors } = require('../helpers/colorExtractor');
+const { extractDominantColors } = require('../helpers/colorUtils');
 const logger = require('../helpers/logger');
 
 // Custom error class for team not found errors
