@@ -894,9 +894,9 @@ def process_in_chunks():
     print("📝 Formatting final changelog structure...")
     sys.stdout.flush()
     
-    # Read existing changelog if we processed some commits (update mode)
+    # Read existing changelog if it exists (to preserve history during updates)
     existing_changelog = ''
-    if os.path.exists('CHANGELOG.md') and len(processed_hashes) > 0:
+    if os.path.exists('CHANGELOG.md'):
         with open('CHANGELOG.md', 'r') as f:
             existing_changelog = f.read()
         print("   Merging with existing changelog...")
