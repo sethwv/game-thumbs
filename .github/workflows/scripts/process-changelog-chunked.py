@@ -221,7 +221,7 @@ def parse_and_merge_entries(entry_blocks):
     formatted_text = '\n'.join(lines).strip()
     return formatted_text, commit_hashes
 
-def format_changelog(version_entries, unreleased_entries, tag_dates, current_version, date, is_release, existing_changelog='', version_commit_hashes=None):
+def format_changelog(version_entries, unreleased_entries, tag_dates, current_version, date, is_release, existing_changelog='', version_commit_hashes=None, unreleased_commit_hashes=None):
     """Format the complete changelog from organized entries
     
     If existing_changelog is provided (update mode with processed commits),
@@ -231,10 +231,13 @@ def format_changelog(version_entries, unreleased_entries, tag_dates, current_ver
     Args:
         version_commit_hashes: Dict mapping version tags to sets of commit hashes,
                               used to embed metadata even for versions without entries
+        unreleased_commit_hashes: Set of commit hashes for unreleased commits
     """
     
     if version_commit_hashes is None:
         version_commit_hashes = {}
+    if unreleased_commit_hashes is None:
+        unreleased_commit_hashes = set()
     
     # Parse tag_dates into dict
     tag_to_date = {}
@@ -265,11 +268,11 @@ def format_changelog(version_entries, unreleased_entries, tag_dates, current_ver
     if unreleased_entries:
         lines.append("## [Unreleased]")
         lines.append("")
-        merged_unreleased, unreleased_hashes = parse_and_merge_entries(unreleased_entries)
+        merged_unreleased, _ = parse_and_merge_entries(unreleased_entries)
         if merged_unreleased:
-            # Embed commit hash metadata
-            if unreleased_hashes:
-                hash_list = ','.join(sorted(unreleased_hashes))
+            # Embed commit hash metadata from our tracking set (source of truth)
+            if unreleased_commit_hashes:
+                hash_list = ','.join(sorted(unreleased_commit_hashes))
                 lines.append(f"<!-- Processed commits: {hash_list} -->")
                 lines.append("")
             lines.append(merged_unreleased)
@@ -285,11 +288,11 @@ def format_changelog(version_entries, unreleased_entries, tag_dates, current_ver
         
         # Check if we have entries for this version
         if version_tag in version_entries:
-            merged_version, version_hashes = parse_and_merge_entries(version_entries[version_tag])
+            merged_version, _ = parse_and_merge_entries(version_entries[version_tag])
             if merged_version:
-                # Embed commit hash metadata
-                if version_hashes:
-                    hash_list = ','.join(sorted(version_hashes))
+                # Embed commit hash metadata from our tracking dict (source of truth)
+                if version_tag in version_commit_hashes and version_commit_hashes[version_tag]:
+                    hash_list = ','.join(sorted(version_commit_hashes[version_tag]))
                     lines.append(f"<!-- Processed commits: {hash_list} -->")
                     lines.append("")
                 lines.append(merged_version)
@@ -649,8 +652,8 @@ def process_single_batch(commits_text, token, version, tag_dates, date, batch_nu
         print(f"  📝 No version tags found - entries will go to [Unreleased]")
         sys.stdout.flush()
     
-    # Determine if this batch has multiple versions
-    multi_version = len(commit_versions) > 1
+    # Note: We track version info in metadata, but don't ask AI to split by version
+    # We'll organize entries by version ourselves using commit_version_map
     
     prompt = f"""Extract detailed changelog entries from these commits.
 
@@ -668,36 +671,9 @@ Instructions:
 4. Categories: Added, Changed, Deprecated, Removed, Fixed, Security
 5. Format each entry as a simple bullet point starting with "- "
 6. Group by category with headers like "### Added", "### Changed", etc.
-7. DO NOT add version tags or prefixes to entries - just clean bullet points"""
-    
-    if multi_version:
-        # Add instruction for multi-version batches
-        prompt += f"""
-8. IMPORTANT: This batch contains commits from multiple versions: {', '.join(sorted(commit_versions.keys()))}
-   - Organize your output with version headers like "### v0.6.2" before the category sections
-   - Each version section should have its own category headers
-   - Example for multi-version output:
+7. DO NOT add version tags or prefixes to entries - just clean bullet points
 
-### v0.6.2
-
-#### Added
-- Added feature X in file Y
-- Introduced functionality Z
-
-#### Changed
-- Updated component A
-
-### v0.6.1
-
-#### Added
-- Added different feature in earlier version
-
-#### Fixed
-- Fixed bug in older version"""
-    else:
-        # Single version or no version - standard format
-        prompt += """
-8. Example output format:
+Example output format:
 
 ### Added
 - Added JWT token validation in auth middleware
@@ -709,9 +685,9 @@ Instructions:
 
 ### Fixed
 - Fixed memory leak in thumbnail generation cleanup
-- Resolved null pointer exception in team matching"""
-    
-    prompt += "\n\nReturn ONLY the categorized bullet points, no explanations or extra text."
+- Resolved null pointer exception in team matching
+
+Return ONLY the categorized bullet points, no explanations or extra text."""
 
     messages = [
         {
@@ -837,6 +813,7 @@ def process_in_chunks():
     import re
     version_entries = {}  # version -> list of entry blocks
     version_commit_hashes = {}  # version -> set of commit hashes (for versions without entries)
+    unreleased_commit_hashes = set()  # commit hashes for unreleased commits
     unreleased_entries = []
     
     # Special handling for release events: commits without version tags should go to VERSION, not Unreleased
@@ -854,6 +831,9 @@ def process_in_chunks():
                 if commit_ver not in version_commit_hashes:
                     version_commit_hashes[commit_ver] = set()
                 version_commit_hashes[commit_ver].add(commit_hash)
+            else:
+                # No version - unreleased
+                unreleased_commit_hashes.add(commit_hash)
     
     for entry_block in all_entries:
         # Extract version info from the batch comment
@@ -918,7 +898,8 @@ def process_in_chunks():
         date,
         is_release,
         existing_changelog,
-        version_commit_hashes
+        version_commit_hashes,
+        unreleased_commit_hashes
     )
     
     # Write the final changelog
