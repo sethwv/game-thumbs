@@ -10,6 +10,7 @@ const fs = require('fs').promises;
 const fsSync = require('fs');
 const path = require('path');
 const logger = require('./logger');
+const { rgbToHex: colorUtilsRgbToHex, calculateColorDistance } = require('./colorUtils');
 
 // ------------------------------------------------------------------------------
 // Constants
@@ -494,24 +495,11 @@ function hexToRgb(hex) {
 }
 
 function rgbToHex(rgb) {
-    const toHex = (n) => {
-        const hex = n.toString(16);
-        return hex.length === 1 ? '0' + hex : hex;
-    };
-    return `#${toHex(rgb.r)}${toHex(rgb.g)}${toHex(rgb.b)}`;
+    return colorUtilsRgbToHex(rgb.r, rgb.g, rgb.b);
 }
 
 function colorDistance(color1, color2) {
-    const rgb1 = hexToRgb(color1);
-    const rgb2 = hexToRgb(color2);
-
-    if (!rgb1 || !rgb2) return 0;
-
-    return Math.sqrt(
-        Math.pow(rgb1.r - rgb2.r, 2) +
-        Math.pow(rgb1.g - rgb2.g, 2) +
-        Math.pow(rgb1.b - rgb2.b, 2)
-    );
+    return calculateColorDistance(color1, color2);
 }
 
 function adjustColors(teamA, teamB) {

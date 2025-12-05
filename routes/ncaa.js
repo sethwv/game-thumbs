@@ -4,7 +4,7 @@
 // ------------------------------------------------------------------------------
 
 const providerManager = require('../providers/ProviderManager');
-const { generateCover } = require('../helpers/thumbnailGenerator');
+const { generateCover } = require('../generators/thumbnailGenerator');
 const { findLeague } = require('../leagues');
 const logger = require('../helpers/logger');
 
