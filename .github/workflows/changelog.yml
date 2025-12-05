@@ -130,6 +130,36 @@ jobs:
           EXISTING_CHANGELOG=""
           if [ -f "CHANGELOG.md" ]; then
             EXISTING_CHANGELOG=$(cat CHANGELOG.md)
+            
+            # Extract already processed commit hashes from metadata comments
+            echo "Extracting processed commits from existing changelog..."
+            PROCESSED_HASHES=$(grep -oP '<!-- Processed commits: \K[^>]+' CHANGELOG.md | tr ',' '\n' | sort -u)
+            
+            if [ -n "$PROCESSED_HASHES" ]; then
+              echo "Found $(echo "$PROCESSED_HASHES" | wc -l) already-processed commits"
+              
+              # Filter out already-processed commits
+              > commits_filtered.txt
+              while IFS='|' read -r hash subject author email refs; do
+                if [ -n "$hash" ] && ! echo "$PROCESSED_HASHES" | grep -q "^${hash}$"; then
+                  echo "$hash|$subject|$author|$email|$refs" >> commits_filtered.txt
+                fi
+              done < commits.txt
+              
+              # Check if there are new commits to process
+              NEW_COUNT=$(wc -l < commits_filtered.txt | tr -d ' ')
+              TOTAL_COUNT=$(wc -l < commits.txt | tr -d ' ')
+              echo "Filtered: $NEW_COUNT new commits out of $TOTAL_COUNT total"
+              
+              if [ "$NEW_COUNT" -eq 0 ]; then
+                echo "No new commits to process - changelog is up to date"
+                echo "changelog_generated=false" >> $GITHUB_OUTPUT
+                exit 0
+              fi
+              
+              # Use filtered commits
+              mv commits_filtered.txt commits.txt
+            fi
           fi
           
           # Read commits
@@ -168,87 +198,15 @@ jobs:
           export ALL_TAGS="$ALL_TAGS"
           export GITHUB_TOKEN="$GITHUB_TOKEN"
           
-          USE_CHUNKED="false"
+          # Always use chunked processing for consistency
+          echo "Using chunked processing for changelog generation..."
+          PYTHONUNBUFFERED=1 python3 .github/workflows/scripts/process-changelog-chunked.py
           
-          # Try to generate request first to check size
-          if [ "$CHANGELOG_EXISTS" = "false" ]; then
-            python3 .github/workflows/scripts/generate-backfill-prompt.py
+          if [ $? -eq 0 ]; then
+            echo "changelog_generated=true" >> $GITHUB_OUTPUT
           else
-            python3 .github/workflows/scripts/generate-update-prompt.py
-          fi
-          
-          # Check request size and decide on approach
-          if [ -f request.json ]; then
-            REQUEST_SIZE=$(wc -c < request.json)
-            # Rough estimate: 1 byte ≈ 0.25 tokens, so 30KB ≈ 7500 tokens
-            echo "Request body size: $REQUEST_SIZE bytes"
-            
-            if [ $REQUEST_SIZE -gt 30000 ]; then
-              echo "⚠️  Request too large ($REQUEST_SIZE bytes), switching to chunked processing..."
-              USE_CHUNKED="true"
-            fi
-          fi
-          
-          # Process based on size
-          if [ "$USE_CHUNKED" = "true" ]; then
-            echo "Using chunked processing for large changelog..."
-            PYTHONUNBUFFERED=1 python3 .github/workflows/scripts/process-changelog-chunked.py
-            
-            if [ $? -eq 0 ]; then
-              echo "changelog_generated=true" >> $GITHUB_OUTPUT
-            else
-              echo "error=true" >> $GITHUB_OUTPUT
-              exit 1
-            fi
-          else
-            # Use single API call for smaller requests
-            echo "Using single API call for changelog generation..."
-
-            # Call GitHub Models API with gpt-4o-mini
-            echo "Calling GitHub Models API..."
-            RESPONSE=$(curl -s -w "\nHTTP_CODE:%{http_code}" -X POST \
-              -H "Authorization: Bearer $GITHUB_TOKEN" \
-              -H "Content-Type: application/json" \
-              https://models.inference.ai.azure.com/chat/completions \
-              --data-binary @request.json)
-            
-            # Extract HTTP code and response body
-            HTTP_CODE=$(echo "$RESPONSE" | grep "HTTP_CODE:" | cut -d':' -f2)
-            RESPONSE_BODY=$(echo "$RESPONSE" | sed '/HTTP_CODE:/d')
-            
-            echo "HTTP Status Code: $HTTP_CODE"
-            
-            # Check for errors
-            if [ "$HTTP_CODE" != "200" ]; then
-              echo "API Error (HTTP $HTTP_CODE):"
-              echo "$RESPONSE_BODY" | jq '.' || echo "$RESPONSE_BODY"
-              echo "error=true" >> $GITHUB_OUTPUT
-              exit 1
-            fi
-            
-            # Save full response for debugging
-            echo "$RESPONSE_BODY" > api_response.json
-            
-            # Check if response has error
-            ERROR_MSG=$(echo "$RESPONSE_BODY" | jq -r '.error.message // empty')
-            if [ -n "$ERROR_MSG" ]; then
-              echo "API returned error: $ERROR_MSG"
-              echo "error=true" >> $GITHUB_OUTPUT
-              exit 1
-            fi
-            
-            # Format the changelog using Python for consistent output
-            echo "Formatting changelog with Python..."
-            export CHANGELOG_EXISTS="$CHANGELOG_EXISTS"
-            python3 .github/workflows/scripts/format-changelog.py
-            
-            if [ $? -eq 0 ]; then
-              echo "Changelog formatted successfully!"
-              echo "changelog_generated=true" >> $GITHUB_OUTPUT
-            else
-              echo "error=true" >> $GITHUB_OUTPUT
-              exit 1
-            fi
+            echo "error=true" >> $GITHUB_OUTPUT
+            exit 1
           fi
       
       - name: Output changelog to summary
@@ -311,7 +269,7 @@ jobs:
             **Version Information:**
             - Current version: `${{ steps.version_info.outputs.current_version }}`
             - Changes since: `${{ steps.version_info.outputs.last_tag }}`
-            - Branch: `${{ github.ref_name }}`
+            - Source branch: `${{ github.ref_name }}`
             
             **Processing Details:**
             - Total commits analyzed: Extracted from git history
@@ -325,5 +283,5 @@ jobs:
             
             Generated by GitHub Actions • Please review and merge if correct
           branch: changelog-update-${{ github.run_number }}
-          base: ${{ github.ref_name }}
+          base: main
           delete-branch: true

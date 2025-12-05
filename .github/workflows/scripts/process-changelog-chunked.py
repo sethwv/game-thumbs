@@ -358,6 +358,7 @@ def extract_processed_commits(changelog_path='CHANGELOG.md'):
     """Extract commit hashes that have already been processed from existing changelog
     
     Verifies that hashes still exist in git history to handle squashed/rebased commits.
+    Looks for both new format (<!-- Processed commits: ... -->) and old batch format.
     """
     processed_hashes = set()
     
@@ -368,12 +369,20 @@ def extract_processed_commits(changelog_path='CHANGELOG.md'):
         with open(changelog_path, 'r') as f:
             content = f.read()
         
-        # Find all batch metadata comments
-        # Match: <!-- Batch X: Commits abc123..def456 -->
-        matches = re.findall(PATTERN_BATCH_METADATA, content)
-        
         candidate_hashes = set()
-        for start_hash, end_hash in matches:
+        
+        # New format: <!-- Processed commits: abc123,def456,ghi789 -->
+        processed_matches = re.findall(r'<!-- Processed commits: ([^>]+) -->', content)
+        for match in processed_matches:
+            hashes = match.split(',')
+            for h in hashes:
+                h = h.strip()
+                if h:
+                    candidate_hashes.add(h)
+        
+        # Old format (for backwards compatibility): <!-- Batch X: Commits abc123..def456 -->
+        batch_matches = re.findall(PATTERN_BATCH_METADATA, content)
+        for start_hash, end_hash in batch_matches:
             candidate_hashes.add(start_hash)
             candidate_hashes.add(end_hash)
         
