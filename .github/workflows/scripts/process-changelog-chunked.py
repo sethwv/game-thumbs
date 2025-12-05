@@ -146,10 +146,27 @@ def consolidate_similar_entries(entries):
     return [entry for _, entry in result]
 
 def parse_and_merge_entries(entry_blocks):
-    """Parse multiple entry blocks and merge by category, removing duplicates and similar entries"""
+    """Parse multiple entry blocks and merge by category, removing duplicates and similar entries
+    
+    Returns: (formatted_text, commit_hashes_set)
+    """
     categories = {}  # category -> list of unique entries
+    commit_hashes = set()  # Track all commit hashes from batch metadata
     
     for entry_block in entry_blocks:
+        # Extract commit hashes from batch metadata before processing
+        batch_match = re.search(PATTERN_BATCH_METADATA, entry_block)
+        if batch_match:
+            commit_hashes.add(batch_match.group(1))  # start hash
+            commit_hashes.add(batch_match.group(2))  # end hash
+        
+        # Also look for VERSIONS metadata to get individual commit hashes
+        version_match = re.search(PATTERN_BATCH_COMMENT, entry_block)
+        if version_match and version_match.group(1):
+            # Extract hashes like "v0.6.2: abc123,def456"
+            hash_matches = re.findall(r'([a-f0-9]{7,})', version_match.group(1))
+            commit_hashes.update(hash_matches)
+        
         current_category = None
         for line in entry_block.split('\n'):
             line = line.strip()
@@ -194,7 +211,8 @@ def parse_and_merge_entries(entry_blocks):
                 lines.append(entry)
             lines.append("")
     
-    return '\n'.join(lines).strip()
+    formatted_text = '\n'.join(lines).strip()
+    return formatted_text, commit_hashes
 
 def format_changelog(version_entries, unreleased_entries, tag_dates, current_version, date, is_release, existing_changelog=''):
     """Format the complete changelog from organized entries
@@ -233,8 +251,13 @@ def format_changelog(version_entries, unreleased_entries, tag_dates, current_ver
     if unreleased_entries:
         lines.append("## [Unreleased]")
         lines.append("")
-        merged_unreleased = parse_and_merge_entries(unreleased_entries)
+        merged_unreleased, unreleased_hashes = parse_and_merge_entries(unreleased_entries)
         if merged_unreleased:
+            # Embed commit hash metadata
+            if unreleased_hashes:
+                hash_list = ','.join(sorted(unreleased_hashes))
+                lines.append(f"<!-- Processed commits: {hash_list} -->")
+                lines.append("")
             lines.append(merged_unreleased)
             lines.append("")
     
@@ -248,8 +271,13 @@ def format_changelog(version_entries, unreleased_entries, tag_dates, current_ver
         
         # Check if we have entries for this version
         if version_tag in version_entries:
-            merged_version = parse_and_merge_entries(version_entries[version_tag])
+            merged_version, version_hashes = parse_and_merge_entries(version_entries[version_tag])
             if merged_version:
+                # Embed commit hash metadata
+                if version_hashes:
+                    hash_list = ','.join(sorted(version_hashes))
+                    lines.append(f"<!-- Processed commits: {hash_list} -->")
+                    lines.append("")
                 lines.append(merged_version)
                 lines.append("")
         else:
