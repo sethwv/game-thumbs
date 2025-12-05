@@ -247,10 +247,58 @@ def format_changelog(version_entries, unreleased_entries, tag_dates, current_ver
                 tag, tag_date = line.split(':', 1)
                 tag_to_date[tag.strip()] = tag_date.strip()
     
-    # Check if we're merging with existing
-    if existing_changelog and (version_entries or unreleased_entries):
-        # Update mode: merge new entries into existing changelog
-        return merge_changelog_entries(existing_changelog, version_entries, unreleased_entries, is_release, current_version, date)
+    # Parse existing changelog to extract current entries and metadata if it exists
+    # Also validate that commit hashes still exist (handle rebases/squashes)
+    existing_unreleased_entries = []
+    existing_unreleased_hashes = set()
+    existing_version_data = {}  # version -> (entries_text, hashes_set)
+    
+    if existing_changelog:
+        # Extract existing unreleased section
+        unreleased_match = re.search(r'## \[Unreleased\]\s*\n(.*?)(?=\n## \[|$)', existing_changelog, re.DOTALL)
+        if unreleased_match:
+            section = unreleased_match.group(1)
+            # Extract and validate metadata
+            metadata_match = re.search(r'<!-- Processed commits: ([^>]+) -->', section)
+            if metadata_match:
+                hashes = metadata_match.group(1).split(',')
+                # Only keep hashes that still exist in git history
+                for h in hashes:
+                    h = h.strip()
+                    if h:
+                        result = subprocess.run(['git', 'cat-file', '-e', f'{h}^{{commit}}'],
+                                              capture_output=True, text=True)
+                        if result.returncode == 0:
+                            existing_unreleased_hashes.add(h)
+            # Extract entries (strip metadata comments)
+            entries_text = re.sub(r'<!-- Processed commits:.*?-->\s*\n', '', section).strip()
+            # Only keep entries if their hashes are still valid
+            if entries_text and existing_unreleased_hashes:
+                existing_unreleased_entries.append(entries_text)
+        
+        # Extract existing version sections
+        version_pattern = r'## \[(v\d+\.\d+\.\d+)\] - \d{4}-\d{2}-\d{2}\s*\n(.*?)(?=\n## \[|$)'
+        for match in re.finditer(version_pattern, existing_changelog, re.DOTALL):
+            ver_tag = match.group(1)
+            section = match.group(2)
+            # Extract and validate metadata
+            ver_hashes = set()
+            metadata_match = re.search(r'<!-- Processed commits: ([^>]+) -->', section)
+            if metadata_match:
+                hashes = metadata_match.group(1).split(',')
+                # Only keep hashes that still exist in git history
+                for h in hashes:
+                    h = h.strip()
+                    if h:
+                        result = subprocess.run(['git', 'cat-file', '-e', f'{h}^{{commit}}'],
+                                              capture_output=True, text=True)
+                        if result.returncode == 0:
+                            ver_hashes.add(h)
+            # Extract entries (strip metadata comments)
+            entries_text = re.sub(r'<!-- Processed commits:.*?-->\s*\n', '', section).strip()
+            # Only keep entries if their hashes are still valid OR if it's a placeholder
+            if entries_text and (ver_hashes or 'Version release' in entries_text):
+                existing_version_data[ver_tag] = (entries_text, ver_hashes)
     
     # Build the changelog from scratch
     lines = []
@@ -264,15 +312,17 @@ def format_changelog(version_entries, unreleased_entries, tag_dates, current_ver
     lines.append("and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).")
     lines.append("")
     
-    # Unreleased section (if there are entries)
-    if unreleased_entries:
+    # Unreleased section - merge existing + new entries
+    all_unreleased = existing_unreleased_entries + unreleased_entries
+    if all_unreleased:
         lines.append("## [Unreleased]")
         lines.append("")
-        merged_unreleased, _ = parse_and_merge_entries(unreleased_entries)
+        merged_unreleased, _ = parse_and_merge_entries(all_unreleased)
         if merged_unreleased:
-            # Embed commit hash metadata from our tracking set (source of truth)
-            if unreleased_commit_hashes:
-                hash_list = ','.join(sorted(unreleased_commit_hashes))
+            # Combine existing and new hashes
+            all_hashes = existing_unreleased_hashes | unreleased_commit_hashes
+            if all_hashes:
+                hash_list = ','.join(sorted(all_hashes))
                 lines.append(f"<!-- Processed commits: {hash_list} -->")
                 lines.append("")
             lines.append(merged_unreleased)
@@ -286,13 +336,25 @@ def format_changelog(version_entries, unreleased_entries, tag_dates, current_ver
         lines.append(f"## [{version_tag}] - {version_date}")
         lines.append("")
         
-        # Check if we have entries for this version
+        # Merge existing entries (if any) with new entries for this version
+        all_version_entries = []
+        existing_ver_hashes = set()
+        
+        if version_tag in existing_version_data:
+            existing_text, existing_ver_hashes = existing_version_data[version_tag]
+            if existing_text:
+                all_version_entries.append(existing_text)
+        
         if version_tag in version_entries:
-            merged_version, _ = parse_and_merge_entries(version_entries[version_tag])
+            all_version_entries.extend(version_entries[version_tag])
+        
+        if all_version_entries:
+            merged_version, _ = parse_and_merge_entries(all_version_entries)
             if merged_version:
-                # Embed commit hash metadata from our tracking dict (source of truth)
-                if version_tag in version_commit_hashes and version_commit_hashes[version_tag]:
-                    hash_list = ','.join(sorted(version_commit_hashes[version_tag]))
+                # Combine existing and new hashes
+                all_hashes = existing_ver_hashes | version_commit_hashes.get(version_tag, set())
+                if all_hashes:
+                    hash_list = ','.join(sorted(all_hashes))
                     lines.append(f"<!-- Processed commits: {hash_list} -->")
                     lines.append("")
                 lines.append(merged_version)
@@ -314,66 +376,6 @@ def format_changelog(version_entries, unreleased_entries, tag_dates, current_ver
             lines.append("")
     
     return '\n'.join(lines)
-
-def merge_changelog_entries(existing_changelog, version_entries, unreleased_entries, is_release, current_version, date):
-    """Merge new entries into existing changelog structure"""
-    
-    lines = existing_changelog.split('\n')
-    result = []
-    i = 0
-    
-    # Copy header until first version section
-    while i < len(lines):
-        if lines[i].startswith('## ['):
-            break
-        result.append(lines[i])
-        i += 1
-    
-    # Insert/update unreleased section
-    if unreleased_entries:
-        result.append("## [Unreleased]")
-        result.append("")
-        # Parse and merge entries to get metadata
-        merged_unreleased, unreleased_hashes = parse_and_merge_entries(unreleased_entries)
-        if merged_unreleased:
-            # Embed commit hash metadata
-            if unreleased_hashes:
-                hash_list = ','.join(sorted(unreleased_hashes))
-                result.append(f"<!-- Processed commits: {hash_list} -->")
-                result.append("")
-            result.append(merged_unreleased)
-            result.append("")
-    
-    # If this is a release, add the new version section
-    if is_release and current_version:
-        result.append(f"## [{current_version}] - {date}")
-        result.append("")
-        if current_version in version_entries:
-            # Parse and merge entries to get metadata
-            merged_version, version_hashes = parse_and_merge_entries(version_entries[current_version])
-            if merged_version:
-                # Embed commit hash metadata
-                if version_hashes:
-                    hash_list = ','.join(sorted(version_hashes))
-                    result.append(f"<!-- Processed commits: {hash_list} -->")
-                    result.append("")
-                result.append(merged_version)
-                result.append("")
-    
-    # Copy remaining sections from existing changelog
-    # Skip old [Unreleased] section if it existed
-    while i < len(lines):
-        line = lines[i]
-        if line.startswith('## [Unreleased]'):
-            # Skip until next version section
-            i += 1
-            while i < len(lines) and not lines[i].startswith('## ['):
-                i += 1
-            continue
-        result.append(line)
-        i += 1
-    
-    return '\n'.join(result)
 
 def call_api(messages, token, retry_count=0, max_retries=5):
     """Call GitHub Models API with retry logic for rate limits"""
@@ -765,26 +767,36 @@ def process_in_chunks():
     sys.stdout.flush()
     
     # Filter out already processed commits
+    # EXCEPT on release: we need to reprocess unreleased commits with their new version tag
     commit_blocks = []
     skipped_count = 0
-    for block in all_commit_blocks:
-        commit_hash = get_commit_hash_from_block(block)
-        if commit_hash and commit_hash in processed_hashes:
-            skipped_count += 1
-        else:
-            commit_blocks.append(block)
     
-    if skipped_count > 0:
-        print(f"⏭️  Skipping {skipped_count} already-processed commits")
+    if is_release:
+        # Release mode: Process all commits (don't skip any)
+        # The merge logic will handle deduplication and moving [Unreleased] → [version]
+        commit_blocks = all_commit_blocks
+        print(f"🎉 Release mode: processing all {len(commit_blocks)} commits to reorganize by version")
         sys.stdout.flush()
-    
-    print(f"📝 Processing {len(commit_blocks)} new/unprocessed commits")
-    sys.stdout.flush()
-    
-    if len(commit_blocks) == 0:
-        print("✅ No new commits to process - changelog is up to date!")
+    else:
+        # Update mode: Skip already-processed commits
+        for block in all_commit_blocks:
+            commit_hash = get_commit_hash_from_block(block)
+            if commit_hash and commit_hash in processed_hashes:
+                skipped_count += 1
+            else:
+                commit_blocks.append(block)
+        
+        if skipped_count > 0:
+            print(f"⏭️  Skipping {skipped_count} already-processed commits")
+            sys.stdout.flush()
+        
+        print(f"📝 Processing {len(commit_blocks)} new/unprocessed commits")
         sys.stdout.flush()
-        sys.exit(0)
+        
+        if len(commit_blocks) == 0:
+            print("✅ No new commits to process - changelog is up to date!")
+            sys.stdout.flush()
+            sys.exit(0)
     
     # Build commit-to-version mapping from the full history
     print("🗺️  Building commit-to-version map from git history...")
