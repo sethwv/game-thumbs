@@ -42,5 +42,3 @@ MIT
 ## Attribution
 
 This service uses publicly available ESPN APIs and logos. All team names, logos, and trademarks are property of their respective owners.
-
-## TEST CHANGE
