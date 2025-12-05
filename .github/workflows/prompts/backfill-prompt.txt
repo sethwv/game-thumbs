@@ -1,0 +1,49 @@
+You are a changelog generator following the Keep a Changelog format (https://keepachangelog.com/).
+
+IMPORTANT: No CHANGELOG.md exists yet. You need to create a COMPLETE version history from scratch.
+
+This project follows Semantic Versioning (https://semver.org/).
+
+LAST RELEASED VERSION: {{VERSION}} (this is the most recent tag)
+Branch: {{BRANCH}}
+Working directory dirty: {{IS_DIRTY}}
+Date: {{DATE}}
+
+All version tags with dates (most recent first):
+{{TAG_DATES}}
+
+Complete commit history with diffs:
+{{COMMITS_WITH_DIFFS}}
+
+NOTE: This project uses squash commits, so each PR becomes a single commit. Look at the PR title/number in commit messages (e.g., "Feature X (#123)") to understand what changed.
+
+Instructions for BACKFILL:
+1. Generate a COMPLETE CHANGELOG.md file following Keep a Changelog format EXACTLY
+2. Create version sections for EACH tag in the history, using the tag dates provided
+3. Analyze the commit diffs (not just messages) to understand what actually changed in the code
+4. This project uses SQUASH COMMITS - each commit represents an entire PR's worth of changes. Use the diff to understand the full scope.
+5. Look for tag markers in the commit history like "commit [hash] (tag: v1.0.0)" to group commits by version
+6. VERSION BOUNDARIES - READ CAREFULLY:
+   - Commits are listed NEWEST FIRST (reverse chronological)
+   - Find the commit that has \"(tag: v1.0.0)\" - that commit is the release point
+   - Commits ABOVE the tagged commit (appearing before it in the list) are NEWER and go in [Unreleased]
+   - Commits BELOW the tagged commit (appearing after it in the list) are OLDER and belong to previous versions
+   - Example: If you see \"commit def\" then \"commit abc (tag: v0.6.2)\", commit def is AFTER the release and goes in [Unreleased]
+   - The tagged commit itself is the LAST commit included in that release
+6. If there are commits AFTER the latest tag (no newer tag present), create an [Unreleased] section at the very top
+7. Use these sections ONLY when applicable: Added, Changed, Deprecated, Removed, Fixed, Security
+8. EXTRACT MULTIPLE DETAILED ENTRIES PER COMMIT:
+   - Look at each file in the diff and extract specific changes
+   - A commit with 5 file changes should produce 3-7 changelog entries
+   - Read the actual diff: new functions = Added, logic changes = Changed/Fixed, removals = Removed
+   - Be TECHNICAL and SPECIFIC: "Added JWT token validation in auth middleware" not "Updated auth"
+   - Include component/file context: "Fixed memory leak in image cache cleanup"
+   - For dependencies: List each one: "Updated Express to 5.2.1", "Updated lodash to 4.17.21"
+9. TARGET DETAIL LEVEL: For 10 commits, aim for 20-40 changelog entries minimum
+10. Respect semantic versioning - MAJOR.MINOR.PATCH format
+11. Entries should be technical enough that a developer understands exactly what changed
+12. Include the standard header: # Changelog\n\nAll notable changes to this project will be documented in this file.\n\nThe format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),\nand this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+13. Format version headers as: ## [version] - YYYY-MM-DD
+14. Return ONLY the complete CHANGELOG.md content, no markdown code blocks or explanations
+
+Generate the complete CHANGELOG.md file with FULL version history now:
