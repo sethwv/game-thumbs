@@ -165,7 +165,7 @@ function init(port) {
     logger.info('Registering routes...');
     
     // Preload team overrides to show configuration at startup
-    require('./helpers/teamOverrides');
+    require('./helpers/teamUtils');
     
     // Health check endpoint (before loading other routes)
     app.get('/health', (req, res) => {

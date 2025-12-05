@@ -6,7 +6,7 @@
 
 const axios = require('axios');
 const BaseProvider = require('./BaseProvider');
-const { getTeamMatchScoreWithOverrides } = require('../helpers/teamMatchingUtils');
+const { getTeamMatchScoreWithOverrides, findTeamByAlias, applyTeamOverrides } = require('../helpers/teamUtils');
 const { extractDominantColors } = require('../helpers/colorUtils');
 const logger = require('../helpers/logger');
 
@@ -76,7 +76,6 @@ class ESPNProvider extends BaseProvider {
 
         try {
             const teams = await this.fetchTeamData(league);
-            const { findTeamByAlias } = require('../helpers/teamOverrides');
 
             // First, check if the input matches any custom aliases
             const teamsWithIds = teams.map(team => ({
@@ -224,8 +223,7 @@ class ESPNProvider extends BaseProvider {
                 alternateColor: alternateColor
             };
 
-            // Apply team overrides from teams.json
-            const { applyTeamOverrides } = require('../helpers/teamOverrides');
+            // Apply overrides from teams.json
             let teamIdentifierForOverride = teamObj.slug || teamObj.id;
             // Extract slug without league prefix (e.g., 'eng.nottm_forest' -> 'nottm-forest')
             if (teamIdentifierForOverride && teamIdentifierForOverride.includes('.')) {

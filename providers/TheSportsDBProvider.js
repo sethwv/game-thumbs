@@ -6,7 +6,7 @@
 
 const axios = require('axios');
 const BaseProvider = require('./BaseProvider');
-const { getTeamMatchScoreWithOverrides, generateSlug } = require('../helpers/teamMatchingUtils');
+const { getTeamMatchScoreWithOverrides, generateSlug, findTeamByAlias, applyTeamOverrides } = require('../helpers/teamUtils');
 const { extractDominantColors } = require('../helpers/colorUtils');
 const logger = require('../helpers/logger');
 
@@ -77,8 +77,6 @@ class TheSportsDBProvider extends BaseProvider {
             let bestScore = 0;
 
             // Check for custom alias match first (highest priority)
-            const { findTeamByAlias } = require('../helpers/teamOverrides');
-            
             // Create slug identifiers for TheSportsDB teams (for alias matching)
             const teamsWithSlugs = teams.map(t => ({
                 ...t,
@@ -195,7 +193,6 @@ class TheSportsDBProvider extends BaseProvider {
             };
 
             // Apply team overrides if any exist
-            const { applyTeamOverrides } = require('../helpers/teamOverrides');
             teamData = applyTeamOverrides(teamData, league.shortName.toLowerCase(), teamSlug);
 
             return teamData;
