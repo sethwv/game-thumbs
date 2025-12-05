@@ -860,84 +860,32 @@ def process_in_chunks():
         # Format: <!-- Batch X: Commits abc..def | VERSIONS: v0.6.2: hash1,hash2 | v0.6.1: hash3 -->
         match = re.search(PATTERN_BATCH_COMMENT, entry_block)
         
+        # Strip batch comment before processing
+        entry_text = strip_batch_comment(entry_block)
+        
         if match and match.group(1):
-            # Parse version mappings
+            # Parse version mappings from metadata (our source of truth, not AI formatting)
             versions_str = match.group(1)
             # Extract version tags: "v0.6.2: hash1,hash2 | v0.6.1: hash3"
             version_matches = re.findall(PATTERN_VERSION_COMMITS, versions_str)
             
             if version_matches:
-                # Split entries by version headers (### v0.x.x)
-                entry_text = entry_block
-                # AI formats multi-version batches with headers like "### v0.6.2"
-                version_sections = {}
-                current_version = None
-                current_lines = []
-                
-                for line in entry_text.split('\n'):
-                    # Check if this is a version header (### v0.x.x)
-                    version_header_match = re.match(r'^###\s+(v\d+\.\d+\.\d+)\s*$', line)
-                    if version_header_match:
-                        # Save previous section
-                        if current_version and current_lines:
-                            version_sections[current_version] = '\n'.join(current_lines).strip()
-                        # Start new section
-                        current_version = version_header_match.group(1)
-                        current_lines = []
-                    elif current_version:
-                        # We're inside a version section
-                        # Change #### category headers back to ### for consistency
-                        if line.startswith('#### '):
-                            current_lines.append('###' + line[4:])
-                        else:
-                            current_lines.append(line)
-                    else:
-                        # Not in a version section yet, just accumulate
-                        current_lines.append(line)
-                
-                # Save last section
-                if current_version and current_lines:
-                    version_sections[current_version] = '\n'.join(current_lines).strip()
-                
-                # If we found version sections, use them; otherwise fall back to whole block
-                if version_sections:
-                    for version_tag, section_text in version_sections.items():
-                        if section_text.strip():
-                            if version_tag not in version_entries:
-                                version_entries[version_tag] = []
-                            version_entries[version_tag].append(section_text)
-                else:
-                    # No version headers found in AI response
-                    # Strip batch comment before using entries
-                    entry_text = strip_batch_comment(entry_text)
-                    
-                    if len(version_matches) == 1:
-                        # Single version - assign all entries to it
-                        version_tag = version_matches[0][0]
-                        if version_tag not in version_entries:
-                            version_entries[version_tag] = []
-                        version_entries[version_tag].append(entry_text)
-                    else:
-                        # Multiple versions but AI didn't split them with headers
-                        # Add entries to all versions mentioned (will be deduplicated later)
-                        for version_tag, _ in version_matches:
-                            if version_tag not in version_entries:
-                                version_entries[version_tag] = []
-                            version_entries[version_tag].append(entry_text)
+                # We know which versions these commits belong to from metadata
+                # Add entries to ALL versions in this batch
+                for version_tag, _ in version_matches:
+                    if version_tag not in version_entries:
+                        version_entries[version_tag] = []
+                    version_entries[version_tag].append(entry_text)
             else:
-                # Has VERSIONS marker but couldn't parse
-                entry_text = entry_block
+                # Has VERSIONS marker but couldn't parse - treat as unreleased
                 if release_version:
-                    # Release mode: assign to release version
                     if release_version not in version_entries:
                         version_entries[release_version] = []
                     version_entries[release_version].append(entry_text)
                 else:
-                    # Update mode: assign to unreleased
                     unreleased_entries.append(entry_text)
         else:
-            # No version metadata
-            entry_text = entry_block
+            # No version metadata - these are unreleased commits
             if release_version:
                 # Release mode: assign to release version
                 if release_version not in version_entries:
