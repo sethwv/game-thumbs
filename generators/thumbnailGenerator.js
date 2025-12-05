@@ -16,8 +16,8 @@ const {
     getAverageColor,
     loadTrimmedLogo,
     trimImage
-} = require('./imageUtils');
-const logger = require('./logger');
+} = require('../helpers/imageUtils');
+const logger = require('../helpers/logger');
 
 module.exports = {
     generateThumbnail,

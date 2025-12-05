@@ -4,10 +4,10 @@
 // Handles team resolution and data fetching from ESPN APIs
 // ------------------------------------------------------------------------------
 
-const https = require('https');
+const axios = require('axios');
 const BaseProvider = require('./BaseProvider');
 const { getTeamMatchScoreWithOverrides } = require('../helpers/teamMatchingUtils');
-const { extractDominantColors } = require('../helpers/colorExtractor');
+const { extractDominantColors } = require('../helpers/colorUtils');
 const logger = require('../helpers/logger');
 
 // Custom error class for team not found errors
@@ -303,91 +303,24 @@ class ESPNProvider extends BaseProvider {
         const { espnSport, espnSlug } = espnConfig;
         const teamApiUrl = `https://site.api.espn.com/apis/site/v2/sports/${espnSport}/${espnSlug}/teams?limit=1000`;
         
-        return new Promise((resolve, reject) => {
-            let request;
-            let resolved = false;
-            
-            const cleanup = () => {
-                if (request) {
-                    request.destroy();
-                    request.removeAllListeners();
-                }
-            };
-            
-            const timeout = setTimeout(() => {
-                if (!resolved) {
-                    resolved = true;
-                    cleanup();
-                    reject(new Error(`ESPN API timeout after ${this.REQUEST_TIMEOUT}ms: ${teamApiUrl}`));
-                }
-            }, this.REQUEST_TIMEOUT);
-            
-            const options = {
+        try {
+            const response = await axios.get(teamApiUrl, {
                 timeout: this.REQUEST_TIMEOUT,
-                headers: {
-                    'User-Agent': 'Mozilla/5.0'
-                }
-            };
-            
-            request = https.get(teamApiUrl, options, (response) => {
-                let data = '';
-
-                response.on('data', (chunk) => {
-                    if (!resolved) {
-                        data += chunk;
-                    }
-                });
-
-                response.on('end', () => {
-                    clearTimeout(timeout);
-                    cleanup();
-                    if (!resolved) {
-                        resolved = true;
-                        try {
-                            const parsed = JSON.parse(data);
-                            const teams = parsed.sports?.[0]?.leagues?.[0]?.teams || [];
-
-                            // Cache the data
-                            this.teamCache.set(cacheKey, {
-                                data: teams,
-                                timestamp: Date.now()
-                            });
-
-                            resolve(teams);
-                        } catch (error) {
-                            reject(new Error(`Failed to parse API response: ${error.message}`));
-                        }
-                    }
-                });
-                
-                response.on('error', (error) => {
-                    clearTimeout(timeout);
-                    cleanup();
-                    if (!resolved) {
-                        resolved = true;
-                        reject(new Error(`API response error: ${error.message}`));
-                    }
-                });
+                headers: { 'User-Agent': 'Mozilla/5.0' }
             });
             
-            request.on('error', (error) => {
-                clearTimeout(timeout);
-                cleanup();
-                if (!resolved) {
-                    resolved = true;
-                    reject(new Error(`API request failed: ${error.message}`));
-                }
+            const teams = response.data.sports?.[0]?.leagues?.[0]?.teams || [];
+            
+            // Cache the data
+            this.teamCache.set(cacheKey, {
+                data: teams,
+                timestamp: Date.now()
             });
             
-            request.on('timeout', () => {
-                clearTimeout(timeout);
-                cleanup();
-                if (!resolved) {
-                    resolved = true;
-                    reject(new Error(`ESPN API timeout after ${this.REQUEST_TIMEOUT}ms: ${teamApiUrl}`));
-                }
-            });
-        });
+            return teams;
+        } catch (error) {
+            throw new Error(`API request failed: ${error.message}`);
+        }
     }
 
     async fetchLeagueData(league) {
@@ -406,90 +339,22 @@ class ESPNProvider extends BaseProvider {
         const { espnSport, espnSlug } = espnConfig;
         const leagueApiUrl = `https://sports.core.api.espn.com/v2/sports/${espnSport}/leagues/${espnSlug}`;
         
-        return new Promise((resolve, reject) => {
-            let request;
-            let resolved = false;
-            
-            const cleanup = () => {
-                if (request) {
-                    request.destroy();
-                    request.removeAllListeners();
-                }
-            };
-            
-            const timeout = setTimeout(() => {
-                if (!resolved) {
-                    resolved = true;
-                    cleanup();
-                    reject(new Error(`ESPN League API timeout after ${this.REQUEST_TIMEOUT}ms: ${leagueApiUrl}`));
-                }
-            }, this.REQUEST_TIMEOUT);
-            
-            const options = {
+        try {
+            const response = await axios.get(leagueApiUrl, {
                 timeout: this.REQUEST_TIMEOUT,
-                headers: {
-                    'User-Agent': 'Mozilla/5.0'
-                }
-            };
-            
-            request = https.get(leagueApiUrl, options, (response) => {
-                let data = '';
-
-                response.on('data', (chunk) => {
-                    if (!resolved) {
-                        data += chunk;
-                    }
-                });
-
-                response.on('end', () => {
-                    clearTimeout(timeout);
-                    cleanup();
-                    if (!resolved) {
-                        resolved = true;
-                        try {
-                            const parsed = JSON.parse(data);
-
-                            // Cache the data
-                            this.teamCache.set(cacheKey, {
-                                data: parsed,
-                                timestamp: Date.now()
-                            });
-
-                            resolve(parsed);
-                        } catch (error) {
-                            reject(new Error(`Failed to parse league API response: ${error.message}`));
-                        }
-                    }
-                });
-                
-                response.on('error', (error) => {
-                    clearTimeout(timeout);
-                    cleanup();
-                    if (!resolved) {
-                        resolved = true;
-                        reject(new Error(`League API response error: ${error.message}`));
-                    }
-                });
+                headers: { 'User-Agent': 'Mozilla/5.0' }
             });
             
-            request.on('error', (error) => {
-                clearTimeout(timeout);
-                cleanup();
-                if (!resolved) {
-                    resolved = true;
-                    reject(new Error(`League API request failed: ${error.message}`));
-                }
+            // Cache the data
+            this.teamCache.set(cacheKey, {
+                data: response.data,
+                timestamp: Date.now()
             });
             
-            request.on('timeout', () => {
-                clearTimeout(timeout);
-                cleanup();
-                if (!resolved) {
-                    resolved = true;
-                    reject(new Error(`ESPN League API timeout after ${this.REQUEST_TIMEOUT}ms: ${leagueApiUrl}`));
-                }
-            });
-        });
+            return response.data;
+        } catch (error) {
+            throw new Error(`League API request failed: ${error.message}`);
+        }
     }
 
 

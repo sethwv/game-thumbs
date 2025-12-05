@@ -7,7 +7,7 @@
 // ------------------------------------------------------------------------------
 
 const providerManager = require('../providers/ProviderManager');
-const { generateLogo } = require('../helpers/logoGenerator');
+const { generateLogo } = require('../generators/logoGenerator');
 const { downloadImage } = require('../helpers/imageUtils');
 const { findLeague } = require('../leagues');
 const logger = require('../helpers/logger');

@@ -8,8 +8,8 @@
 // ------------------------------------------------------------------------------
 
 const providerManager = require('../providers/ProviderManager');
-const { generateThumbnail } = require('../helpers/thumbnailGenerator');
-const { generateLeagueThumb, generateTeamThumb } = require('../helpers/genericImageGenerator');
+const { generateThumbnail } = require('../generators/thumbnailGenerator');
+const { generateLeagueThumb, generateTeamThumb } = require('../generators/genericImageGenerator');
 const { findLeague } = require('../leagues');
 const logger = require('../helpers/logger');
 
