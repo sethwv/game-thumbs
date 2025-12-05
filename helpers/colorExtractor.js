@@ -3,7 +3,7 @@
 // Extracts dominant colors from team logos
 // ------------------------------------------------------------------------------
 
-const https = require('https');
+const axios = require('axios');
 const { createCanvas, loadImage } = require('canvas');
 
 const REQUEST_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '10000', 10);
@@ -13,79 +13,22 @@ const REQUEST_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '10000', 10);
  * @param {string} url - Image URL
  * @returns {Promise<Buffer>} Image buffer
  */
-function fetchImage(url) {
-    return new Promise((resolve, reject) => {
-        let request;
-        let resolved = false;
-        
-        const cleanup = () => {
-            if (request) {
-                request.destroy();
-                request.removeAllListeners();
-            }
-        };
-        
-        const timeout = setTimeout(() => {
-            if (!resolved) {
-                resolved = true;
-                cleanup();
-                reject(new Error(`Color extractor request timeout after ${REQUEST_TIMEOUT}ms: ${url}`));
-            }
-        }, REQUEST_TIMEOUT);
-        
-        const options = {
+async function fetchImage(url) {
+    try {
+        const response = await axios.get(url, {
+            responseType: 'arraybuffer',
             timeout: REQUEST_TIMEOUT,
-            headers: {
-                'User-Agent': 'Mozilla/5.0'
-            }
-        };
-        
-        request = https.get(url, options, (response) => {
-            const chunks = [];
-            
-            response.on('data', (chunk) => {
-                if (!resolved) {
-                    chunks.push(chunk);
-                }
-            });
-            
-            response.on('end', () => {
-                clearTimeout(timeout);
-                cleanup();
-                if (!resolved) {
-                    resolved = true;
-                    resolve(Buffer.concat(chunks));
-                }
-            });
-            
-            response.on('error', (err) => {
-                clearTimeout(timeout);
-                cleanup();
-                if (!resolved) {
-                    resolved = true;
-                    reject(err);
-                }
-            });
+            maxRedirects: 5,
+            headers: { 'User-Agent': 'Mozilla/5.0' }
         });
         
-        request.on('error', (err) => {
-            clearTimeout(timeout);
-            cleanup();
-            if (!resolved) {
-                resolved = true;
-                reject(err);
-            }
-        });
-        
-        request.on('timeout', () => {
-            clearTimeout(timeout);
-            cleanup();
-            if (!resolved) {
-                resolved = true;
-                reject(new Error(`Color extractor request timeout after ${REQUEST_TIMEOUT}ms: ${url}`));
-            }
-        });
-    });
+        return Buffer.from(response.data);
+    } catch (error) {
+        if (error.code === 'ECONNABORTED') {
+            throw new Error(`Color extractor request timeout after ${REQUEST_TIMEOUT}ms: ${url}`);
+        }
+        throw error;
+    }
 }
 
 /**

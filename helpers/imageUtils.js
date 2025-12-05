@@ -4,7 +4,7 @@
 // ------------------------------------------------------------------------------
 
 const { createCanvas, loadImage } = require('canvas');
-const https = require('https');
+const axios = require('axios');
 const crypto = require('crypto');
 const fs = require('fs').promises;
 const fsSync = require('fs');
@@ -300,106 +300,28 @@ function getWhiteLogo(logoImage, size) {
 
 const REQUEST_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '10000', 10); // 10 seconds default
 
-function downloadImage(urlOrPath) {
+async function downloadImage(urlOrPath) {
     // If it's a local file path, load from filesystem
     if (typeof urlOrPath === 'string' && (urlOrPath.startsWith('/') || urlOrPath.startsWith('./') || urlOrPath.startsWith('../'))) {
         return fs.readFile(path.resolve(urlOrPath));
     }
+    
     // Otherwise, treat as URL with timeout protection
-    return new Promise((resolve, reject) => {
-        let request;
-        let resolved = false;
-        
-        const cleanup = () => {
-            if (request) {
-                request.destroy();
-                request.removeAllListeners();
-            }
-        };
-        
-        const timeout = setTimeout(() => {
-            if (!resolved) {
-                resolved = true;
-                cleanup();
-                reject(new Error(`Request timeout after ${REQUEST_TIMEOUT}ms: ${urlOrPath}`));
-            }
-        }, REQUEST_TIMEOUT);
-        
-        const options = {
+    try {
+        const response = await axios.get(urlOrPath, {
+            responseType: 'arraybuffer',
             timeout: REQUEST_TIMEOUT,
-            headers: {
-                'User-Agent': 'Mozilla/5.0'
-            }
-        };
-        
-        request = https.get(urlOrPath, options, (response) => {
-            // Handle redirects
-            if (response.statusCode === 301 || response.statusCode === 302) {
-                clearTimeout(timeout);
-                cleanup();
-                if (!resolved) {
-                    resolved = true;
-                    const redirectUrl = response.headers.location;
-                    return downloadImage(redirectUrl).then(resolve).catch(reject);
-                }
-                return;
-            }
-            
-            if (response.statusCode !== 200) {
-                clearTimeout(timeout);
-                cleanup();
-                if (!resolved) {
-                    resolved = true;
-                    reject(new Error(`HTTP ${response.statusCode}: ${urlOrPath}`));
-                }
-                return;
-            }
-            
-            const chunks = [];
-            
-            response.on('data', (chunk) => {
-                if (!resolved) {
-                    chunks.push(chunk);
-                }
-            });
-            
-            response.on('end', () => {
-                clearTimeout(timeout);
-                cleanup();
-                if (!resolved) {
-                    resolved = true;
-                    resolve(Buffer.concat(chunks));
-                }
-            });
-            
-            response.on('error', (err) => {
-                clearTimeout(timeout);
-                cleanup();
-                if (!resolved) {
-                    resolved = true;
-                    reject(err);
-                }
-            });
+            maxRedirects: 5,
+            headers: { 'User-Agent': 'Mozilla/5.0' }
         });
         
-        request.on('error', (err) => {
-            clearTimeout(timeout);
-            cleanup();
-            if (!resolved) {
-                resolved = true;
-                reject(err);
-            }
-        });
-        
-        request.on('timeout', () => {
-            clearTimeout(timeout);
-            cleanup();
-            if (!resolved) {
-                resolved = true;
-                reject(new Error(`Request timeout after ${REQUEST_TIMEOUT}ms: ${urlOrPath}`));
-            }
-        });
-    });
+        return Buffer.from(response.data);
+    } catch (error) {
+        if (error.code === 'ECONNABORTED') {
+            throw new Error(`Request timeout after ${REQUEST_TIMEOUT}ms: ${urlOrPath}`);
+        }
+        throw error;
+    }
 }
 
 async function selectBestLogo(team, backgroundColor) {
