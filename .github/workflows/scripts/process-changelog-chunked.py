@@ -335,6 +335,25 @@ def format_changelog(version_entries, unreleased_entries, tag_dates, current_ver
     all_versions = sorted(all_version_tags, key=lambda v: tag_to_date.get(v, '0000-00-00'), reverse=True)
     
     for version_tag in all_versions:
+        # Check if this version has new entries to add
+        has_new_entries = version_tag in version_entries
+        
+        # If version exists in old changelog and has NO new entries, preserve it exactly as-is
+        if version_tag in existing_version_data and not has_new_entries:
+            existing_text, existing_ver_hashes = existing_version_data[version_tag]
+            version_date = tag_to_date.get(version_tag, date)
+            lines.append(f"## [{version_tag}] - {version_date}")
+            lines.append("")
+            if existing_ver_hashes:
+                hash_list = ','.join(sorted(existing_ver_hashes))
+                lines.append(f"<!-- Processed commits: {hash_list} -->")
+                lines.append("")
+            if existing_text:
+                lines.append(existing_text)
+                lines.append("")
+            continue
+        
+        # Otherwise, build/merge the section
         version_date = tag_to_date.get(version_tag, date)
         lines.append(f"## [{version_tag}] - {version_date}")
         lines.append("")
@@ -348,7 +367,7 @@ def format_changelog(version_entries, unreleased_entries, tag_dates, current_ver
             if existing_text:
                 all_version_entries.append(existing_text)
         
-        if version_tag in version_entries:
+        if has_new_entries:
             all_version_entries.extend(version_entries[version_tag])
         
         if all_version_entries:
