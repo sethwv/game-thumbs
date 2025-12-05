@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-<!-- Processed commits: 2379012,38b8bdd,3cf215c,46e4040,5125224,591d468,60abcc4,619e355,675f0ae,68dcc32,702bcc6,73cbb9e,8232bf7,8f0282d,b316651,bc1b50f,c98104d,d0fad2e -->
+<!-- Processed commits: 1a9ff14,1f78b8b,3839766,46e4040,4c69b0d,5125224,608619c,6d39e16,7227424,78f9582,7f7694e,8607f3b,88ac2d9,89d3041,8f0282d,b1f61b4,bae7e2d,bec96e0,c3746d6,c98104d,fb65961 -->
 
 ### Added
 
@@ -35,6 +35,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Included a new Python script for formatting the generated changelog.
 - Added support for team overrides in `ESPNProvider.js` and `TheSportsDBProvider.js` to enhance team matching accuracy.
 - Added an override for the Utah Mammoth team in `teams.json`.
+- Introduced `workflow_dispatch` trigger in `.github/workflows/changelog.yml` to allow manual triggering of the changelog workflow.
+- Implemented a Python script for processing changelog generation in chunks for large requests.
 
 ### Changed
 
@@ -43,7 +45,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Consolidated color utility functions into `colorUtils.js` and removed the now redundant `colorExtractor.js`.
 - Migrated HTTP requests from the native https module to Axios in helpers/colorExtractor.js for improved request handling.
 - Refactored downloadImage function in helpers/imageUtils.js to utilize Axios for downloading images, replacing the previous promise-based implementation.
-- Replaced the native https request handling with Axios in providers/ESPNProvider.js for fetching team data from ESPN APIs, simplifying the code structure.
 - Updated `format_changelog` function to include an additional parameter `unreleased_commit_hashes` for tracking unreleased commit hashes.
 - Refactored `process_in_chunks` function in `.github/workflows/scripts/process-changelog-chunked.py` to improve version mapping parsing.
 - Simplified logic for handling version sections by removing unnecessary checks and conditions.
@@ -91,6 +92,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactored `colorUtils.js` to include functions for fetching images from URLs and converting RGB to hex.
 - Migrated web requests from `https` to Axios in `helpers/colorExtractor.js` for improved request handling.
 - Updated the matching logic in `TheSportsDBProvider.js` to use the new `getTeamMatchScoreWithOverrides` function.
+- Replaced the native https request handling with Axios in `providers/ESPNProvider.js` for fetching team data from ESPN APIs, simplifying the code structure.
+- Simplified the handling of version metadata in the `process_in_chunks` function by directly assigning entries to all versions mentioned in the batch comment.
+- Removed unnecessary complexity in parsing version headers from AI responses, relying instead on metadata for version assignments.
+- Enhanced the `process_single_batch` function to ensure that unreleased commits are tracked correctly and assigned to the appropriate version if a release version is specified.
+- Cleaned up the logic for handling unreleased entries to ensure they are properly categorized when no version metadata is available.
+- Implemented chunked processing for changelog generation to handle larger requests consistently.
+- Refactored the changelog generation process to include AI-powered analysis using GitHub Models.
+- Improved error handling in the changelog generation workflow to check for API response errors and log them appropriately.
+- Converted helper files to a new structure, moving from `helpers/` to `generators/` for `genericImageGenerator.js`, `logoGenerator.js`, and `thumbnailGenerator.js`.
+- Refactored image utility functions in `imageUtils.js` to improve organization and maintainability.
 
 ### Removed
 
@@ -117,6 +128,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed the `format-changelog.py` script, simplifying the changelog formatting process.
 - Removed manual git commands for branch creation and commit in the changelog workflow.
 - Deleted unused request handling code in `ESPNProvider.js` related to the old request method.
+- Removed the previous title format in the `changelog.yml` workflow that included the current version in favor of a run number based title.
+- Deleted unused backfill and update prompt files from the workflows directory to streamline the changelog generation process.
+- Eliminated the format-changelog.py script as it was no longer needed for the changelog generation process.
 
 ### Fixed
 
@@ -133,13 +147,221 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed timeout handling in `fetchImage` and `downloadImage` functions to throw meaningful errors when requests exceed the specified timeout.
 - Resolved issue where entries for versions without detailed changes were not properly noted in the changelog.
 - Corrected the logic for stripping batch metadata before processing changelog entries in `.github/workflows/scripts/process-changelog-chunked.py`.
+- Fixed the logic for handling cases where no version tags are found, ensuring that entries are correctly assigned to the `Unreleased` category when appropriate.
 
 ### Cleaned Up
 
 - Removed all entries from the CHANGELOG.md file, resulting in a complete reset of the changelog documentation.
 - Added a step to clean up temporary files generated during the changelog processing to maintain a tidy workspace.
 
-## [v0.6.2] - 2025-12-02
+### Documentation
+
+- Added a section titled "TEST CHANGE" in `README.md` to document recent changes.
+
+## [v0.6.1] - 2025-12-05
+
+<!-- Processed commits: 71fd070 -->
+
+### Added
+
+- Added Dependabot configuration for automatic dependency updates in `.github/dependabot.yml`.
+- Introduced new `DEPRECATIONS.md` documentation to list deprecated features and endpoints.
+- Added unified API endpoints for thumbnails, covers, and logos in `docs/api-reference/index.md`.
+- Added support for feeder leagues in `docs/customization.md` to enhance team matching.
+- Added new helper functions for league image generation in `helpers/leagueImageGenerator.js`.
+- Added health check functionality in the Dockerfile for application monitoring.
+
+### Changed
+
+- Updated Express dependency from version 5.2.0 to 5.2.1 in `package.json`.
+- Modified various API endpoints to use unified naming conventions in `docs/api-reference/index.md`.
+- Updated README.md to reflect new features and improved descriptions of the API.
+- Changed Dockerfile to install git as a dependency for displaying git information in the `/info` endpoint.
+- Adjusted health check command in Dockerfile to ensure proper application health monitoring.
+- Refactored team matching logic in `helpers/teamMatchingUtils.js` to accommodate new feeder leagues.
+
+### Deprecated
+
+- Deprecated legacy league-specific endpoints in `docs/DEPRECATIONS.md` and provided new unified alternatives.
+- Marked old API endpoint structures as deprecated in `docs/api-reference/index.md`.
+
+### Removed
+
+- Removed unused assets related to NCAA from the repository.
+- Deleted legacy files from the README.md to streamline documentation.
+
+### Fixed
+
+- Fixed various issues in API documentation to ensure clarity and accuracy.
+- Resolved inconsistencies in endpoint descriptions across multiple documentation files.
+
+## [v0.6.0] - 2025-12-05
+
+<!-- Processed commits: 9a5189b -->
+
+### Added
+
+- Added Dependabot configuration for automatic dependency updates in `.github/dependabot.yml`.
+- Introduced new `DEPRECATIONS.md` documentation to list deprecated features and endpoints.
+- Added unified API endpoints for thumbnails, covers, and logos in `docs/api-reference/index.md`.
+- Added support for feeder leagues in `docs/customization.md` to enhance team matching.
+- Added new helper functions for league image generation in `helpers/leagueImageGenerator.js`.
+- Added health check functionality in the Dockerfile for application monitoring.
+
+### Changed
+
+- Updated Express dependency from version 5.2.0 to 5.2.1 in `package.json`.
+- Modified various API endpoints to use unified naming conventions in `docs/api-reference/index.md`.
+- Updated README.md to reflect new features and improved descriptions of the API.
+- Changed Dockerfile to install git as a dependency for displaying git information in the `/info` endpoint.
+- Adjusted health check command in Dockerfile to ensure proper application health monitoring.
+- Refactored team matching logic in `helpers/teamMatchingUtils.js` to accommodate new feeder leagues.
+
+### Deprecated
+
+- Deprecated legacy league-specific endpoints in `docs/DEPRECATIONS.md` and provided new unified alternatives.
+- Marked old API endpoint structures as deprecated in `docs/api-reference/index.md`.
+
+### Removed
+
+- Removed unused assets related to NCAA from the repository.
+- Deleted legacy files from the README.md to streamline documentation.
+
+### Fixed
+
+- Fixed various issues in API documentation to ensure clarity and accuracy.
+- Resolved inconsistencies in endpoint descriptions across multiple documentation files.
+
+## [v0.3.1] - 2025-12-05
+
+<!-- Processed commits: aaafc74 -->
+
+### Added
+
+- Added constants for color similarity threshold, outline width percentage, diagonal line extension, and maximum cache size in `helpers/thumbnailGenerator.js`.
+- Added support for drawing a white diagonal line in `generateDiagonalSplit` function in `helpers/thumbnailGenerator.js`.
+
+### Changed
+
+- Updated the logic for extending diagonal lines in `generateDiagonalSplit` function to use a constant instead of a hardcoded value in `helpers/thumbnailGenerator.js`.
+- Refactored the outline logic for logos to use a new function `drawLogoWithOutline` in `helpers/thumbnailGenerator.js`.
+- Modified the README to reflect correct URL encoding for Los Angeles in examples.
+- Updated README to include a note about the use of ESPN APIs and logos.
+
+### Removed
+
+- Removed hardcoded values for outline width and color similarity threshold in `helpers/thumbnailGenerator.js`.
+
+### Fixed
+
+- Fixed URL encoding for Los Angeles in examples in `README.md`.
+- Corrected the logic for checking if a logo needs an outline in `helpers/thumbnailGenerator.js`.
+
+## [v0.2.0] - 2025-12-05
+
+<!-- Processed commits: 039d6b0,f791d33 -->
+
+### Added
+
+- Added constants for color similarity threshold, outline width percentage, diagonal line extension, and maximum cache size in `helpers/thumbnailGenerator.js`.
+- Added support for drawing a white diagonal line in `generateDiagonalSplit` function in `helpers/thumbnailGenerator.js`.
+
+### Changed
+
+- Updated the logic for extending diagonal lines in `generateDiagonalSplit` function to use a constant instead of a hardcoded value in `helpers/thumbnailGenerator.js`.
+- Refactored the outline logic for logos to use a new function `drawLogoWithOutline` in `helpers/thumbnailGenerator.js`.
+- Modified the README to reflect correct URL encoding for Los Angeles in examples.
+- Updated README to include a note about the use of ESPN APIs and logos.
+
+### Removed
+
+- Removed hardcoded values for outline width and color similarity threshold in `helpers/thumbnailGenerator.js`.
+
+### Fixed
+
+- Fixed URL encoding for Los Angeles in examples in `README.md`.
+- Corrected the logic for checking if a logo needs an outline in `helpers/thumbnailGenerator.js`.
+
+## [v0.5.2] - 2025-12-05
+
+<!-- Processed commits: e361a64 -->
+
+### Added
+
+- Added soccer leagues to `leagues.json` including La Liga, Bundesliga, Serie A, Ligue 1, UEFA Europa League, and UEFA Europa Conference League.
+- Introduced logging configuration options in `README.md` for file logging and maximum log files.
+
+### Changed
+
+- Updated `.gitignore` to include logs directory and log files.
+- Enhanced logging functionality in `helpers/logger.js` to support file logging.
+- Modified `README.md` to include new environment variables for logging and caching.
+- Updated `Dockerfile` to include health check for the application.
+- Refactored image processing functions in `helpers/imageUtils.js` to improve logo cropping.
+
+### Removed
+
+- Removed deprecated ESPN provider files and replaced with new provider structure in `providers/ESPNProvider.js`.
+
+### Fixed
+
+- Fixed issues with logging in `helpers/logger.js` to ensure proper log rotation.
+- Resolved incorrect API endpoint descriptions in `README.md` for NCAA sports.
+
+## [v0.5.0] - 2025-12-05
+
+<!-- Processed commits: e956c13 -->
+
+### Added
+
+- Added soccer leagues to `leagues.json` including La Liga, Bundesliga, Serie A, Ligue 1, UEFA Europa League, and UEFA Europa Conference League.
+- Introduced logging configuration options in `README.md` for file logging and maximum log files.
+
+### Changed
+
+- Updated `.gitignore` to include logs directory and log files.
+- Enhanced logging functionality in `helpers/logger.js` to support file logging.
+- Modified `README.md` to include new environment variables for logging and caching.
+- Updated `Dockerfile` to include health check for the application.
+- Refactored image processing functions in `helpers/imageUtils.js` to improve logo cropping.
+
+### Removed
+
+- Removed deprecated ESPN provider files and replaced with new provider structure in `providers/ESPNProvider.js`.
+
+### Fixed
+
+- Fixed issues with logging in `helpers/logger.js` to ensure proper log rotation.
+- Resolved incorrect API endpoint descriptions in `README.md` for NCAA sports.
+
+## [v0.1.0] - 2025-12-05
+
+<!-- Processed commits: 559726f -->
+
+### Added
+
+- Added .dockerignore file to exclude unnecessary files from Docker builds.
+- Introduced GitHub Actions workflow for building and pushing Docker images.
+- Created Dockerfile for containerizing the application.
+- Added express.js file to set up the Express server.
+- Implemented ESPNTeamResolver.js to resolve team data from ESPN API.
+- Developed imageCache.js for caching images to improve performance.
+- Created thumbnailGenerator.js for generating image thumbnails.
+- Added route for thumbnail generation in routes/thumb.js.
+- Included package.json to manage project dependencies.
+- Added yarn.lock for consistent dependency resolution.
+
+### Changed
+
+- Configured build-docker.yml to trigger on tag pushes and manual dispatch.
+- Updated build process in GitHub Actions to include Docker image tagging.
+- Modified Docker build command to specify platform as linux/amd64.
+
+### Removed
+
+- No files or features were removed in this commit.
+
+## [v0.6.2] - 2025-12-05
 
 <!-- Processed commits: 12a786d,2bdbaf4,4065aca,788e1a6,86650ec,a94b562,ab3cfe2,b3b1418,e1596e1,e9fc790,fb256b6 -->
 
@@ -205,107 +427,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed various issues in API documentation to ensure clarity and accuracy.
 - Resolved inconsistencies in endpoint descriptions across multiple documentation files.
 
-## [v0.6.1] - 2025-12-02
-
-<!-- Processed commits: 71fd070 -->
-
-### Added
-
-- Added Dependabot configuration for automatic dependency updates in `.github/dependabot.yml`.
-- Introduced new `DEPRECATIONS.md` documentation to list deprecated features and endpoints.
-- Added unified API endpoints for thumbnails, covers, and logos in `docs/api-reference/index.md`.
-- Added support for feeder leagues in `docs/customization.md` to enhance team matching.
-- Added new helper functions for league image generation in `helpers/leagueImageGenerator.js`.
-- Added health check functionality in the Dockerfile for application monitoring.
-
-### Changed
-
-- Updated Express dependency from version 5.2.0 to 5.2.1 in `package.json`.
-- Modified various API endpoints to use unified naming conventions in `docs/api-reference/index.md`.
-- Updated README.md to reflect new features and improved descriptions of the API.
-- Changed Dockerfile to install git as a dependency for displaying git information in the `/info` endpoint.
-- Adjusted health check command in Dockerfile to ensure proper application health monitoring.
-- Refactored team matching logic in `helpers/teamMatchingUtils.js` to accommodate new feeder leagues.
-
-### Deprecated
-
-- Deprecated legacy league-specific endpoints in `docs/DEPRECATIONS.md` and provided new unified alternatives.
-- Marked old API endpoint structures as deprecated in `docs/api-reference/index.md`.
-
-### Removed
-
-- Removed unused assets related to NCAA from the repository.
-- Deleted legacy files from the README.md to streamline documentation.
-
-### Fixed
-
-- Fixed various issues in API documentation to ensure clarity and accuracy.
-- Resolved inconsistencies in endpoint descriptions across multiple documentation files.
-
-## [v0.6.0] - 2025-11-26
-
-<!-- Processed commits: 9a5189b -->
-
-### Added
-
-- Added Dependabot configuration for automatic dependency updates in `.github/dependabot.yml`.
-- Introduced new `DEPRECATIONS.md` documentation to list deprecated features and endpoints.
-- Added unified API endpoints for thumbnails, covers, and logos in `docs/api-reference/index.md`.
-- Added support for feeder leagues in `docs/customization.md` to enhance team matching.
-- Added new helper functions for league image generation in `helpers/leagueImageGenerator.js`.
-- Added health check functionality in the Dockerfile for application monitoring.
-
-### Changed
-
-- Updated Express dependency from version 5.2.0 to 5.2.1 in `package.json`.
-- Modified various API endpoints to use unified naming conventions in `docs/api-reference/index.md`.
-- Updated README.md to reflect new features and improved descriptions of the API.
-- Changed Dockerfile to install git as a dependency for displaying git information in the `/info` endpoint.
-- Adjusted health check command in Dockerfile to ensure proper application health monitoring.
-- Refactored team matching logic in `helpers/teamMatchingUtils.js` to accommodate new feeder leagues.
-
-### Deprecated
-
-- Deprecated legacy league-specific endpoints in `docs/DEPRECATIONS.md` and provided new unified alternatives.
-- Marked old API endpoint structures as deprecated in `docs/api-reference/index.md`.
-
-### Removed
-
-- Removed unused assets related to NCAA from the repository.
-- Deleted legacy files from the README.md to streamline documentation.
-
-### Fixed
-
-- Fixed various issues in API documentation to ensure clarity and accuracy.
-- Resolved inconsistencies in endpoint descriptions across multiple documentation files.
-
-## [v0.5.2] - 2025-11-08
-
-<!-- Processed commits: e361a64 -->
-
-### Added
-
-- Added soccer leagues to `leagues.json` including La Liga, Bundesliga, Serie A, Ligue 1, UEFA Europa League, and UEFA Europa Conference League.
-- Introduced logging configuration options in `README.md` for file logging and maximum log files.
-
-### Changed
-
-- Updated `.gitignore` to include logs directory and log files.
-- Enhanced logging functionality in `helpers/logger.js` to support file logging.
-- Modified `README.md` to include new environment variables for logging and caching.
-- Updated `Dockerfile` to include health check for the application.
-- Refactored image processing functions in `helpers/imageUtils.js` to improve logo cropping.
-
-### Removed
-
-- Removed deprecated ESPN provider files and replaced with new provider structure in `providers/ESPNProvider.js`.
-
-### Fixed
-
-- Fixed issues with logging in `helpers/logger.js` to ensure proper log rotation.
-- Resolved incorrect API endpoint descriptions in `README.md` for NCAA sports.
-
-## [v0.5.1] - 2025-11-05
+## [v0.5.1] - 2025-12-05
 
 <!-- Processed commits: c872a33 -->
 
@@ -331,33 +453,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed issues with logging in `helpers/logger.js` to ensure proper log rotation.
 - Resolved incorrect API endpoint descriptions in `README.md` for NCAA sports.
 
-## [v0.5.0] - 2025-11-04
-
-<!-- Processed commits: e956c13 -->
-
-### Added
-
-- Added soccer leagues to `leagues.json` including La Liga, Bundesliga, Serie A, Ligue 1, UEFA Europa League, and UEFA Europa Conference League.
-- Introduced logging configuration options in `README.md` for file logging and maximum log files.
-
-### Changed
-
-- Updated `.gitignore` to include logs directory and log files.
-- Enhanced logging functionality in `helpers/logger.js` to support file logging.
-- Modified `README.md` to include new environment variables for logging and caching.
-- Updated `Dockerfile` to include health check for the application.
-- Refactored image processing functions in `helpers/imageUtils.js` to improve logo cropping.
-
-### Removed
-
-- Removed deprecated ESPN provider files and replaced with new provider structure in `providers/ESPNProvider.js`.
-
-### Fixed
-
-- Fixed issues with logging in `helpers/logger.js` to ensure proper log rotation.
-- Resolved incorrect API endpoint descriptions in `README.md` for NCAA sports.
-
-## [v0.4.0] - 2025-10-28
+## [v0.4.0] - 2025-12-05
 
 <!-- Processed commits: 3824760,9d650ef,a7665c1,eb983ad -->
 
@@ -394,7 +490,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed issue where logo visibility was inconsistent on light backgrounds by introducing `useLight` parameter.
 - Resolved bug in ESPNTeamResolver.js related to team location abbreviations.
 
-## [v0.3.2] - 2025-10-23
+## [v0.3.2] - 2025-12-05
 
 <!-- Processed commits: c65075b,e7019b8 -->
 
@@ -421,32 +517,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed issue where logo visibility was inconsistent on light backgrounds by introducing `useLight` parameter.
 - Resolved bug in ESPNTeamResolver.js related to team location abbreviations.
 
-## [v0.3.1] - 2025-10-23
-
-<!-- Processed commits: aaafc74 -->
-
-### Added
-
-- Added constants for color similarity threshold, outline width percentage, diagonal line extension, and maximum cache size in `helpers/thumbnailGenerator.js`.
-- Added support for drawing a white diagonal line in `generateDiagonalSplit` function in `helpers/thumbnailGenerator.js`.
-
-### Changed
-
-- Updated the logic for extending diagonal lines in `generateDiagonalSplit` function to use a constant instead of a hardcoded value in `helpers/thumbnailGenerator.js`.
-- Refactored the outline logic for logos to use a new function `drawLogoWithOutline` in `helpers/thumbnailGenerator.js`.
-- Modified the README to reflect correct URL encoding for Los Angeles in examples.
-- Updated README to include a note about the use of ESPN APIs and logos.
-
-### Removed
-
-- Removed hardcoded values for outline width and color similarity threshold in `helpers/thumbnailGenerator.js`.
-
-### Fixed
-
-- Fixed URL encoding for Los Angeles in examples in `README.md`.
-- Corrected the logic for checking if a logo needs an outline in `helpers/thumbnailGenerator.js`.
-
-## [v0.3.0] - 2025-10-23
+## [v0.3.0] - 2025-12-05
 
 <!-- Processed commits: 907387a,dccd0c6,e12a6a6 -->
 
@@ -470,55 +541,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Fixed URL encoding for Los Angeles in examples in `README.md`.
 - Corrected the logic for checking if a logo needs an outline in `helpers/thumbnailGenerator.js`.
-
-## [v0.2.0] - 2025-10-23
-
-<!-- Processed commits: 039d6b0,f791d33 -->
-
-### Added
-
-- Added constants for color similarity threshold, outline width percentage, diagonal line extension, and maximum cache size in `helpers/thumbnailGenerator.js`.
-- Added support for drawing a white diagonal line in `generateDiagonalSplit` function in `helpers/thumbnailGenerator.js`.
-
-### Changed
-
-- Updated the logic for extending diagonal lines in `generateDiagonalSplit` function to use a constant instead of a hardcoded value in `helpers/thumbnailGenerator.js`.
-- Refactored the outline logic for logos to use a new function `drawLogoWithOutline` in `helpers/thumbnailGenerator.js`.
-- Modified the README to reflect correct URL encoding for Los Angeles in examples.
-- Updated README to include a note about the use of ESPN APIs and logos.
-
-### Removed
-
-- Removed hardcoded values for outline width and color similarity threshold in `helpers/thumbnailGenerator.js`.
-
-### Fixed
-
-- Fixed URL encoding for Los Angeles in examples in `README.md`.
-- Corrected the logic for checking if a logo needs an outline in `helpers/thumbnailGenerator.js`.
-
-## [v0.1.0] - 2025-10-23
-
-<!-- Processed commits: 559726f -->
-
-### Added
-
-- Added .dockerignore file to exclude unnecessary files from Docker builds.
-- Introduced GitHub Actions workflow for building and pushing Docker images.
-- Created Dockerfile for containerizing the application.
-- Added express.js file to set up the Express server.
-- Implemented ESPNTeamResolver.js to resolve team data from ESPN API.
-- Developed imageCache.js for caching images to improve performance.
-- Created thumbnailGenerator.js for generating image thumbnails.
-- Added route for thumbnail generation in routes/thumb.js.
-- Included package.json to manage project dependencies.
-- Added yarn.lock for consistent dependency resolution.
-
-### Changed
-
-- Configured build-docker.yml to trigger on tag pushes and manual dispatch.
-- Updated build process in GitHub Actions to include Docker image tagging.
-- Modified Docker build command to specify platform as linux/amd64.
-
-### Removed
-
-- No files or features were removed in this commit.
