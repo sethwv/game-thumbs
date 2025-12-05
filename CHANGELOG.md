@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-<!-- Processed commits: 2379012,38b8bdd,3cf215c,46e4040,5125224,591d468,60abcc4,619e355,675f0ae,68dcc32,702bcc6,73cbb9e,8232bf7,8f0282d,b316651,bc1b50f,c98104d,d0fad2e -->
+<!-- Processed commits: 13884a9,1a9ff14,1f78b8b,3839766,46e4040,4c69b0d,5125224,608619c,6d39e16,7227424,78f9582,7f7694e,8607f3b,88ac2d9,89d3041,8f0282d,9c6ffeb,b1f61b4,bae7e2d,bec96e0,c3746d6,c98104d,e429b30,fb65961 -->
 
 ### Added
 
@@ -35,6 +35,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Included a new Python script for formatting the generated changelog.
 - Added support for team overrides in `ESPNProvider.js` and `TheSportsDBProvider.js` to enhance team matching accuracy.
 - Added an override for the Utah Mammoth team in `teams.json`.
+- Added `workflow_dispatch` trigger to the changelog GitHub Actions workflow.
+- Implemented logic to strip batch metadata before processing changelog entries.
+- Included a Python script for processing changelogs in chunks to handle larger requests efficiently.
+- Implemented a new step to output the generated changelog to the GitHub Actions summary.
 
 ### Changed
 
@@ -43,7 +47,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Consolidated color utility functions into `colorUtils.js` and removed the now redundant `colorExtractor.js`.
 - Migrated HTTP requests from the native https module to Axios in helpers/colorExtractor.js for improved request handling.
 - Refactored downloadImage function in helpers/imageUtils.js to utilize Axios for downloading images, replacing the previous promise-based implementation.
-- Replaced the native https request handling with Axios in providers/ESPNProvider.js for fetching team data from ESPN APIs, simplifying the code structure.
 - Updated `format_changelog` function to include an additional parameter `unreleased_commit_hashes` for tracking unreleased commit hashes.
 - Refactored `process_in_chunks` function in `.github/workflows/scripts/process-changelog-chunked.py` to improve version mapping parsing.
 - Simplified logic for handling version sections by removing unnecessary checks and conditions.
@@ -91,6 +94,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactored `colorUtils.js` to include functions for fetching images from URLs and converting RGB to hex.
 - Migrated web requests from `https` to Axios in `helpers/colorExtractor.js` for improved request handling.
 - Updated the matching logic in `TheSportsDBProvider.js` to use the new `getTeamMatchScoreWithOverrides` function.
+- Replaced the native https request handling with Axios in `providers/ESPNProvider.js` for fetching team data from ESPN APIs, simplifying the code structure.
+- Updated the base branch in the changelog workflow from `main` to `${{ github.ref_name }}` to dynamically set the base branch for changelog generation.
+- Updated the branch naming convention in the changelog workflow from `changelog-update-${{ github.run_number }}` to `changelog/${{ github.run_number }}`.
+- Refactored the changelog creation process to streamline the commit and branch handling.
+- Converted helper files to generator files: `helpers/genericImageGenerator.js` renamed to `generators/genericImageGenerator.js`.
+- Converted helper files to generator files: `helpers/logoGenerator.js` renamed to `generators/logoGenerator.js`.
+- Converted helper files to generator files: `helpers/thumbnailGenerator.js` renamed to `generators/thumbnailGenerator.js`.
+- Updated import paths in `generators/genericImageGenerator.js` to use the new structure for `imageUtils`, `colorUtils`, and `logger`.
+- Updated import paths in `generators/logoGenerator.js` to use the new structure for `imageUtils` and `logger`.
+- Updated import paths in `generators/thumbnailGenerator.js` to use the new structure for `imageUtils` and `logger`.
 
 ### Removed
 
@@ -117,6 +130,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed the `format-changelog.py` script, simplifying the changelog formatting process.
 - Removed manual git commands for branch creation and commit in the changelog workflow.
 - Deleted unused request handling code in `ESPNProvider.js` related to the old request method.
+- Eliminated unnecessary complexity in handling version sections by directly mapping entries to their respective versions based on metadata, simplifying the overall processing logic.
+- Deleted obsolete backfill and update prompt files used for changelog generation.
 
 ### Fixed
 
@@ -133,6 +148,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed timeout handling in `fetchImage` and `downloadImage` functions to throw meaningful errors when requests exceed the specified timeout.
 - Resolved issue where entries for versions without detailed changes were not properly noted in the changelog.
 - Corrected the logic for stripping batch metadata before processing changelog entries in `.github/workflows/scripts/process-changelog-chunked.py`.
+- Fixed the handling of version metadata extraction to ensure correct parsing of commit hashes in the `process-changelog-chunked.py` script.
+- Resolved issues with duplicate entries in the changelog by consolidating similar entries in the `consolidate_similar_entries` function.
 
 ### Cleaned Up
 
