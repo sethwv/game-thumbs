@@ -182,6 +182,25 @@ def parse_and_merge_entries(entry_blocks):
                 if current_category not in categories:
                     categories[current_category] = []
             elif line.startswith('- ') and current_category:
+                # Extract and validate per-line hash comments
+                line_hash_match = re.search(r'<!-- ([a-f0-9,]+) -->', line)
+                if line_hash_match:
+                    line_hashes = [h.strip() for h in line_hash_match.group(1).split(',')]
+                    # Validate at least one hash exists in git
+                    has_valid_hash = False
+                    for h in line_hashes:
+                        if h:
+                            result = subprocess.run(['git', 'cat-file', '-e', f'{h}^{{commit}}'],
+                                                  capture_output=True, text=True)
+                            if result.returncode == 0:
+                                has_valid_hash = True
+                                commit_hashes.add(h)
+                                break
+                    
+                    # Skip this line if none of its hashes are valid (commit was rebased/squashed)
+                    if not has_valid_hash:
+                        continue
+                
                 # Check if this entry is similar to any existing entry
                 is_duplicate = False
                 for existing_entry in categories[current_category]:
@@ -663,6 +682,7 @@ def process_single_batch(commits_text, token, version, tag_dates, date, batch_nu
     first_hash = ""
     last_hash = ""
     commit_versions = {}  # Track which commits belong to which versions
+    all_batch_hashes = []  # Track all commit hashes in this batch for per-line tagging
     
     for line in lines:
         if line.startswith('=== COMMIT:'):
@@ -672,6 +692,7 @@ def process_single_batch(commits_text, token, version, tag_dates, date, batch_nu
                 if not first_hash:
                     first_hash = hash_part
                 last_hash = hash_part
+                all_batch_hashes.append(hash_part[:7])  # Store short hash
                 
                 # Get version from the pre-built map
                 commit_version = commit_version_map.get(hash_part)
@@ -709,30 +730,32 @@ Date: {date}
 Commits in this batch:
 {commits_text}
 
+CRITICAL: Each entry MUST be prefixed with [COMMIT:hash] where hash is the 7-character commit hash.
+
 Instructions:
 1. Extract MULTIPLE detailed entries from each commit (3-7 per commit typical)
 2. Read the DIFF carefully - each file change often represents a separate entry
 3. Be TECHNICAL and SPECIFIC: Include file/component names
 4. Categories: Added, Changed, Deprecated, Removed, Fixed, Security
-5. Format each entry as a simple bullet point starting with "- "
+5. Format: "[COMMIT:abc1234] - Entry text" (ALWAYS include commit hash prefix)
 6. Group by category with headers like "### Added", "### Changed", etc.
-7. DO NOT add version tags or prefixes to entries - just clean bullet points
 
 Example output format:
 
 ### Added
-- Added JWT token validation in auth middleware
-- Introduced rate limiting for ESPN API provider
+[COMMIT:a1b2c3d] - Added JWT token validation in auth middleware
+[COMMIT:a1b2c3d] - Introduced rate limiting for ESPN API provider
+[COMMIT:e4f5g6h] - Added new caching layer for team logos
 
 ### Changed  
-- Updated Express dependency to version 5.2.1
-- Modified image cache to use LRU eviction strategy
+[COMMIT:e4f5g6h] - Updated Express dependency to version 5.2.1
+[COMMIT:i7j8k9l] - Modified image cache to use LRU eviction strategy
 
 ### Fixed
-- Fixed memory leak in thumbnail generation cleanup
-- Resolved null pointer exception in team matching
+[COMMIT:i7j8k9l] - Fixed memory leak in thumbnail generation cleanup
+[COMMIT:m0n1o2p] - Resolved null pointer exception in team matching
 
-Return ONLY the categorized bullet points, no explanations or extra text."""
+Return ONLY the categorized bullet points with [COMMIT:hash] prefixes, no explanations."""
 
     messages = [
         {
@@ -761,13 +784,43 @@ Return ONLY the categorized bullet points, no explanations or extra text."""
     try:
         data = json.loads(response)
         entries_text = data.get('choices', [{}])[0].get('message', {}).get('content', '')
-        entry_count = len([line for line in entries_text.split('\n') if line.strip().startswith('-')])
-        print(f"  ✅ Completed! Extracted ~{entry_count} changelog entries")
+        
+        # Parse entries and extract per-line commit hashes
+        annotated_lines = []
+        for line in entries_text.split('\n'):
+            stripped = line.strip()
+            # Look for [COMMIT:hash] prefix on bullet points
+            if stripped.startswith('[COMMIT:'):
+                # Extract the commit hash
+                hash_match = re.match(r'\[COMMIT:([a-f0-9]+)\]\s*-?\s*(.*)', stripped)
+                if hash_match:
+                    commit_hash = hash_match.group(1)
+                    entry_text = hash_match.group(2).strip()
+                    # Format as clean bullet with invisible hash comment
+                    if entry_text:
+                        annotated_lines.append(f"- {entry_text} <!-- {commit_hash} -->")
+                    else:
+                        # Malformed entry, skip it
+                        pass
+                else:
+                    # Couldn't parse hash, use line as-is
+                    annotated_lines.append(line)
+            elif stripped.startswith('- '):
+                # Entry without commit prefix - use all batch hashes as fallback
+                hash_list = ','.join(all_batch_hashes)
+                annotated_lines.append(f"{line} <!-- {hash_list} -->")
+            else:
+                # Category headers or other lines
+                annotated_lines.append(line)
+        
+        entries_text_annotated = '\n'.join(annotated_lines)
+        entry_count = len([line for line in annotated_lines if line.strip().startswith('-')])
+        print(f"  ✅ Completed! Extracted ~{entry_count} changelog entries (with per-line hash tracking)")
         sys.stdout.flush()
         
         # Add metadata header to track which commits these entries came from
         batch_header = f"<!-- Batch {batch_num}: {batch_info} -->\n"
-        return [batch_header + entries_text]
+        return [batch_header + entries_text_annotated]
     except Exception as e:
         print(f"  ⚠️  Error parsing batch {batch_num}: {e}")
         return []
