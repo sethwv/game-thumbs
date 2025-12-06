@@ -33,6 +33,13 @@ class ProviderManager {
             logger.warn('Failed to load TheSportsDB provider', { error: error.message });
         }
 
+        try {
+            const HockeyTechProvider = require('./HockeyTechProvider');
+            this.registerProvider(new HockeyTechProvider());
+        } catch (error) {
+            logger.warn('Failed to load HockeyTech provider', { error: error.message });
+        }
+
         // Add other providers here as they're implemented
         // const APISportsProvider = require('./APISportsProvider');
         // this.registerProvider(new APISportsProvider());
@@ -249,7 +256,14 @@ class ProviderManager {
         for (let i = 0; i < providers.length; i++) {
             const provider = providers[i];
             try {
-                return await provider.resolveTeam(league, teamIdentifier);
+                const result = await provider.resolveTeam(league, teamIdentifier);
+                logger.info(`Team resolved from ${provider.getProviderId()} - ${result.fullName || result.name}`, {
+                    league: league.shortName,
+                    team: result.fullName || result.name,
+                    identifier: teamIdentifier,
+                    provider: provider.getProviderId()
+                });
+                return result;
             } catch (error) {
                 lastError = error;
                 // Continue to next provider

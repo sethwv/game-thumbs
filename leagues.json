@@ -45,6 +45,18 @@
       }
     ]
   },
+  "pwhl": {
+    "name": "Professional Women's Hockey League",
+    "logoUrl": "./assets/PWHL.png",
+    "providers": [
+      {
+        "hockeyTech": {
+          "clientCode": "pwhl",
+          "apiKey": "446521baf8c38984"
+        }
+      }
+    ]
+  },
   "wnba": {
     "name": "Women's National Basketball Association",
     "providers": [
@@ -791,7 +803,13 @@
       "whl",
       "qmjhl"
     ],
-    "providers": []
+    "providers": [
+      {
+        "hockeyTech": {
+          "clientCode": "chl"
+        }
+      }
+    ]
   },
   "ohl": {
     "name": "Ontario Hockey League",
@@ -807,6 +825,11 @@
         "theSportsDB": {
           "leagueId": "5159",
           "leagueName": "Canadian OHL"
+        }
+      },
+      {
+        "hockeyTech": {
+          "clientCode": "ohl"
         }
       }
     ]
@@ -824,6 +847,11 @@
           "leagueId": "5160",
           "leagueName": "Canadian WHL"
         }
+      },
+      {
+        "hockeyTech": {
+          "clientCode": "whl"
+        }
       }
     ]
   },
@@ -839,6 +867,11 @@
         "theSportsDB": {
           "leagueId": "5161",
           "leagueName": "Canadian QMJHL"
+        }
+      },
+      {
+        "hockeyTech": {
+          "clientCode": "lhjmq"
         }
       }
     ]
