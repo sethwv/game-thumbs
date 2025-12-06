@@ -26,7 +26,11 @@ nav_order: 4
 | Major League Baseball | `mlb` | ESPN | |
 | National Hockey League | `nhl` | ESPN | |
 | National Lacrosse League | `nll` | ESPN | |
-| Ontario Hockey League | `ohl` | TheSportsDB | |
+| Canadian Football League | `cfl` | TheSportsDB | |
+| Canadian Hockey League | `chl` | Local Logo Only | OHL, WHL, QMJHL |
+| Ontario Hockey League | `ohl` | TheSportsDB | CHL |
+| Western Hockey League | `whl` | TheSportsDB | CHL |
+| Quebec Maritimes Junior Hockey League | `qmjhl` | TheSportsDB | CHL |
 | American Hockey League | `ahl` | TheSportsDB | |
 | English Premier League | `epl` | TheSportsDB / ESPN | Championship, League One, League Two |
 | EFL Championship | `championship` | ESPN | |

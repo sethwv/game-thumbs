@@ -231,14 +231,14 @@ class ProviderManager {
      * Resolve a team using the appropriate provider
      * @param {Object} league - League object
      * @param {string} teamIdentifier - Team name, abbreviation, or identifier
-     * @param {Set} visitedLeagues - Set of league keys already visited (for circular reference protection)
+     * @param {Set} visitedLeagues - Set of league keys already visited (prevents infinite loops in circular references)
      * @returns {Promise<Object>} Standardized team object
      */
     async resolveTeam(league, teamIdentifier, visitedLeagues = new Set()) {
-        // Protect against circular references
+        // Skip if we've already tried this league (prevents infinite loops)
         const leagueKey = league.shortName?.toLowerCase() || league.name?.toLowerCase();
         if (visitedLeagues.has(leagueKey)) {
-            throw new Error(`Circular league reference detected for: ${leagueKey}`);
+            throw new Error(`Already searched league: ${leagueKey}`);
         }
         visitedLeagues.add(leagueKey);
         
@@ -263,6 +263,12 @@ class ProviderManager {
             for (const feederLeagueKey of league.feederLeagues) {
                 const feederLeague = findLeague(feederLeagueKey);
                 if (feederLeague) {
+                    // Skip if we've already visited this feeder league (prevents circular loops)
+                    const feederKey = feederLeague.shortName?.toLowerCase() || feederLeague.name?.toLowerCase();
+                    if (visitedLeagues.has(feederKey)) {
+                        continue; // Skip this feeder league, try the next one
+                    }
+                    
                     // console.log(`Team "${teamIdentifier}" not found in ${league.shortName}, trying feeder league ${feederLeague.shortName}`);
                     try {
                         return await this.resolveTeam(feederLeague, teamIdentifier, visitedLeagues);
@@ -322,6 +328,14 @@ class ProviderManager {
      * @returns {Promise<string>} League logo URL or path
      */
     async getLeagueLogoUrl(league, darkLogoPreferred = true) {
+        // Check for local logo URLs first
+        if (darkLogoPreferred && league.logoUrlDark) {
+            return league.logoUrlDark;
+        }
+        if (league.logoUrl) {
+            return league.logoUrl;
+        }
+        
         const providers = this.getProvidersForLeague(league);
         
         // Try each provider in priority order

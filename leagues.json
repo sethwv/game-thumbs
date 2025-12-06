@@ -691,7 +691,8 @@
     "aliases": [
       "college volleyball",
       "mens college volleyball",
-      "mens volleyball"
+      "mens volleyball",
+      "ncaavbm"
     ],
     "fallbackLeague": "ncaaf",
     "logoUrl": "https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/volleyball.png",
@@ -708,7 +709,8 @@
     "name": "NCAA Women's Volleyball",
     "aliases": [
       "womens college volleyball",
-      "womens volleyball"
+      "womens volleyball",
+      "ncaavbw"
     ],
     "fallbackLeague": "ncaaf",
     "logoUrl": "https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/volleyball.png",
@@ -777,6 +779,20 @@
 
   "__MINOR_REGIONAL_LEAGUES__": "===========================================",
 
+  "chl": {
+    "name": "Canadian Hockey League",
+    "aliases": [
+      "canadian hockey league",
+      "canadian chl"
+    ],
+    "logoUrl": "./assets/CHL_50.png",
+    "feederLeagues": [
+      "ohl",
+      "whl",
+      "qmjhl"
+    ],
+    "providers": []
+  },
   "ohl": {
     "name": "Ontario Hockey League",
     "aliases": [
@@ -785,6 +801,7 @@
     ],
     "logoUrl": "./assets/OHL_LIGHTMODE.png",
     "logoUrlDark": "./assets/OHL_DARKMODE.png",
+    "fallbackLeague": "chl",
     "providers": [
       {
         "theSportsDB": {
@@ -794,6 +811,39 @@
       }
     ]
   },
+  "whl": {
+    "name": "Western Hockey League",
+    "aliases": [
+      "canadian whl",
+      "western hockey"
+    ],
+    "fallbackLeague": "chl",
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "5160",
+          "leagueName": "Canadian WHL"
+        }
+      }
+    ]
+  },
+  "qmjhl": {
+    "name": "Quebec Maritimes Junior Hockey League",
+    "aliases": [
+      "Quebec Major Junior Hockey League",
+      "Canadian QMJHL"
+    ],
+    "fallbackLeague": "chl",
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "5161",
+          "leagueName": "Canadian QMJHL"
+        }
+      }
+    ]
+  },
+
   "ahl": {
     "name": "American Hockey League",
     "aliases": [
