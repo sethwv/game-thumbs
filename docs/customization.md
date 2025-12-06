@@ -34,7 +34,7 @@ Both files can be mounted as Docker volumes to customize the API without modifyi
 
 Add custom team aliases or override ESPN's team data. Your files are **additive** - they merge with built-in teams, so you only need to include the teams you want to customize.
 
-#### Docker Mount (Recommended: Directory)
+#### Docker Mount
 
 Mount a directory containing one or more JSON files:
 
@@ -45,16 +45,6 @@ docker run -p 3000:3000 \
 ```
 
 All `.json` files in the directory will be loaded and merged in alphabetical order.
-
-#### Docker Mount (Alternative: Single File)
-
-For backward compatibility, you can still mount a single file:
-
-```bash
-docker run -p 3000:3000 \
-  -v /path/to/your/teams.json:/app/teams.json:ro \
-  ghcr.io/sethwv/game-thumbs:latest
-```
 
 #### How Merging Works
 
@@ -126,7 +116,7 @@ See the [Team Matching](team-matching.html) documentation for complete details.
 
 Add new leagues or modify existing league configurations. Like teams, your files are **additive** - they merge with built-in leagues.
 
-#### Docker Mount (Recommended: Directory)
+#### Docker Mount
 
 Mount a directory containing one or more JSON files:
 
@@ -137,16 +127,6 @@ docker run -p 3000:3000 \
 ```
 
 All `.json` files in the directory will be loaded and merged in alphabetical order.
-
-#### Docker Mount (Alternative: Single File)
-
-For backward compatibility, you can still mount a single file:
-
-```bash
-docker run -p 3000:3000 \
-  -v /path/to/your/leagues.json:/app/leagues.json:ro \
-  ghcr.io/sethwv/game-thumbs:latest
-```
 
 #### How Merging Works
 
@@ -313,19 +293,6 @@ To find the correct ESPN slug for a league:
 | MLS | soccer | `usa.1` |
 | UEFA Champions | soccer | `uefa.champions` |
 | UEFA Europa | soccer | `uefa.europa` |
-
----
-
-## Mount Both Files
-
-You can mount both `teams.json` and `leagues.json` simultaneously:
-
-```bash
-docker run -p 3000:3000 \
-  -v /path/to/your/teams.json:/app/teams.json:ro \
-  -v /path/to/your/leagues.json:/app/leagues.json:ro \
-  ghcr.io/sethwv/game-thumbs:latest
-```
 
 ---
 

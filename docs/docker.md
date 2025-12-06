@@ -102,9 +102,9 @@ Configure the server behavior using environment variables:
 
 Game Thumbs supports **additive configuration** - your custom files merge with built-in data rather than replacing it. You only need to specify what you want to customize.
 
-#### Recommended: Directory-Based Configuration
+#### Directory-Based Configuration
 
-Mount a directory with multiple JSON files. All `.json` files in the directory will be loaded and merged:
+Mount directories containing your custom JSON files. All `.json` files in each directory will be loaded and merged:
 
 ```bash
 docker run -p 3000:3000 \
@@ -129,17 +129,7 @@ custom-leagues/
   └── custom-leagues.json
 ```
 
-#### Alternative: Single File Mount (Backward Compatible)
-
-Mount a single `teams.json` or `leagues.json` file:
-
-```bash
-docker run -p 3000:3000 \
-  -v /path/to/your/teams.json:/app/teams.json:ro \
-  ghcr.io/sethwv/game-thumbs:latest
-```
-
-**Example `teams.json`:**
+**Example `teams.json` file:**
 ```json
 {
   "epl": {
@@ -304,15 +294,9 @@ docker logs <container-id>
 **You should see:**
 ```
 ✓ Loaded base teams.json
-✓ Found 2 additional file(s) in json/teams/
+✓ Loading 2 custom file(s) from json/teams/
   ✓ Merged my-teams.json
   ✓ Merged ncaa-teams.json
-```
-
-**Or for backward compatible mode:**
-```
-✓ Loaded base teams.json
-  ✓ Detected external teams.json (backward compatibility mode)
       {
         "espn": {
           "espnSlug": "custom",
