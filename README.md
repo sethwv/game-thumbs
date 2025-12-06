@@ -6,9 +6,15 @@ A sports matchup thumbnail and logo generation API supporting 30+ professional a
 
 ## Quick Start
 
+### Docker Compose (Recommended)
+
 ```bash
-# Pull and run
-docker pull ghcr.io/sethwv/game-thumbs:latest
+docker compose up -d
+```
+
+### Docker Run
+
+```bash
 docker run -p 3000:3000 ghcr.io/sethwv/game-thumbs:latest
 ```
 
