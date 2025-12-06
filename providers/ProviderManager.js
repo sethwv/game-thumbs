@@ -257,12 +257,7 @@ class ProviderManager {
             const provider = providers[i];
             try {
                 const result = await provider.resolveTeam(league, teamIdentifier);
-                logger.info(`Team resolved from ${provider.getProviderId()} - ${result.fullName || result.name}`, {
-                    league: league.shortName,
-                    team: result.fullName || result.name,
-                    identifier: teamIdentifier,
-                    provider: provider.getProviderId()
-                });
+                logger.teamResolved(provider.getProviderId(), result.fullName || result.name);
                 return result;
             } catch (error) {
                 lastError = error;
