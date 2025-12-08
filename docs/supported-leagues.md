@@ -26,6 +26,7 @@ nav_order: 4
 | Major League Baseball | `mlb` | ESPN | |
 | National Hockey League | `nhl` | ESPN | |
 | National Lacrosse League | `nll` | ESPN | |
+| Professional Women's Hockey League | `pwhl` | HockeyTech | |
 | Canadian Football League | `cfl` | TheSportsDB | |
 | Canadian Hockey League | `chl` | Local Logo Only | OHL, WHL, QMJHL |
 | Ontario Hockey League | `ohl` | TheSportsDB | CHL |
@@ -55,6 +56,32 @@ nav_order: 4
 | FIFA WCQ - AFC | `wcq-afc` | ESPN | |
 | FIFA WCQ - CAF | `wcq-caf` | ESPN | |
 | FIFA WCQ - OFC | `wcq-ofc` | ESPN | |
+
+---
+
+## Combat Sports
+
+Game Thumbs supports **athlete-based** combat sports leagues where individual fighters are treated as "teams" for matchup generation.
+
+| League Name | Code | Provider | Athletes |
+|-------------|------|----------|----------|
+| Ultimate Fighting Championship | `ufc` | ESPN Athlete | 600+ |
+| Professional Fighters League | `pfl` | ESPN Athlete | 200+ |
+| Bellator MMA | `bellator` | ESPN Athlete | 300+ |
+
+**Examples:**
+```
+GET /ufc/jon-jones/stipe-miocic/thumb
+GET /pfl/kayla-harrison/larissa-pacheco/logo
+GET /bellator/ryan-bader/corey-anderson/cover
+```
+
+**Features:**
+- Automatic athlete roster caching (72-hour duration)
+- Background cache refresh before expiration
+- Smart name matching (first name, last name, full name)
+- Randomly assigned dark color palettes for visual consistency
+- Headshot images used as fighter "logos"
 
 ---
 

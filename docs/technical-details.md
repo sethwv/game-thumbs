@@ -22,11 +22,62 @@ Game Thumbs is a Node.js Express application that dynamically generates sports m
 ### Key Components
 
 - **Express Server**: HTTP server handling API requests
-- **Provider System**: Modular data provider architecture (currently ESPN only)
+- **Provider System**: Modular data provider architecture with multiple providers
 - **Team Matching**: Intelligent fuzzy matching with weighted scoring
 - **Image Generation**: Canvas-based rendering with multiple visual styles
 - **Caching System**: Multi-layer caching for performance optimization
 - **Color Extraction**: Automatic dominant color detection from logos
+
+---
+
+## Data Providers
+
+Game Thumbs uses a modular provider architecture to fetch team and athlete data from multiple sources.
+
+### ESPN Provider
+
+**Leagues**: NBA, NFL, MLB, NHL, NCAA, Soccer, and more  
+**Type**: Team-based sports  
+**Features**:
+- Fetches team rosters, logos, and colors from ESPN's public APIs
+- Supports 30+ professional and NCAA leagues
+- 24-hour team data caching
+- Automatic logo and color extraction
+
+### ESPN Athlete Provider
+
+**Leagues**: UFC, PFL, Bellator (combat sports)  
+**Type**: Athlete-based sports  
+**Features**:
+- Treats individual fighters/athletes as "teams" for matchup generation
+- Fetches complete athlete rosters from ESPN MMA APIs
+- 72-hour athlete data caching with automatic background refresh
+- Smart athlete matching by first name, last name, or full name
+- Randomly assigned dark color palettes (avoids skin tone bias)
+- Headshot images used as athlete "logos"
+- Supports 600+ UFC fighters, 200+ PFL fighters, 300+ Bellator fighters
+
+**Cache Auto-Refresh**: The ESPN Athlete provider automatically refreshes athlete rosters at 95% of cache duration (68.4 hours) to ensure data stays fresh without requiring manual intervention or server restarts.
+
+### TheSportsDB Provider
+
+**Leagues**: CFL, AHL, OHL, WHL, QMJHL, and international soccer  
+**Type**: Team-based sports  
+**Features**:
+- Community-maintained sports database
+- Good coverage for non-US leagues
+- Team colors, logos, and basic information
+- 24-hour team data caching
+
+### HockeyTech Provider
+
+**Leagues**: PWHL, CHL, OHL, WHL  
+**Type**: Team-based sports (hockey)  
+**Features**:
+- Official provider for Canadian hockey leagues
+- Real-time roster data
+- High-quality team information
+- 24-hour team data caching
 
 ---
 
@@ -422,7 +473,7 @@ Enable with `LOG_TO_FILE=true`:
 
 Potential areas for expansion:
 
-- Additional data providers (beyond ESPN)
+- Additional combat sports (Boxing, Wrestling, etc.)
 - More visual styles and customization options
 - Image format options (JPEG, WebP, SVG)
 - Persistent cache storage (Redis, filesystem)
@@ -430,3 +481,4 @@ Potential areas for expansion:
 - Historical data and archive support
 - Real-time game score integration
 - Custom font and typography options
+- Fighter statistics and rankings display
