@@ -6,7 +6,7 @@
 
 const axios = require('axios');
 const BaseProvider = require('./BaseProvider');
-const { getTeamMatchScoreWithOverrides, generateSlug } = require('../helpers/teamMatchingUtils');
+const { getTeamMatchScoreWithOverrides, generateSlug } = require('../helpers/teamUtils');
 const { extractDominantColors } = require('../helpers/colorUtils');
 const logger = require('../helpers/logger');
 

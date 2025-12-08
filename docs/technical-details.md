@@ -173,7 +173,7 @@ The system recognizes common location abbreviations:
 | `chi` | Chicago, Chi |
 | `atl` | Atlanta, Atl |
 
-And many more. See `teamMatchingUtils.js` for the complete list.
+And many more. See `teamUtils.js` for the complete list.
 
 ### Matching Scores
 
