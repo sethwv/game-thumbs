@@ -119,36 +119,13 @@ GET /bellator/ryan-bader/corey-anderson/cover
 
 ## NCAA Shorthand
 
-The `/ncaa/:sport/:team1/:team2/:type` endpoint accepts these sport identifiers:
+The `/ncaa/:sport/:team1/:team2/:type` endpoint provides a convenient way to access NCAA sports using sport names instead of league codes.
 
-### Men's Sports
+**Format:** `/ncaa/:sport/:team1/:team2/:type`
 
-| Primary Sport | Additional Aliases | Maps to League Code |
-|---------------|-------------------|---------------------|
-| `football` | `footballm` | `ncaaf` |
-| `basketball` | `basketballm`, `march-madness` | `ncaam` |
-| `hockey` | `ice-hockey`, `hockeym`, `ice-hockeym` | `ncaah` |
-| `soccer` | `soccerm` | `ncaas` |
-| `baseball` | `baseballm` | `ncaabb` |
-| `lacrosse` | `lacrossem`, `mens-lacrosse` | `ncaalax` |
-| `volleyball` | `volleyballm`, `mens-volleyball` | `ncaavb` |
-| `water-polo` | `waterpolo`, `waterpolom`, `mens-water-polo` | `ncaawp` |
+See the [NCAA Shorthand API Reference](api-reference/ncaa-route.html) for the complete list of supported sport identifiers and aliases.
 
-### Women's Sports
-
-| Primary Sport | Additional Aliases | Maps to League Code |
-|---------------|-------------------|---------------------|
-| `womens-basketball` | `basketballw`, `womens-college-basketball` | `ncaaw` |
-| `womens-hockey` | `hockeyw`, `womens-college-hockey` | `ncaawh` |
-| `womens-soccer` | `soccerw`, `womens-college-soccer` | `ncaaws` |
-| `softball` | `softballw`, `womens-softball` | `ncaasbw` |
-| `womens-lacrosse` | `lacrossew`, `womens-college-lacrosse` | `ncaawlax` |
-| `womens-volleyball` | `volleyballw`, `womens-college-volleyball` | `ncaawvb` |
-| `womens-water-polo` | `waterpolow`, `womens-college-water-polo` | `ncaawwp` |
-| `field-hockey` | `fieldhockey`, `womens-field-hockey`, `womens-college-field-hockey` | `ncaawfh` |
-
-### Examples
-
+**Examples:**
 ```
 /ncaa/football/alabama/georgia/thumb
 /ncaa/march-madness/duke/unc/cover
@@ -195,74 +172,7 @@ GET /ncaa/hockey/minnesota/wisconsin/thumb
 
 ## Data Providers
 
-### ESPN
-
-Most leagues use ESPN as the data provider. Team data is fetched from ESPN's public APIs:
-
-**Professional Leagues:**
-- `https://site.api.espn.com/apis/site/v2/sports/{sport}/{league}/teams`
-
-**NCAA Leagues:**
-- `https://site.api.espn.com/apis/site/v2/sports/{sport}/{league}/teams`
-
-### TheSportsDB
-
-Some leagues use TheSportsDB's free API v1:
-
-**Supported Leagues:**
-- Ontario Hockey League (OHL)
-- American Hockey League (AHL)
-- English Premier League (EPL - primary provider)
-
-**Team Data:**
-- `https://www.thesportsdb.com/api/v1/json/3/search_all_teams.php?l={leagueName}`
-
-**League Data:**
-- `https://www.thesportsdb.com/api/v1/json/3/lookupleague.php?id={leagueId}`
-
-**Finding Configuration Values:**
-
-To add a new league from TheSportsDB:
-
-1. Visit the league page on [TheSportsDB.com](https://www.thesportsdb.com)
-2. The `leagueId` is in the URL (e.g., `https://www.thesportsdb.com/league/4328` → `leagueId: "4328"`)
-3. The `leagueName` is displayed at the top of the page (e.g., "English Premier League")
-
-Both values are required in the configuration.
-
-**API Limits:**
-
-TheSportsDB free API (v1) has rate limiting restrictions:
-- Limited to a certain number of requests per day
-- Requests may be throttled during high traffic periods
-- For production use with high traffic, consider upgrading to a paid TheSportsDB API key
-
-To minimize API calls, the system implements 72-hour caching for all TheSportsDB data (team rosters, league info, and extracted colors). This significantly reduces the number of requests made to the API.
-
-**Premium API Key:**
-
-To use a premium TheSportsDB API key, set the `THESPORTSDB_API_KEY` environment variable:
-
-```bash
-export THESPORTSDB_API_KEY=your_premium_key_here
-```
-
-Or in your `.env` file:
-
-```
-THESPORTSDB_API_KEY=your_premium_key_here
-```
-
-If not set, the system defaults to the free tier API key (`3`).
-
-### Caching
-
-- ESPN team data is cached for 24 hours to minimize API calls
-- TheSportsDB team data is cached for 72 hours to minimize API calls (due to free tier limits)
-- League logos are cached for 24 hours
-- Generated images are cached for 24 hours based on content hash
-
-See [Technical Details](technical-details.html) for more information on caching and data sources.
+For detailed information about data providers, caching strategies, and API endpoints, see the [Technical Details](technical-details.html#data-providers) page.
 
 ---
 

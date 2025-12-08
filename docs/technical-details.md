@@ -17,7 +17,7 @@ nav_order: 6
 
 ## Architecture Overview
 
-Game Thumbs is a Node.js Express application that dynamically generates sports matchup thumbnails and logos using team data from ESPN's public APIs.
+Game Thumbs is a Node.js Express application that dynamically generates sports matchup thumbnails and logos using team and athlete data from multiple providers (ESPN, TheSportsDB, HockeyTech).
 
 ### Key Components
 
@@ -285,51 +285,20 @@ The NCAA shorthand route (`/ncaa/:sport/:type`) needs to be registered before th
 
 ## Data Sources
 
-### ESPN APIs
-
-All team data is fetched from ESPN's public APIs:
-
-**Professional Leagues:**
-```
-https://site.api.espn.com/apis/site/v2/sports/{sport}/{slug}/teams
-```
-
-**Examples:**
-- NBA: `/sports/basketball/nba/teams`
-- NFL: `/sports/football/nfl/teams`
-- EPL: `/sports/soccer/eng.1/teams`
-- MLS: `/sports/soccer/usa.1/teams`
-
-**NCAA Leagues:**
-```
-https://site.api.espn.com/apis/site/v2/sports/{sport}/{slug}/teams
-```
-
-**Examples:**
-- NCAAF: `/sports/football/college-football/teams`
-- NCAAM: `/sports/basketball/mens-college-basketball/teams`
-- NCAAW: `/sports/basketball/womens-college-basketball/teams`
-
-### Team Data Structure
-
-ESPN provides:
-- Team ID and slug
-- Display names (full, short, nickname)
-- Location/city information
-- Official abbreviations
-- Team logos (multiple variants)
-- Team colors (primary and alternate)
-- Conference and division data
+Team and athlete data is fetched from multiple providers based on league configuration. See the **Data Providers** section above for details on each provider's API endpoints and data structure.
 
 ### League Logos
 
-**Professional Leagues:**
+**ESPN Leagues:**
 - Fetched from ESPN API or ESPN CDN
 - Format: `https://a.espncdn.com/i/teamlogos/leagues/500/{league}.png`
 
 **NCAA Sports:**
 - Hosted on NCAA.com
 - Format: `https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/{sport}.png`
+
+**Custom Leagues:**
+- Configured via `logoUrl` or `logoUrlDark` in league configuration
 
 ---
 
