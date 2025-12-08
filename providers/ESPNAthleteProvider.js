@@ -31,14 +31,14 @@ class ESPNAthleteProvider extends BaseProvider {
         this.CACHE_DURATION = 72 * 60 * 60 * 1000; // 72 hours
         this.REQUEST_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '10000', 10);
         
-        // Predefined muted, darker color palette for athletes
+        // Predefined very dark blue and red color palette for athletes
         this.colorPalette = [
-            '#8B4545', '#2C5F5D', '#2E5F7E', '#8B5A3C', '#4A6B63',
-            '#8B7D3A', '#6B4C7C', '#4A6B8B', '#8B6B2E', '#3A6B4A',
-            '#8B5A2E', '#4A3B7C', '#005A7E', '#8B3A3A', '#2E5A8B',
-            '#2E6B4A', '#6B3B7C', '#8B5A1F', '#8B4A2E', '#1A6B5A',
-            '#0F5A5A', '#1F5A3A', '#1F4A7E', '#5A2E6B', '#7E2B2B',
-            '#8B3A00', '#4A5A5A', '#2B3A4A', '#8B2E5A', '#006B6B'
+            // '#4A1515', '#5A1A1A', '#3A1010', '#6B2222', '#4A1818',
+            // '#5A1515', '#3A0F0F', '#4A1212', '#5A1818', '#3A1212',
+            '#1A2A3A', '#1F3545', '#0F2535', '#1A3040', '#0F1F30',
+            '#1F3040', '#1A2535', '#0F2030', '#1A2F3F', '#152535',
+            '#1A3545', '#0F2540', '#152A3A', '#1A2F40', '#1F3545',
+            '#0F1A2A', '#1A2A40', '#152F45', '#1A3040', '#0F2535'
         ];
     }
 
@@ -142,15 +142,14 @@ class ESPNAthleteProvider extends BaseProvider {
                 abbreviation: (bestMatch.firstName?.[0] || '') + (bestMatch.lastName?.[0] || ''),
                 conference: null,
                 division: null,
-                logo: stanceUrl, // Full body stance image
-                logoAlt: stanceUrl, // Full body stance image
-                // logoAlt: headshotUrl || stanceUrl, // Fallback to headshot or stance for dark mode
+                logo: headshotUrl, // Full body stance image
+                // logoAlt: undefined, // No alternate logo for athletes
                 color: primaryColor,
                 alternateColor: alternateColor
             };
 
             // Apply team overrides if any exist
-            const { applyTeamOverrides } = require('../helpers/teamOverrides');
+            const { applyTeamOverrides } = require('../helpers/teamUtils');
             return applyTeamOverrides(athleteData, league.shortName.toLowerCase(), bestMatch.slug);
         } catch (error) {
             if (error instanceof AthleteNotFoundError) {
