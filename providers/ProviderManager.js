@@ -40,6 +40,13 @@ class ProviderManager {
             logger.warn('Failed to load HockeyTech provider', { error: error.message });
         }
 
+        try {
+            const ESPNAthleteProvider = require('./ESPNAthleteProvider');
+            this.registerProvider(new ESPNAthleteProvider());
+        } catch (error) {
+            logger.warn('Failed to load ESPN Athlete provider', { error: error.message });
+        }
+
         // Add other providers here as they're implemented
         // const APISportsProvider = require('./APISportsProvider');
         // this.registerProvider(new APISportsProvider());

@@ -80,6 +80,45 @@
     ]
   },
 
+  "__COMBAT_SPORTS__": "===========================================",
+
+  "ufc": {
+    "name": "Ultimate Fighting Championship",
+    "aliases": [
+      "mma"
+    ],
+    "providers": [
+      {
+        "espnAthlete": {
+          "espnSlug": "ufc",
+          "espnSport": "mma"
+        }
+      }
+    ]
+  },
+  "pfl": {
+    "name": "Professional Fighters League",
+    "providers": [
+      {
+        "espnAthlete": {
+          "espnSlug": "pfl",
+          "espnSport": "mma"
+        }
+      }
+    ]
+  },
+  "bellator": {
+    "name": "Bellator MMA",
+    "providers": [
+      {
+        "espnAthlete": {
+          "espnSlug": "bellator",
+          "espnSport": "mma"
+        }
+      }
+    ]
+  },
+
   "__OTHER_FOOTBALL_LEAGUES__": "===========================================",
 
   "ufl": {

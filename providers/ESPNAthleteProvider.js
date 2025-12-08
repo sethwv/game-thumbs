@@ -1,0 +1,310 @@
+// ------------------------------------------------------------------------------
+// ESPNAthleteProvider.js
+// ESPN athlete-based sports provider (MMA, UFC, Wrestling, Boxing, etc.)
+// Treats individual fighters/athletes as "teams" for thumbnail generation
+// ------------------------------------------------------------------------------
+
+const axios = require('axios');
+const BaseProvider = require('./BaseProvider');
+const { getTeamMatchScoreWithOverrides } = require('../helpers/teamMatchingUtils');
+const { extractDominantColors } = require('../helpers/colorUtils');
+const logger = require('../helpers/logger');
+
+class AthleteNotFoundError extends Error {
+    constructor(athleteIdentifier, league, athleteList) {
+        const athleteNames = athleteList.map(a => a.displayName || a.fullName).slice(0, 20).join(', ');
+        const moreCount = Math.max(0, athleteList.length - 20);
+        const moreText = moreCount > 0 ? ` ... and ${moreCount} more` : '';
+        super(`Athlete not found: '${athleteIdentifier}' in ${league.shortName.toUpperCase()}. Available athletes (showing first 20): ${athleteNames}${moreText}`);
+        this.name = 'AthleteNotFoundError';
+        this.athleteIdentifier = athleteIdentifier;
+        this.league = league.shortName;
+        this.availableAthletes = athleteList;
+        this.athleteCount = athleteList.length;
+    }
+}
+
+class ESPNAthleteProvider extends BaseProvider {
+    constructor() {
+        super();
+        this.athleteCache = new Map();
+        this.CACHE_DURATION = 72 * 60 * 60 * 1000; // 72 hours
+        this.REQUEST_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '10000', 10);
+        
+        // Predefined muted, darker color palette for athletes
+        this.colorPalette = [
+            '#8B4545', '#2C5F5D', '#2E5F7E', '#8B5A3C', '#4A6B63',
+            '#8B7D3A', '#6B4C7C', '#4A6B8B', '#8B6B2E', '#3A6B4A',
+            '#8B5A2E', '#4A3B7C', '#005A7E', '#8B3A3A', '#2E5A8B',
+            '#2E6B4A', '#6B3B7C', '#8B5A1F', '#8B4A2E', '#1A6B5A',
+            '#0F5A5A', '#1F5A3A', '#1F4A7E', '#5A2E6B', '#7E2B2B',
+            '#8B3A00', '#4A5A5A', '#2B3A4A', '#8B2E5A', '#006B6B'
+        ];
+    }
+
+    getProviderId() {
+        return 'espnAthlete';
+    }
+
+    generateRandomColor() {
+        return this.colorPalette[Math.floor(Math.random() * this.colorPalette.length)];
+    }
+
+    getSupportedLeagues() {
+        const { leagues } = require('../leagues');
+        return Object.keys(leagues).filter(key => 
+            leagues[key].providers && 
+            leagues[key].providers.some(p => p.espnAthlete)
+        );
+    }
+
+    getLeagueConfig(league) {
+        if (league.providers && Array.isArray(league.providers)) {
+            for (const providerConfig of league.providers) {
+                if (typeof providerConfig === 'object' && providerConfig.espnAthlete) {
+                    return providerConfig.espnAthlete;
+                }
+            }
+        }
+        return null;
+    }
+
+    async resolveTeam(league, athleteIdentifier) {
+        if (!league || !athleteIdentifier) {
+            throw new Error('Both league and athlete identifier are required');
+        }
+
+        const espnConfig = this.getLeagueConfig(league);
+        if (!espnConfig) {
+            throw new Error(`League ${league.shortName} is missing ESPN Athlete configuration`);
+        }
+
+        try {
+            const athletes = await this.fetchAthleteData(league);
+            
+            // Find best matching athlete using weighted scoring
+            let bestMatch = null;
+            let bestScore = 0;
+
+            for (const athlete of athletes) {
+                // Normalize athlete data for matching
+                const athleteObj = {
+                    fullName: athlete.displayName || athlete.fullName,
+                    shortDisplayName: athlete.shortName,
+                    name: athlete.lastName,
+                    city: athlete.firstName,
+                    abbreviation: (athlete.firstName?.[0] || '') + (athlete.lastName?.[0] || '')
+                };
+                
+                const score = getTeamMatchScoreWithOverrides(
+                    athleteIdentifier,
+                    athleteObj,
+                    athlete.slug,
+                    league.shortName.toLowerCase()
+                );
+                
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestMatch = athlete;
+                }
+            }
+
+            if (!bestMatch || bestScore === 0) {
+                // Generate list of available athletes
+                const athleteList = athletes.map(athlete => ({
+                    displayName: athlete.displayName || athlete.fullName,
+                    fullName: athlete.fullName,
+                    firstName: athlete.firstName,
+                    lastName: athlete.lastName
+                })).sort((a, b) => a.displayName.localeCompare(b.displayName));
+
+                throw new AthleteNotFoundError(athleteIdentifier, league, athleteList);
+            }
+
+            // Get full-body stance image as the "logo"
+            // ESPN provides stance images showing fighters in fighting position
+            // Direct URL format: /i/headshots/mma/players/stance/left/{id}.png
+            const stanceUrl = `https://a.espncdn.com/i/headshots/mma/players/stance/left/${bestMatch.id}.png`;
+            const headshotUrl = bestMatch.headshot?.href;
+            
+            // Generate random vibrant colors instead of extracting from headshot
+            // This avoids skin tone becoming the dominant color
+            const primaryColor = this.generateRandomColor();
+            const alternateColor = this.generateRandomColor();
+
+            // Return athlete data in a "team-like" format
+            const athleteData = {
+                id: bestMatch.id,
+                slug: bestMatch.slug,
+                city: bestMatch.firstName,
+                name: bestMatch.lastName,
+                fullName: bestMatch.displayName || bestMatch.fullName,
+                abbreviation: (bestMatch.firstName?.[0] || '') + (bestMatch.lastName?.[0] || ''),
+                conference: null,
+                division: null,
+                logo: stanceUrl, // Full body stance image
+                logoAlt: stanceUrl, // Full body stance image
+                // logoAlt: headshotUrl || stanceUrl, // Fallback to headshot or stance for dark mode
+                color: primaryColor,
+                alternateColor: alternateColor
+            };
+
+            // Apply team overrides if any exist
+            const { applyTeamOverrides } = require('../helpers/teamOverrides');
+            return applyTeamOverrides(athleteData, league.shortName.toLowerCase(), bestMatch.slug);
+        } catch (error) {
+            if (error instanceof AthleteNotFoundError) {
+                throw error;
+            }
+            throw new Error(`Failed to resolve athlete: ${error.message}`);
+        }
+    }
+
+    async getLeagueLogoUrl(league, darkLogoPreferred = true) {
+        const espnConfig = this.getLeagueConfig(league);
+        if (!espnConfig) {
+            throw new Error(`League ${league.shortName} is missing ESPN Athlete configuration`);
+        }
+
+        // Use custom logo URLs if defined
+        if (darkLogoPreferred && league.logoUrlDark) {
+            return league.logoUrlDark;
+        }
+        if (league.logoUrl) {
+            return league.logoUrl;
+        }
+
+        // Try to fetch from ESPN API
+        try {
+            const { espnSport, espnSlug } = espnConfig;
+            const leagueApiUrl = `https://sports.core.api.espn.com/v2/sports/${espnSport}/leagues/${espnSlug}`;
+            
+            const response = await axios.get(leagueApiUrl, {
+                timeout: this.REQUEST_TIMEOUT,
+                headers: { 'User-Agent': 'Mozilla/5.0' }
+            });
+            
+            const defaultLogo = response.data.logos?.find(logo =>
+                logo.rel?.includes('full') && logo.rel?.includes('default')
+            )?.href;
+            
+            const darkLogo = response.data.logos?.find(logo =>
+                logo.rel?.includes('full') && logo.rel?.includes('dark')
+            )?.href;
+
+            return darkLogoPreferred ? (darkLogo || defaultLogo) : (defaultLogo || darkLogo) 
+                || `https://a.espncdn.com/i/teamlogos/leagues/500/${league.shortName.toLowerCase()}.png`;
+        } catch (error) {
+            logger.warn('Failed to get league logo', { league: league.shortName, error: error.message });
+            return `https://a.espncdn.com/i/teamlogos/leagues/500/${league.shortName.toLowerCase()}.png`;
+        }
+    }
+
+    clearCache() {
+        this.athleteCache.clear();
+        this.colorCache.clear();
+    }
+
+    // ------------------------------------------------------------------------------
+    // Private helper methods
+    // ------------------------------------------------------------------------------
+
+    async fetchAthleteData(league) {
+        const cacheKey = `${league.shortName}_athletes`;
+        const cached = this.athleteCache.get(cacheKey);
+
+        if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
+            return cached.data;
+        }
+
+        const espnConfig = this.getLeagueConfig(league);
+        if (!espnConfig) {
+            throw new Error(`League ${league.shortName} is missing ESPN Athlete configuration`);
+        }
+
+        const { espnSport, espnSlug } = espnConfig;
+        
+        // Fetch athletes from the ESPN Sports Core API
+        // ESPN v2 API typically supports limit=1000 for athlete endpoints
+        const allAthletes = [];
+        let pageIndex = 1;
+        let hasMorePages = true;
+        const pageSize = 1000; // Maximum supported by ESPN v2 athlete endpoints
+        
+        try {
+            while (hasMorePages) {
+                const athleteApiUrl = `https://sports.core.api.espn.com/v2/sports/${espnSport}/leagues/${espnSlug}/athletes?limit=${pageSize}&page=${pageIndex}`;
+                
+                logger.info('Fetching athletes', { league: league.shortName, page: pageIndex, limit: pageSize });
+                
+                const response = await axios.get(athleteApiUrl, {
+                    timeout: this.REQUEST_TIMEOUT * 2, // Double timeout for large athlete lists
+                    headers: { 'User-Agent': 'Mozilla/5.0' }
+                });
+                
+                const items = response.data.items || [];
+                
+                // Fetch full athlete details in batches to avoid overwhelming the API
+                const BATCH_SIZE = 50; // Process 50 athletes at a time
+                const athletes = [];
+                
+                for (let i = 0; i < items.length; i += BATCH_SIZE) {
+                    const batch = items.slice(i, i + BATCH_SIZE);
+                    const batchPromises = batch.map(async (item) => {
+                        try {
+                            const athleteUrl = item.$ref;
+                            const athleteResponse = await axios.get(athleteUrl, {
+                                timeout: this.REQUEST_TIMEOUT,
+                                headers: { 'User-Agent': 'Mozilla/5.0' }
+                            });
+                            return athleteResponse.data;
+                        } catch (error) {
+                            logger.warn('Failed to fetch athlete details', { error: error.message });
+                            return null;
+                        }
+                    });
+                    
+                    const batchResults = (await Promise.all(batchPromises)).filter(a => a !== null);
+                    athletes.push(...batchResults);
+                    
+                    // Log progress for large datasets in development only
+                    if (items.length > 100 && process.env.NODE_ENV !== 'production') {
+                        logger.info('Progress', { 
+                            league: league.shortName, 
+                            page: pageIndex,
+                            fetched: athletes.length, 
+                            total: items.length 
+                        });
+                    }
+                }
+                
+                allAthletes.push(...athletes);
+                
+                // Check if there are more pages
+                const pageCount = response.data.pageCount || 1;
+                hasMorePages = pageIndex < pageCount;
+                pageIndex++;
+                
+                // Safety limit to prevent infinite loops (should only need 2-3 pages with limit=1000)
+                if (pageIndex > 10) {
+                    logger.warn('Reached max page limit', { league: league.shortName });
+                    break;
+                }
+            }
+            
+            logger.info('Fetched athletes', { league: league.shortName, count: allAthletes.length });
+            
+            // Cache the data
+            this.athleteCache.set(cacheKey, {
+                data: allAthletes,
+                timestamp: Date.now()
+            });
+            
+            return allAthletes;
+        } catch (error) {
+            throw new Error(`API request failed: ${error.message}`);
+        }
+    }
+}
+
+module.exports = ESPNAthleteProvider;
