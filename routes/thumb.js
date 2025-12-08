@@ -7,7 +7,7 @@
 // Thumb size is 1440W x 1080H by default
 // ------------------------------------------------------------------------------
 
-const providerManager = require('../providers/ProviderManager');
+const providerManager = require('../helpers/ProviderManager');
 const { generateThumbnail } = require('../generators/thumbnailGenerator');
 const { generateLeagueThumb, generateTeamThumb } = require('../generators/genericImageGenerator');
 const { findLeague } = require('../leagues');

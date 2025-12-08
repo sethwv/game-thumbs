@@ -3,7 +3,7 @@
 // Manages multiple sports data providers and routes requests to appropriate provider
 // ------------------------------------------------------------------------------
 
-const logger = require('../helpers/logger');
+const logger = require('./logger');
 
 class ProviderManager {
     constructor() {
@@ -20,28 +20,28 @@ class ProviderManager {
 
         // Register available providers
         try {
-            const ESPNProvider = require('./ESPNProvider');
+            const ESPNProvider = require('../providers/ESPNProvider');
             this.registerProvider(new ESPNProvider());
         } catch (error) {
             logger.warn('Failed to load ESPN provider', { error: error.message });
         }
 
         try {
-            const TheSportsDBProvider = require('./TheSportsDBProvider');
+            const TheSportsDBProvider = require('../providers/TheSportsDBProvider');
             this.registerProvider(new TheSportsDBProvider());
         } catch (error) {
             logger.warn('Failed to load TheSportsDB provider', { error: error.message });
         }
 
         try {
-            const HockeyTechProvider = require('./HockeyTechProvider');
+            const HockeyTechProvider = require('../providers/HockeyTechProvider');
             this.registerProvider(new HockeyTechProvider());
         } catch (error) {
             logger.warn('Failed to load HockeyTech provider', { error: error.message });
         }
 
         try {
-            const ESPNAthleteProvider = require('./ESPNAthleteProvider');
+            const ESPNAthleteProvider = require('../providers/ESPNAthleteProvider');
             this.registerProvider(new ESPNAthleteProvider());
         } catch (error) {
             logger.warn('Failed to load ESPN Athlete provider', { error: error.message });

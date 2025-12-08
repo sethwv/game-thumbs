@@ -7,7 +7,7 @@
 // Cover size is 1080W x 1440H by default
 // ------------------------------------------------------------------------------
 
-const providerManager = require('../providers/ProviderManager');
+const providerManager = require('../helpers/ProviderManager');
 const { generateCover } = require('../generators/thumbnailGenerator');
 const { generateLeagueCover, generateTeamCover } = require('../generators/genericImageGenerator');
 const { findLeague } = require('../leagues');
