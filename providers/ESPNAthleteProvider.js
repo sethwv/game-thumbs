@@ -30,6 +30,7 @@ class ESPNAthleteProvider extends BaseProvider {
         this.athleteCache = new Map();
         this.CACHE_DURATION = 72 * 60 * 60 * 1000; // 72 hours
         this.REQUEST_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '10000', 10);
+        this.refreshIntervals = new Map(); // Track refresh intervals per league
         
         // Predefined very dark blue and red color palette for athletes
         this.colorPalette = [
@@ -204,15 +205,96 @@ class ESPNAthleteProvider extends BaseProvider {
         this.colorCache.clear();
     }
 
+    // Initialize cache for all configured leagues using this provider
+    async initializeCache() {
+        const supportedLeagues = this.getSupportedLeagues();
+        
+        if (supportedLeagues.length === 0) {
+            logger.info('No leagues configured for ESPN Athlete provider');
+            return;
+        }
+
+        logger.info(`Initializing ESPN Athlete cache for ${supportedLeagues.length} league(s): ${supportedLeagues.join(', ')}`);
+
+        const { leagues } = require('../leagues');
+        
+        // Process leagues sequentially to avoid overwhelming the ESPN API
+        for (const leagueKey of supportedLeagues) {
+            const league = leagues[leagueKey];
+            try {
+                const startTime = Date.now();
+                await this.fetchAthleteData(league);
+                const duration = Date.now() - startTime;
+                logger.info(`Cached athletes for ${league.shortName}`, { 
+                    count: this.athleteCache.get(`${league.shortName}_athletes`)?.data?.length || 0,
+                    duration: `${duration}ms`
+                });
+                
+                // Set up automatic refresh for this league
+                this.scheduleRefresh(league);
+            } catch (error) {
+                logger.error(`Failed to initialize cache for ${league.shortName}`, { 
+                    error: error.message 
+                });
+            }
+        }
+
+        logger.info('ESPN Athlete cache initialization complete');
+    }
+
+    // Schedule automatic cache refresh for a league
+    scheduleRefresh(league) {
+        const cacheKey = `${league.shortName}_athletes`;
+        
+        // Clear any existing interval
+        if (this.refreshIntervals.has(cacheKey)) {
+            clearInterval(this.refreshIntervals.get(cacheKey));
+        }
+
+        // Schedule refresh to run just before cache expires (at 95% of cache duration)
+        const refreshInterval = this.CACHE_DURATION * 0.95;
+        
+        const intervalId = setInterval(async () => {
+            logger.info(`Auto-refreshing athlete cache for ${league.shortName}`);
+            try {
+                const startTime = Date.now();
+                await this.fetchAthleteData(league, true); // Force refresh
+                const duration = Date.now() - startTime;
+                logger.info(`Auto-refresh complete for ${league.shortName}`, {
+                    count: this.athleteCache.get(cacheKey)?.data?.length || 0,
+                    duration: `${duration}ms`
+                });
+            } catch (error) {
+                logger.error(`Failed to auto-refresh cache for ${league.shortName}`, {
+                    error: error.message
+                });
+            }
+        }, refreshInterval);
+
+        this.refreshIntervals.set(cacheKey, intervalId);
+        
+        const hoursUntilRefresh = (refreshInterval / (60 * 60 * 1000)).toFixed(1);
+        // logger.info(`Scheduled auto-refresh for ${league.shortName} in ${hoursUntilRefresh} hours`);
+    }
+
+    // Stop all scheduled refreshes
+    stopAllRefreshes() {
+        for (const [key, intervalId] of this.refreshIntervals.entries()) {
+            clearInterval(intervalId);
+            logger.info(`Stopped auto-refresh for ${key}`);
+        }
+        this.refreshIntervals.clear();
+    }
+
     // ------------------------------------------------------------------------------
     // Private helper methods
     // ------------------------------------------------------------------------------
 
-    async fetchAthleteData(league) {
+    async fetchAthleteData(league, forceRefresh = false) {
         const cacheKey = `${league.shortName}_athletes`;
         const cached = this.athleteCache.get(cacheKey);
 
-        if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
+        if (!forceRefresh && cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
             return cached.data;
         }
 
@@ -234,7 +316,7 @@ class ESPNAthleteProvider extends BaseProvider {
             while (hasMorePages) {
                 const athleteApiUrl = `https://sports.core.api.espn.com/v2/sports/${espnSport}/leagues/${espnSlug}/athletes?limit=${pageSize}&page=${pageIndex}`;
                 
-                logger.info('Fetching athletes', { league: league.shortName, page: pageIndex, limit: pageSize });
+                // logger.info('Fetching athletes', { league: league.shortName, page: pageIndex, limit: pageSize });
                 
                 const response = await axios.get(athleteApiUrl, {
                     timeout: this.REQUEST_TIMEOUT * 2, // Double timeout for large athlete lists
@@ -258,7 +340,7 @@ class ESPNAthleteProvider extends BaseProvider {
                             });
                             return athleteResponse.data;
                         } catch (error) {
-                            logger.warn('Failed to fetch athlete details', { error: error.message });
+                            if (process.env.NODE_ENV !== 'production') logger.warn('Failed to fetch athlete details', { error: error.message });
                             return null;
                         }
                     });
@@ -291,7 +373,7 @@ class ESPNAthleteProvider extends BaseProvider {
                 }
             }
             
-            logger.info('Fetched athletes', { league: league.shortName, count: allAthletes.length });
+            // logger.info('Fetched athletes', { league: league.shortName, count: allAthletes.length });
             
             // Cache the data
             this.athleteCache.set(cacheKey, {
@@ -301,7 +383,7 @@ class ESPNAthleteProvider extends BaseProvider {
             
             return allAthletes;
         } catch (error) {
-            throw new Error(`API request failed: ${error.message}`);
+            throw this.handleHttpError(error, `Fetching athletes for ${league.shortName}`);
         }
     }
 }

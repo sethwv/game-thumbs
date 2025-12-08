@@ -266,12 +266,12 @@ const logger = {
     api: (message, details) => log('api', message, details),
     
     // Team resolution logger
-    teamResolved: (providerName, teamName) => {
-        console.log(`       ${colors.gray('│')} ${colors.dim('Provider')}: ${providerName} ${colors.dim('-')} ${teamName}`);
+    teamResolved: (providerName, leagueName, teamName) => {
+        console.log(`       ${colors.gray('│')} ${colors.dim('Provider')}: ${providerName} ${colors.dim('-')} ${leagueName} ${colors.dim('-')} ${teamName}`);
         
         // Write to file
         if (LOG_TO_FILE) {
-            writeToFile('[INFO]', `Provider: ${providerName} - ${teamName}`);
+            writeToFile('[INFO]', `Provider: ${providerName} - ${leagueName} - ${teamName}`);
         }
     },
     

@@ -224,10 +224,7 @@ class HockeyTechProvider extends BaseProvider {
             
             return teams;
         } catch (error) {
-            if (error.response) {
-                throw new Error(`HockeyTech API request failed: ${error.response.status} ${error.response.statusText}`);
-            }
-            throw new Error(`HockeyTech API request failed: ${error.message}`);
+            throw this.handleHttpError(error, `Fetching teams for ${clientCode}`)
         }
     }
 }

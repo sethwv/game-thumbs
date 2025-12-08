@@ -62,6 +62,68 @@ class BaseProvider {
     canHandleLeague(league) {
         return this.getSupportedLeagues().includes(league.shortName?.toLowerCase());
     }
+
+    /**
+     * Handle HTTP errors and extract rate limit information
+     * @param {Error} error - Axios error object
+     * @param {string} context - Context information (e.g., league name, operation)
+     * @returns {Error} Enhanced error with rate limit information
+     */
+    handleHttpError(error, context = '') {
+        const logger = require('../helpers/logger');
+        
+        if (error.response) {
+            const status = error.response.status;
+            const headers = error.response.headers;
+            const url = error.config?.url || 'unknown';
+            
+            // Extract rate limit headers (various formats)
+            const rateLimitInfo = {
+                status,
+                url,
+                'x-ratelimit-limit': headers['x-ratelimit-limit'],
+                'x-ratelimit-remaining': headers['x-ratelimit-remaining'],
+                'x-ratelimit-reset': headers['x-ratelimit-reset'],
+                'retry-after': headers['retry-after'],
+                'x-rate-limit-limit': headers['x-rate-limit-limit'],
+                'x-rate-limit-remaining': headers['x-rate-limit-remaining'],
+                'x-rate-limit-reset': headers['x-rate-limit-reset']
+            };
+            
+            // Filter out undefined headers
+            const cleanedInfo = Object.fromEntries(
+                Object.entries(rateLimitInfo).filter(([_, v]) => v !== undefined)
+            );
+            
+            // Log rate limit or access issues
+            if (status === 403 || status === 429) {
+                logger.error(`HTTP ${status} - ${status === 429 ? 'Rate limit exceeded' : 'Access denied'}`, {
+                    provider: this.getProviderId(),
+                    context,
+                    ...cleanedInfo
+                });
+                
+                const retryMsg = cleanedInfo['retry-after'] ? ` Retry after ${cleanedInfo['retry-after']}s.` : '';
+                const remainingMsg = cleanedInfo['x-ratelimit-remaining'] !== undefined ? ` Remaining: ${cleanedInfo['x-ratelimit-remaining']}` : '';
+                
+                return new Error(
+                    `API request failed (${status}): ${status === 429 ? 'Rate limit exceeded' : 'Access denied'}.${retryMsg}${remainingMsg} URL: ${url}`
+                );
+            }
+            
+            // Log other HTTP errors with available headers
+            logger.error(`HTTP ${status} error`, {
+                provider: this.getProviderId(),
+                context,
+                ...cleanedInfo
+            });
+            
+            return new Error(`API request failed (${status}): ${error.message}. URL: ${url}`);
+        }
+        
+        // Non-HTTP errors (timeouts, network issues, etc.)
+        return new Error(`API request failed: ${error.message}`);
+    }
 }
 
 // ------------------------------------------------------------------------------

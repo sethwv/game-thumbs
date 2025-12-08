@@ -11,6 +11,7 @@ const logger = require('./helpers/logger');
 
 const app = express();
 let server = null; // Store server instance for graceful shutdown
+let espnAthleteProvider = null; // Store provider instance for cleanup
 
 module.exports = { init };
 
@@ -227,6 +228,17 @@ function init(port) {
         }
     });
 
+    // Initialize ESPN Athlete provider cache
+    (async () => {
+        try {
+            const ESPNAthleteProvider = require('./providers/ESPNAthleteProvider');
+            espnAthleteProvider = new ESPNAthleteProvider();
+            await espnAthleteProvider.initializeCache();
+        } catch (error) {
+            logger.error('Failed to initialize ESPN Athlete cache', { error: error.message });
+        }
+    })();
+
     // Global error handler for uncaught route errors
     app.use((err, req, res, next) => {
         logger.error('Unhandled route error', {
@@ -340,6 +352,11 @@ function setupGracefulShutdown() {
         isShuttingDown = true;
         
         logger.info(`Received ${signal}, starting graceful shutdown...`);
+        
+        // Stop ESPN Athlete provider refresh timers
+        if (espnAthleteProvider) {
+            espnAthleteProvider.stopAllRefreshes();
+        }
         
         // Stop accepting new connections
         if (server) {

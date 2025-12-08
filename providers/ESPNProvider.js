@@ -317,7 +317,7 @@ class ESPNProvider extends BaseProvider {
             
             return teams;
         } catch (error) {
-            throw new Error(`API request failed: ${error.message}`);
+            throw this.handleHttpError(error, `Fetching teams for ${league.shortName}`);
         }
     }
 
@@ -351,7 +351,7 @@ class ESPNProvider extends BaseProvider {
             
             return response.data;
         } catch (error) {
-            throw new Error(`League API request failed: ${error.message}`);
+            throw this.handleHttpError(error, `Fetching league data for ${league.shortName}`);
         }
     }
 
