@@ -945,5 +945,17 @@
         "flagcdn": {}
       }
     ]
+  },
+
+  "country": {
+    "name": "Country Flags",
+    "aliases": [
+      "flags"
+    ],
+    "providers": [
+      {
+        "flagcdn": {}
+      }
+    ]
   }
 }

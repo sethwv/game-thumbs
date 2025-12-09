@@ -57,8 +57,6 @@ class ProviderManager {
         supportedLeagues.forEach(leagueId => {
             this.leagueProviderMap.set(leagueId.toLowerCase(), provider);
         });
-
-        // console.log(`Registered provider: ${providerId} (supports: ${supportedLeagues.join(', ')})`);
     }
 
     /**
@@ -329,7 +327,6 @@ class ProviderManager {
                         continue; // Skip this feeder league, try the next one
                     }
                     
-                    // console.log(`Team "${teamIdentifier}" not found in ${league.shortName}, trying feeder league ${feederLeague.shortName}`);
                     try {
                         return await this.resolveTeam(feederLeague, teamIdentifier, visitedLeagues, originalLeague);
                     } catch (feederError) {
@@ -365,7 +362,6 @@ class ProviderManager {
             const fallbackLeague = findLeague(league.fallbackLeague);
             
             if (fallbackLeague) {
-                // console.log(`Team "${teamIdentifier}" not found in ${league.shortName}, trying fallback league ${fallbackLeague.shortName}`);
                 try {
                     return await this.resolveTeam(fallbackLeague, teamIdentifier, visitedLeagues, originalLeague);
                 } catch (fallbackError) {

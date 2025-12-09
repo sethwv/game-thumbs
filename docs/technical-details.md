@@ -79,6 +79,58 @@ Game Thumbs uses a modular provider architecture to fetch team and athlete data 
 - High-quality team information
 - 24-hour team data caching
 
+### FlagCDN Provider
+
+**Leagues**: Country, Olympics  
+**Type**: International country-based matchups  
+**Features**:
+- High-resolution flag images (2560px) from flagcdn.com
+- ISO 3166 alpha-2 and alpha-3 code support (USA, CAN, GBR, etc.)
+- Olympic/sports team codes (ROC, OAR, AOR, RPC)
+- UK home nations support (ENG, SCT, WAL, NIR)
+- Custom color extraction without filtering white colors
+- Desaturation (40%) and darkening (30%) for better thumbnail backgrounds
+- White color replacement (uses non-white color for both if either is white)
+- 7-day caching for country data and extracted colors
+- Smart country matching with weighted scoring
+
+**Country Resolution**: Matches country names, aliases, and ISO codes using intelligent scoring:
+- ISO 3-letter codes: 1.0 weight (highest priority)
+- Exact name matches: 0.9 weight
+- Partial name matches: 0.5-0.8 weight based on similarity
+
+---
+
+## Provider System
+
+### Automatic Provider Discovery
+
+Game Thumbs automatically discovers and registers all providers from the `providers/` directory at startup. No manual registration required.
+
+**How it works:**
+1. Scans `providers/` directory for `*Provider.js` files
+2. Excludes `BaseProvider.js` (abstract base class)
+3. Automatically instantiates and registers each provider
+4. Maps supported leagues to providers
+
+**Adding New Providers:**
+1. Create a new file in `providers/` following the naming convention: `YourNameProvider.js`
+2. Extend `BaseProvider` and implement required methods:
+   - `getProviderId()`: Return unique provider identifier
+   - `resolveTeam()`: Implement team/athlete resolution logic
+   - `getLeagueLogoUrl()`: Implement league logo fetching
+3. Provider is automatically loaded on server restart
+
+**Provider Inference:**
+The system automatically infers which provider to use based on the configuration object keys:
+- `{ espn: {...} }` → ESPN Provider
+- `{ theSportsDB: {...} }` → TheSportsDB Provider
+- `{ hockeytech: {...} }` → HockeyTech Provider
+- `{ espnAthlete: {...} }` → ESPN Athlete Provider
+- `{ flagcdn: {...} }` → FlagCDN Provider
+
+No hardcoded provider lists to maintain!
+
 ---
 
 ## Image Generation

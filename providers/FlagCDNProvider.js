@@ -369,7 +369,6 @@ class FlagCDNProvider extends BaseProvider {
 
             // Build flag URL (using w2560 for high resolution)
             const flagUrl = `https://flagcdn.com/w2560/${bestCode.toLowerCase()}.png`;
-            // const flagUrl = `https://flagcdn.com/256x192/${bestCode.toLowerCase()}.png`;
 
             // Extract colors from flag
             let primaryColor = null;

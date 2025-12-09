@@ -59,6 +59,31 @@ nav_order: 4
 
 ---
 
+## International
+
+| League Name | Code | Provider | Notes |
+|-------------|------|----------|-------|
+| Country Matchups | `country` | FlagCDN | Country flags for international matchups |
+| Olympic Games | `olympics` | FlagCDN | Olympic team flags and colors |
+
+**Examples:**
+```
+GET /country/canada/usa/thumb
+GET /olympics/usa/china/cover
+GET /country/france/germany/logo
+```
+
+**Features:**
+- Automatic country resolution with ISO 3166 codes (2-letter and 3-letter)
+- Olympic team codes (ROC, OAR, RPC)
+- UK home nations support (ENG, SCT, WAL, NIR)
+- High-resolution flag images (2560px width)
+- Automatic color extraction from flags
+- Desaturated and darkened colors for thumbnail backgrounds
+- 7-day country and color caching
+
+---
+
 ## Combat Sports
 
 Game Thumbs supports **athlete-based** combat sports leagues where individual fighters are treated as "teams" for matchup generation.
@@ -223,6 +248,22 @@ The provider type is automatically inferred from the config field (`espn` = ESPN
 ```
 
 The provider type is automatically inferred from the config field (`theSportsDB` = TheSportsDB provider).
+
+**FlagCDN Provider (International):**
+```javascript
+{
+  "shortName": "olympics",
+  "name": "Olympic Games",
+  "logoUrl": "./assets/2026_OLYMPICS.png",
+  "providers": [
+    {
+      "flagcdn": {}
+    }
+  ]
+}
+```
+
+The provider type is automatically inferred from the config field (`flagcdn` = FlagCDN provider).
 
 ### Multiple Providers with Priority
 
