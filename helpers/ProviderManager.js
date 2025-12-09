@@ -4,6 +4,8 @@
 // ------------------------------------------------------------------------------
 
 const logger = require('./logger');
+const fs = require('fs');
+const path = require('path');
 
 class ProviderManager {
     constructor() {
@@ -14,42 +16,30 @@ class ProviderManager {
 
     /**
      * Initialize the provider manager with available providers
+     * Automatically discovers and loads all providers from the providers/ directory
      */
     initialize() {
         if (this._initialized) return;
 
-        // Register available providers
+        const providersDir = path.join(__dirname, '../providers');
+        
         try {
-            const ESPNProvider = require('../providers/ESPNProvider');
-            this.registerProvider(new ESPNProvider());
+            const files = fs.readdirSync(providersDir);
+            
+            // Load all provider files (excluding BaseProvider)
+            files.forEach(file => {
+                if (file.endsWith('Provider.js') && file !== 'BaseProvider.js') {
+                    try {
+                        const ProviderClass = require(path.join(providersDir, file));
+                        this.registerProvider(new ProviderClass());
+                    } catch (error) {
+                        logger.warn(`Failed to load provider from ${file}`, { error: error.message });
+                    }
+                }
+            });
         } catch (error) {
-            logger.warn('Failed to load ESPN provider', { error: error.message });
+            logger.error('Failed to read providers directory', { error: error.message });
         }
-
-        try {
-            const TheSportsDBProvider = require('../providers/TheSportsDBProvider');
-            this.registerProvider(new TheSportsDBProvider());
-        } catch (error) {
-            logger.warn('Failed to load TheSportsDB provider', { error: error.message });
-        }
-
-        try {
-            const HockeyTechProvider = require('../providers/HockeyTechProvider');
-            this.registerProvider(new HockeyTechProvider());
-        } catch (error) {
-            logger.warn('Failed to load HockeyTech provider', { error: error.message });
-        }
-
-        try {
-            const ESPNAthleteProvider = require('../providers/ESPNAthleteProvider');
-            this.registerProvider(new ESPNAthleteProvider());
-        } catch (error) {
-            logger.warn('Failed to load ESPN Athlete provider', { error: error.message });
-        }
-
-        // Add other providers here as they're implemented
-        // const APISportsProvider = require('./APISportsProvider');
-        // this.registerProvider(new APISportsProvider());
 
         this._initialized = true;
     }
@@ -440,8 +430,8 @@ class ProviderManager {
             }
         }
         
-        // If all providers failed, throw error
-        throw new Error(`Failed to get league logo for ${league.shortName || 'unknown'}`);
+        // If all providers failed or returned null, return null (some leagues don't have logos)
+        return null;
     }
 
     /**

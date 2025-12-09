@@ -221,6 +221,9 @@
           "espnSlug": "fifa.world",
           "espnSport": "soccer"
         }
+      },
+      {
+        "flagcdn": {}
       }
     ]
   },
@@ -928,6 +931,18 @@
           "leagueId": "4738",
           "leagueName": "American AHL"
         }
+      }
+    ]
+  },
+
+  "__INTERNATIONAL__": "===========================================",
+
+ "olympics": {
+    "name": "Olympic Games",
+    "logoUrl": "./assets/2026_OLYMPICS.png",
+    "providers": [
+      {
+        "flagcdn": {}
       }
     ]
   }

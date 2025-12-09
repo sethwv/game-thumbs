@@ -38,17 +38,6 @@ class HockeyTechProvider extends BaseProvider {
         return 'hockeytech';
     }
 
-    getSupportedLeagues() {
-        const { leagues } = require('../leagues');
-        return Object.keys(leagues).filter(key => {
-            const league = leagues[key];
-            if (league.providers && Array.isArray(league.providers)) {
-                return league.providers.some(p => p.hockeyTech || p.hockeyTechConfig);
-            }
-            return false;
-        });
-    }
-
     getLeagueConfig(league) {
         // Check for config in providers array (preferred)
         if (league.providers && Array.isArray(league.providers)) {

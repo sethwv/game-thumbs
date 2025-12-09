@@ -21,10 +21,23 @@ class BaseProvider {
 
     /**
      * Get supported leagues for this provider
+     * Automatically discovers leagues that have this provider configured
      * @returns {string[]} Array of league shortNames this provider supports
      */
     getSupportedLeagues() {
-        throw new Error('getSupportedLeagues() must be implemented by provider');
+        const { leagues } = require('../leagues');
+        const providerId = this.getProviderId();
+        
+        return Object.keys(leagues).filter(key => {
+            const league = leagues[key];
+            if (league.providers && Array.isArray(league.providers)) {
+                return league.providers.some(p => 
+                    typeof p === 'object' && p[providerId] !== undefined
+                );
+            }
+            // Fallback: check for legacy providerId field
+            return league.providerId === providerId;
+        });
     }
 
     /**

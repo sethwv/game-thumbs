@@ -37,15 +37,6 @@ class ESPNProvider extends BaseProvider {
         return 'espn';
     }
 
-    getSupportedLeagues() {
-        // return [
-        //     'nba', 'wnba', 'nfl', 'ufl', 'mlb', 'nhl', 
-        //     'epl', 'mls', 'uefa', 'ncaaf', 'ncaam', 'ncaaw'
-        // ];
-        const { leagues } = require('../leagues');
-        return Object.keys(leagues).filter(key => leagues[key].providerId === this.getProviderId());
-    }
-
     getLeagueConfig(league) {
         // Check for config in providers array (preferred)
         if (league.providers && Array.isArray(league.providers)) {

@@ -51,14 +51,6 @@ class ESPNAthleteProvider extends BaseProvider {
         return this.colorPalette[Math.floor(Math.random() * this.colorPalette.length)];
     }
 
-    getSupportedLeagues() {
-        const { leagues } = require('../leagues');
-        return Object.keys(leagues).filter(key => 
-            leagues[key].providers && 
-            leagues[key].providers.some(p => p.espnAthlete)
-        );
-    }
-
     getLeagueConfig(league) {
         if (league.providers && Array.isArray(league.providers)) {
             for (const providerConfig of league.providers) {

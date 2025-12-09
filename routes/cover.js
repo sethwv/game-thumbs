@@ -154,7 +154,9 @@ module.exports = {
                 let leagueInfo = null;
                 if (coverOptions.league) {
                     const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj);
-                    leagueInfo = { logoUrl: leagueLogoUrl };
+                    if (leagueLogoUrl) {
+                        leagueInfo = { logoUrl: leagueLogoUrl };
+                    }
                 }
 
                 buffer = await generateCover(resolvedTeam1, resolvedTeam2, {

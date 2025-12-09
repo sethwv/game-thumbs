@@ -37,11 +37,6 @@ class TheSportsDBProvider extends BaseProvider {
         return 'thesportsdb';
     }
 
-    getSupportedLeagues() {
-        const { leagues } = require('../leagues');
-        return Object.keys(leagues).filter(key => leagues[key].providerId === this.getProviderId());
-    }
-
     getLeagueConfig(league) {
         // Check for config in providers array (preferred)
         if (league.providers && Array.isArray(league.providers)) {
