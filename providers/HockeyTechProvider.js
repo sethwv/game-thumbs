@@ -28,7 +28,10 @@ class HockeyTechProvider extends BaseProvider {
         super();
         this.teamCache = new Map();
         this.colorCache = new Map();
-        this.CACHE_DURATION = 72 * 60 * 60 * 1000; // 72 hours
+        this.configCache = new Map(); // Cache for extracted HockeyTech configs
+        this.refreshTimers = new Map(); // Track scheduled config refreshes
+        this.TEAM_CACHE_DURATION = 72 * 60 * 60 * 1000; // 72 hours
+        this.CONFIG_CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days
         this.BASE_URL = 'https://lscluster.hockeytech.com/feed/';
         // Use API key from env var if available, otherwise use public key
         this.API_KEY = process.env.HOCKEYTECH_API_KEY || 'f1aa699db3d81487';
@@ -56,6 +59,51 @@ class HockeyTechProvider extends BaseProvider {
         return null;
     }
 
+    /**
+     * Get league config, attempting to auto-extract from website if configured
+     * @param {Object} league - League object
+     * @returns {Promise<Object|null>} Config object or null
+     */
+    async getLeagueConfigAsync(league) {
+        // Get the provider config
+        const syncConfig = this.getLeagueConfig(league);
+        
+        // If we have explicit clientCode and apiKey, use them
+        if (syncConfig && syncConfig.clientCode && syncConfig.apiKey) {
+            return syncConfig;
+        }
+
+        // If websiteUrl is configured in the provider config, try to extract
+        if (syncConfig && syncConfig.websiteUrl) {
+            try {
+                // Extract and schedule refresh for this URL
+                const extractedConfig = await this.extractAndScheduleConfig(syncConfig.websiteUrl);
+                if (extractedConfig && extractedConfig.clientCode && extractedConfig.apiKey) {
+                    return extractedConfig;
+                }
+                logger.warn('Extracted incomplete HockeyTech config', {
+                    league: league.shortName,
+                    url: syncConfig.websiteUrl,
+                    hasClientCode: !!extractedConfig?.clientCode,
+                    hasApiKey: !!extractedConfig?.apiKey
+                });
+            } catch (error) {
+                logger.warn('Could not auto-extract HockeyTech config', {
+                    league: league.shortName,
+                    url: syncConfig.websiteUrl,
+                    error: error.message
+                });
+            }
+        }
+
+        // Only return config if it has both required fields
+        if (syncConfig && syncConfig.clientCode && syncConfig.apiKey) {
+            return syncConfig;
+        }
+        
+        return null; // Don't return incomplete configs
+    }
+
     async resolveTeam(league, teamIdentifier) {
         try {
             const teams = await this.fetchTeamData(league);
@@ -72,7 +120,8 @@ class HockeyTechProvider extends BaseProvider {
                         fullName: team.name,
                         abbreviation: team.code
                     },
-                    league.shortName
+                    generateSlug(team.city), // Team slug for override lookup
+                    league.shortName // League key for override lookup
                 )
             }));
 
@@ -81,8 +130,8 @@ class HockeyTechProvider extends BaseProvider {
 
             const bestMatch = teamMatches[0];
 
-            // Require a minimum match score
-            if (!bestMatch || bestMatch.score < 0.3) {
+            // Require a minimum match score (300 out of 1000)
+            if (!bestMatch || bestMatch.score < 300) {
                 throw new TeamNotFoundError(teamIdentifier, league, teams);
             }
 
@@ -148,7 +197,52 @@ class HockeyTechProvider extends BaseProvider {
     clearCache() {
         this.teamCache.clear();
         this.colorCache.clear();
+        this.configCache.clear();
         logger.info('HockeyTech provider cache cleared');
+    }
+
+    /**
+     * Initialize cache from disk and preload configurations
+     * Call this at startup, similar to ESPNAthleteProvider.initializeCache()
+     */
+    async initializeCache() {
+        // Preload and schedule refreshes for all leagues
+        const { getAllLeagues } = require('../leagues');
+        const leagues = getAllLeagues();
+        const extractPromises = [];
+
+        for (const league of Object.values(leagues)) {
+            if (league.providers && Array.isArray(league.providers)) {
+                for (const providerConfig of league.providers) {
+                    const htConfig = providerConfig.hockeyTech || providerConfig.hockeyTechConfig;
+                    if (htConfig && htConfig.websiteUrl && !htConfig.clientCode) {
+                        // Only extract if websiteUrl is provided but clientCode is not
+                        extractPromises.push(
+                            this.extractAndScheduleConfig(htConfig.websiteUrl)
+                                .then(() => ({ success: true, league: league.shortName }))
+                                .catch(error => ({ success: false, league: league.shortName, error: error.message }))
+                        );
+                    }
+                }
+            }
+        }
+
+        if (extractPromises.length > 0) {
+            logger.info(`Initializing HockeyTech config cache for ${extractPromises.length} league(s)`);
+            const results = await Promise.allSettled(extractPromises);
+            
+            const successful = results.filter(r => r.status === 'fulfilled' && r.value.success).length;
+            const failed = results.filter(r => r.status === 'fulfilled' && !r.value.success).length;
+            
+            // Log completion asynchronously so it doesn't block
+            setImmediate(() => {
+                if (failed > 0) {
+                    logger.warn(`HockeyTech config cache initialized: ${successful} succeeded, ${failed} failed`);
+                } else {
+                    logger.info(`HockeyTech config cache initialized: ${successful} leagues`);
+                }
+            });
+        }
     }
 
     // ------------------------------------------------------------------------------
@@ -160,11 +254,11 @@ class HockeyTechProvider extends BaseProvider {
         const cached = this.teamCache.get(cacheKey);
 
         // Return cached data if still valid
-        if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
+        if (cached && Date.now() - cached.timestamp < this.TEAM_CACHE_DURATION) {
             return cached.data;
         }
 
-        const hockeyTechConfig = this.getLeagueConfig(league);
+        const hockeyTechConfig = await this.getLeagueConfigAsync(league);
         if (!hockeyTechConfig) {
             throw new Error(`League ${league.shortName} is missing HockeyTech configuration`);
         }
@@ -172,6 +266,10 @@ class HockeyTechProvider extends BaseProvider {
         const { clientCode, seasonId, apiKey } = hockeyTechConfig;
         
         if (!clientCode) {
+            logger.error('Missing clientCode in HockeyTech config', {
+                league: league.shortName,
+                config: hockeyTechConfig
+            });
             throw new Error(`League ${league.shortName} requires clientCode in HockeyTech configuration`);
         }
         
@@ -195,7 +293,7 @@ class HockeyTechProvider extends BaseProvider {
         try {
             const response = await axios.get(this.BASE_URL, {
                 params,
-                timeout: 10000,
+                timeout: this.REQUEST_TIMEOUT,
                 headers: { 'User-Agent': 'Mozilla/5.0' }
             });
             
@@ -215,6 +313,149 @@ class HockeyTechProvider extends BaseProvider {
         } catch (error) {
             throw this.handleHttpError(error, `Fetching teams for ${clientCode}`)
         }
+    }
+
+    // ------------------------------------------------------------------------------
+    // Config extraction and caching methods
+    // ------------------------------------------------------------------------------
+
+
+
+    /**
+     * Extract HockeyTech config from website HTML/JavaScript
+     * @param {string} url - Website URL
+     * @returns {Promise<Object>} Config with clientCode and apiKey
+     */
+    async extractConfigFromWebsite(url) {
+        const cacheKey = url.toLowerCase();
+        
+        // Check memory cache first
+        const cached = this.configCache.get(cacheKey);
+        if (cached && Date.now() - cached.timestamp < this.CONFIG_CACHE_DURATION) {
+            return cached.config;
+        }
+
+        try {
+            const response = await axios.get(url, {
+                timeout: this.REQUEST_TIMEOUT,
+                headers: { 'User-Agent': 'Mozilla/5.0' }
+            });
+
+            const html = response.data;
+            const config = this.parseConfigFromHtml(html);
+
+            if (!config.clientCode || !config.apiKey) {
+                throw new Error('Could not extract clientCode or apiKey from website');
+            }
+
+            // Cache the result in memory
+            const cacheEntry = {
+                config,
+                timestamp: Date.now()
+            };
+            
+            this.configCache.set(cacheKey, cacheEntry);
+
+            return config;
+        } catch (error) {
+            throw new Error(`Failed to extract HockeyTech config from ${url}: ${error.message}`);
+        }
+    }
+
+    /**
+     * Parse HockeyTech config from HTML content
+     * @param {string} html - HTML content
+     * @returns {Object} Config object with clientCode and apiKey
+     */
+    parseConfigFromHtml(html) {
+        const config = {};
+
+        // Extract client code - matches: var clientCode = 'value', or other common patterns
+        if (!config.clientCode) {
+            const clientMatch = html.match(/(?:var\s+clientCode\s*=\s*|["']?(?:league|client_code|LS_CLIENT_CODE)["']?\s*[:=]\s*|[?&]client_code=)["']?([a-z0-9_-]+)["']?/i);
+            if (clientMatch) config.clientCode = clientMatch[1];
+        }
+
+        // Extract API key - matches: var appKey = 'value', or other common patterns (16-char hex)
+        if (!config.apiKey) {
+            const keyMatch = html.match(/(?:var\s+appKey\s*=\s*|["']?(?:site_api_key|key|LS_API_KEY|api_key)["']?\s*[:=]\s*|[?&]key=)["']?([a-f0-9]{16})["']?/i);
+            if (keyMatch) config.apiKey = keyMatch[1];
+        }
+
+        return config;
+    }
+
+    /**
+     * Extract config and schedule automatic refresh
+     * @param {string} url - Website URL
+     * @returns {Promise<Object>} Config object
+     */
+    async extractAndScheduleConfig(url) {
+        const config = await this.extractConfigFromWebsite(url);
+        this.scheduleConfigRefresh(url);
+        return config;
+    }
+
+    /**
+     * Schedule automatic refresh for a website URL
+     * Refreshes at 95% of cache duration to ensure it never expires
+     * @param {string} url - Website URL to schedule refresh for
+     */
+    scheduleConfigRefresh(url) {
+        const cacheKey = url.toLowerCase();
+        
+        // Clear any existing timer
+        if (this.refreshTimers.has(cacheKey)) {
+            clearTimeout(this.refreshTimers.get(cacheKey));
+        }
+
+        // Schedule refresh to run just before cache expires (at 95% of cache duration)
+        const refreshDelay = this.CONFIG_CACHE_DURATION * 0.95;
+        
+        const timerId = setTimeout(async () => {
+            logger.info('Auto-refreshing HockeyTech config', { url });
+            try {
+                // Clear cache to force re-extraction
+                this.configCache.delete(cacheKey);
+                
+                const config = await this.extractConfigFromWebsite(url);
+                
+                logger.info('Auto-refresh complete for HockeyTech config', {
+                    url,
+                    clientCode: config.clientCode
+                });
+                
+                // Schedule next refresh
+                this.scheduleConfigRefresh(url);
+            } catch (error) {
+                logger.error('Failed to auto-refresh HockeyTech config', {
+                    url,
+                    error: error.message
+                });
+                // Retry in 1 hour on failure
+                setTimeout(() => this.scheduleConfigRefresh(url), 60 * 60 * 1000);
+            }
+        }, refreshDelay);
+
+        this.refreshTimers.set(cacheKey, timerId);
+        
+        const daysUntilRefresh = (refreshDelay / (24 * 60 * 60 * 1000)).toFixed(1);
+        // logger.info('Scheduled auto-refresh for HockeyTech config', {
+        //     url,
+        //     daysUntilRefresh
+        // });
+    }
+
+    /**
+     * Stop all scheduled config refreshes
+     * Call this during graceful shutdown
+     */
+    stopAllRefreshes() {
+        for (const [url, timerId] of this.refreshTimers.entries()) {
+            clearTimeout(timerId);
+        }
+        this.refreshTimers.clear();
+        logger.info('Stopped all HockeyTech config auto-refreshes');
     }
 }
 

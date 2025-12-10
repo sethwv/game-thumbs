@@ -29,6 +29,7 @@ class TheSportsDBProvider extends BaseProvider {
         this.teamCache = new Map();
         this.colorCache = new Map();
         this.CACHE_DURATION = 72 * 60 * 60 * 1000; // 72 hours
+        this.REQUEST_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '10000', 10); // 10 seconds
         // Use premium API key from env var if available, otherwise use free tier
         this.API_KEY = process.env.THESPORTSDB_API_KEY || '3';
     }
@@ -260,7 +261,7 @@ class TheSportsDBProvider extends BaseProvider {
         
         try {
             const response = await axios.get(teamApiUrl, {
-                timeout: 10000,
+                timeout: this.REQUEST_TIMEOUT,
                 headers: { 'User-Agent': 'Mozilla/5.0' }
             });
             
@@ -300,7 +301,7 @@ class TheSportsDBProvider extends BaseProvider {
         
         try {
             const response = await axios.get(leagueApiUrl, {
-                timeout: 10000,
+                timeout: this.REQUEST_TIMEOUT,
                 headers: { 'User-Agent': 'Mozilla/5.0' }
             });
             
