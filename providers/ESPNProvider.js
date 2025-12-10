@@ -6,7 +6,7 @@
 
 const axios = require('axios');
 const BaseProvider = require('./BaseProvider');
-const { getTeamMatchScoreWithOverrides } = require('../helpers/teamMatchingUtils');
+const { getTeamMatchScoreWithOverrides, findTeamByAlias, applyTeamOverrides } = require('../helpers/teamUtils');
 const { extractDominantColors } = require('../helpers/colorUtils');
 const logger = require('../helpers/logger');
 
@@ -35,15 +35,6 @@ class ESPNProvider extends BaseProvider {
 
     getProviderId() {
         return 'espn';
-    }
-
-    getSupportedLeagues() {
-        // return [
-        //     'nba', 'wnba', 'nfl', 'ufl', 'mlb', 'nhl', 
-        //     'epl', 'mls', 'uefa', 'ncaaf', 'ncaam', 'ncaaw'
-        // ];
-        const { leagues } = require('../leagues');
-        return Object.keys(leagues).filter(key => leagues[key].providerId === this.getProviderId());
     }
 
     getLeagueConfig(league) {
@@ -76,7 +67,6 @@ class ESPNProvider extends BaseProvider {
 
         try {
             const teams = await this.fetchTeamData(league);
-            const { findTeamByAlias } = require('../helpers/teamOverrides');
 
             // First, check if the input matches any custom aliases
             const teamsWithIds = teams.map(team => ({
@@ -224,8 +214,7 @@ class ESPNProvider extends BaseProvider {
                 alternateColor: alternateColor
             };
 
-            // Apply team overrides from teams.json
-            const { applyTeamOverrides } = require('../helpers/teamOverrides');
+            // Apply overrides from teams.json
             let teamIdentifierForOverride = teamObj.slug || teamObj.id;
             // Extract slug without league prefix (e.g., 'eng.nottm_forest' -> 'nottm-forest')
             if (teamIdentifierForOverride && teamIdentifierForOverride.includes('.')) {
@@ -319,7 +308,7 @@ class ESPNProvider extends BaseProvider {
             
             return teams;
         } catch (error) {
-            throw new Error(`API request failed: ${error.message}`);
+            throw this.handleHttpError(error, `Fetching teams for ${league.shortName}`);
         }
     }
 
@@ -353,7 +342,7 @@ class ESPNProvider extends BaseProvider {
             
             return response.data;
         } catch (error) {
-            throw new Error(`League API request failed: ${error.message}`);
+            throw this.handleHttpError(error, `Fetching league data for ${league.shortName}`);
         }
     }
 

@@ -7,7 +7,7 @@
 // Thumb size is 1440W x 1080H by default
 // ------------------------------------------------------------------------------
 
-const providerManager = require('../providers/ProviderManager');
+const providerManager = require('../helpers/ProviderManager');
 const { generateThumbnail } = require('../generators/thumbnailGenerator');
 const { generateLeagueThumb, generateTeamThumb } = require('../generators/genericImageGenerator');
 const { findLeague } = require('../leagues');
@@ -154,7 +154,9 @@ module.exports = {
                 let leagueInfo = null;
                 if (thumbnailOptions.league) {
                     const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj);
-                    leagueInfo = { logoUrl: leagueLogoUrl };
+                    if (leagueLogoUrl) {
+                        leagueInfo = { logoUrl: leagueLogoUrl };
+                    }
                 }
 
                 buffer = await generateThumbnail(resolvedTeam1, resolvedTeam2, {

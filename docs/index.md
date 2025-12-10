@@ -19,11 +19,12 @@ A sports matchup thumbnail and logo generation API supporting 30+ professional a
 
 ## Features
 
-- 🏀 **Multi-Sport Support**: NBA, WNBA, NFL, UFL, MLB, NHL, EPL, MLS, UEFA, and 21 NCAA sports
+- 🏀 **Multi-Sport Support**: 40+ leagues including NBA, NFL, MLB, NHL, UFC, PFL, Bellator, EPL, MLS, UEFA, and 21+ NCAA sports
+- 🥊 **Combat Sports**: Individual fighter matchups for UFC, PFL, and Bellator
 - 🎨 **Dynamic Generation**: Creates thumbnails and logos on-the-fly with team colors
 - 🖼️ **Multiple Styles**: Choose from 4+ different visual styles
-- 💾 **Smart Caching**: Automatically caches images and team data for 24 hours
-- 🎯 **Flexible Team Matching**: Supports team names, cities, abbreviations, and partial matches
+- 💾 **Smart Caching**: Automatically caches images and team data (24h teams, 72h athletes)
+- 🎯 **Flexible Matching**: Supports team/athlete names, cities, abbreviations, and partial matches
 - 🔧 **Customizable**: Override team data, logos, and aliases
 
 ---
@@ -97,7 +98,9 @@ See the [API Reference](api-reference.html) for complete documentation.
 
 ## Supported Leagues
 
-**Professional:** NBA, WNBA, NFL, UFL, MLB, NHL, NLL, EPL, La Liga, Bundesliga, Serie A, Ligue 1, MLS, UEFA Champions League, UEFA Europa League, UEFA Conference League, FIFA World Cup
+**Professional:** NBA, WNBA, NFL, UFL, MLB, NHL, NLL, PWHL, EPL, La Liga, Bundesliga, Serie A, Ligue 1, MLS, UEFA Champions League, UEFA Europa League, UEFA Conference League, FIFA World Cup, CFL, CHL, OHL, WHL, QMJHL, AHL
+
+**Combat Sports:** UFC (600+ fighters), PFL (200+ fighters), Bellator (300+ fighters)
 
 **NCAA (Men's):** Football, Basketball, Ice Hockey, Soccer, Baseball, Lacrosse, Volleyball, Water Polo
 

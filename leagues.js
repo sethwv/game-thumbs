@@ -40,25 +40,31 @@ function findLeague(identifier) {
             .replace(/[\u0300-\u036f]/g, '')
             .toLowerCase();
         
-        // Match by shortName (primary identifier)
-        if (normalizeForComparison(league.shortName) === searchTerm) {
+        // Helper to get fully normalized (alphanumeric-only) version
+        const normalizeAlphanumeric = (str) => normalizeForComparison(str)?.replace(/[^a-z0-9]/g, '');
+        
+        // Match by shortName (primary identifier) - try exact match first, then normalized
+        const shortName = normalizeForComparison(league.shortName);
+        if (shortName === searchTerm || normalizeAlphanumeric(league.shortName) === normalizedSearch) {
             return league;
         }
         
-        // Match by full name
-        if (normalizeForComparison(league.name) === searchTerm) {
+        // Match by full name - try exact match first, then normalized
+        const fullName = normalizeForComparison(league.name);
+        if (fullName === searchTerm || normalizeAlphanumeric(league.name) === normalizedSearch) {
             return league;
         }
         
-        // Match by league key
-        if (normalizeForComparison(key) === searchTerm) {
+        // Match by league key - try exact match first, then normalized
+        const leagueKey = normalizeForComparison(key);
+        if (leagueKey === searchTerm || normalizeAlphanumeric(key) === normalizedSearch) {
             return league;
         }
         
         // Match by common aliases (provider-agnostic)
         // Compare normalized versions (without special characters)
         if (league.aliases && league.aliases.some(alias => 
-            normalizeForComparison(alias)?.replace(/[^a-z0-9]/g, '') === normalizedSearch
+            normalizeForComparison(alias) === searchTerm || normalizeAlphanumeric(alias) === normalizedSearch
         )) {
             return league;
         }

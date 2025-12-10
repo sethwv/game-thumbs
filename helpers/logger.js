@@ -265,6 +265,16 @@ const logger = {
     rate: (message, details) => log('rate', message, details),
     api: (message, details) => log('api', message, details),
     
+    // Team resolution logger
+    teamResolved: (providerName, leagueName, teamName) => {
+        console.log(`       ${colors.gray('│')} ${colors.dim('Provider')}: ${providerName} ${colors.dim('-')} ${leagueName} ${colors.dim('-')} ${teamName}`);
+        
+        // Write to file
+        if (LOG_TO_FILE) {
+            writeToFile('[INFO]', `Provider: ${providerName} - ${leagueName} - ${teamName}`);
+        }
+    },
+    
     // Special request logger
     request: (req, cached = false) => {
         const method = colors.bold(req.method);
@@ -344,4 +354,6 @@ const logger = {
     }
 };
 
+// Export logger and colors for use in other modules
 module.exports = logger;
+module.exports.colors = colors;

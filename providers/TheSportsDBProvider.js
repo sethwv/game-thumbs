@@ -6,7 +6,7 @@
 
 const axios = require('axios');
 const BaseProvider = require('./BaseProvider');
-const { getTeamMatchScoreWithOverrides, generateSlug } = require('../helpers/teamMatchingUtils');
+const { getTeamMatchScoreWithOverrides, generateSlug, findTeamByAlias, applyTeamOverrides } = require('../helpers/teamUtils');
 const { extractDominantColors } = require('../helpers/colorUtils');
 const logger = require('../helpers/logger');
 
@@ -35,11 +35,6 @@ class TheSportsDBProvider extends BaseProvider {
 
     getProviderId() {
         return 'thesportsdb';
-    }
-
-    getSupportedLeagues() {
-        const { leagues } = require('../leagues');
-        return Object.keys(leagues).filter(key => leagues[key].providerId === this.getProviderId());
     }
 
     getLeagueConfig(league) {
@@ -77,8 +72,6 @@ class TheSportsDBProvider extends BaseProvider {
             let bestScore = 0;
 
             // Check for custom alias match first (highest priority)
-            const { findTeamByAlias } = require('../helpers/teamOverrides');
-            
             // Create slug identifiers for TheSportsDB teams (for alias matching)
             const teamsWithSlugs = teams.map(t => ({
                 ...t,
@@ -195,7 +188,6 @@ class TheSportsDBProvider extends BaseProvider {
             };
 
             // Apply team overrides if any exist
-            const { applyTeamOverrides } = require('../helpers/teamOverrides');
             teamData = applyTeamOverrides(teamData, league.shortName.toLowerCase(), teamSlug);
 
             return teamData;
@@ -286,7 +278,7 @@ class TheSportsDBProvider extends BaseProvider {
             
             return teams;
         } catch (error) {
-            throw new Error(`API request failed: ${error.message}`);
+            throw this.handleHttpError(error, `Fetching teams for ${league.shortName}`);
         }
     }
 
@@ -326,7 +318,7 @@ class TheSportsDBProvider extends BaseProvider {
             
             return league;
         } catch (error) {
-            throw new Error(`League API request failed: ${error.message}`);
+            throw this.handleHttpError(error, `Fetching league data for ${league.shortName}`);
         }
     }
 }

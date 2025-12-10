@@ -7,7 +7,7 @@
 // Cover size is 1080W x 1440H by default
 // ------------------------------------------------------------------------------
 
-const providerManager = require('../providers/ProviderManager');
+const providerManager = require('../helpers/ProviderManager');
 const { generateCover } = require('../generators/thumbnailGenerator');
 const { generateLeagueCover, generateTeamCover } = require('../generators/genericImageGenerator');
 const { findLeague } = require('../leagues');
@@ -154,7 +154,9 @@ module.exports = {
                 let leagueInfo = null;
                 if (coverOptions.league) {
                     const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj);
-                    leagueInfo = { logoUrl: leagueLogoUrl };
+                    if (leagueLogoUrl) {
+                        leagueInfo = { logoUrl: leagueLogoUrl };
+                    }
                 }
 
                 buffer = await generateCover(resolvedTeam1, resolvedTeam2, {
