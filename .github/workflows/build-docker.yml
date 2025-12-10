@@ -75,6 +75,14 @@ jobs:
         registry: ${{ vars.REPO_ADDRESS }}
         password: ${{ secrets.REPO_TOKEN }}
 
+    - name: Cache Docker layers
+      uses: actions/cache@v4
+      with:
+        path: /tmp/.buildx-cache
+        key: ${{ runner.os }}-buildx-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-buildx-
+
     - name: Build and Push Multi-Platform Docker Image
       run: |
         declare -a tags=($(echo "${{ steps.pre-step.outputs.tags }}" | tr "," " "))
@@ -83,7 +91,7 @@ jobs:
           tag_cmd+="-t ${{ vars.REPO_ADDRESS }}/${{ vars.REPO_USER }}/${{ vars.REPO_NAME }}:$tag "
         done
         
-        # Build and push multi-platform image (amd64 and arm64)
+        # Build and push multi-platform image (amd64 and arm64) with layer caching
         docker buildx build \
           $tag_cmd \
           --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
@@ -97,7 +105,13 @@ jobs:
           --annotation "index:org.opencontainers.image.url=https://github.com/sethwv/game-thumbs" \
           --annotation "index:org.opencontainers.image.title=game-thumbs" \
           --annotation "index:org.opencontainers.image.licenses=MIT" \
+          --cache-from type=local,src=/tmp/.buildx-cache \
+          --cache-to type=local,dest=/tmp/.buildx-cache-new,mode=max \
           --platform linux/amd64,linux/arm64 \
           --provenance=false \
           --push \
           .
+        
+        # Move cache to avoid growing cache size indefinitely
+        rm -rf /tmp/.buildx-cache
+        mv /tmp/.buildx-cache-new /tmp/.buildx-cache
