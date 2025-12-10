@@ -1,43 +1,42 @@
-# Use Node.js LTS version
-FROM node:lts-alpine
+# Use Node.js LTS version (Debian-based for better multi-arch support)
+FROM node:lts-slim
 
-# Install canvas dependencies and git
-# canvas requires Cairo, Pango, and other libraries for image manipulation
-# git is needed for /info endpoint to display git information
-RUN apk add --no-cache \
-    build-base \
-    g++ \
-    cairo-dev \
-    jpeg-dev \
-    pango-dev \
-    giflib-dev \
-    pixman-dev \
-    ttf-dejavu \
-    git
+# OCI annotations for image metadata
+LABEL org.opencontainers.image.title="game-thumbs"
+LABEL org.opencontainers.image.description="Dynamic sports thumbnail and logo generation API"
+LABEL org.opencontainers.image.authors="Seth WV"
+LABEL org.opencontainers.image.url="https://github.com/sethwv/game-thumbs"
+LABEL org.opencontainers.image.source="https://github.com/sethwv/game-thumbs"
+LABEL org.opencontainers.image.documentation="https://sethwv.github.io/game-thumbs"
+LABEL org.opencontainers.image.licenses="MIT"
 
 # Set working directory
 WORKDIR /app
 
-# Copy package files
+# Copy package files first (better layer caching)
 COPY package.json yarn.lock ./
 
-# Install dependencies
-RUN yarn install --frozen-lockfile
+# Install canvas dependencies and git in one layer
+# Remove build tools after yarn install to reduce image size
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+    build-essential \
+    libcairo2-dev \
+    libpango1.0-dev \
+    libjpeg-dev \
+    libgif-dev \
+    librsvg2-dev \
+    fonts-dejavu-core \
+    git \
+ && yarn install --frozen-lockfile --network-timeout 100000 \
+ && apt-get purge -y --auto-remove build-essential \
+ && rm -rf /var/lib/apt/lists/* /root/.cache /tmp/*
 
-# Copy application code
+# Copy application code (after dependencies for better caching)
 COPY . .
 
-# Create internal backups for backward compatibility with old mounting approach
-# If users mount teams.json or leagues.json directly, we can still merge with internal data
-# RUN cp teams.json teams-internal.json && \
-#     cp leagues.json leagues-internal.json
-
-# Create directories for additional JSON configuration files
-# Users can mount volumes with custom teams/leagues here for additive merging (recommended)
-RUN mkdir -p json/teams json/leagues
-
-# Create cache directory
-RUN mkdir -p .cache
+# Create directories for configuration and cache
+RUN mkdir -p json/teams json/leagues .cache
 
 # Expose port
 EXPOSE 3000

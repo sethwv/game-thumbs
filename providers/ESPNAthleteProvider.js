@@ -7,7 +7,6 @@
 const axios = require('axios');
 const BaseProvider = require('./BaseProvider');
 const { getTeamMatchScoreWithOverrides } = require('../helpers/teamUtils');
-const { extractDominantColors } = require('../helpers/colorUtils');
 const logger = require('../helpers/logger');
 
 class AthleteNotFoundError extends Error {
@@ -29,13 +28,11 @@ class ESPNAthleteProvider extends BaseProvider {
         super();
         this.athleteCache = new Map();
         this.CACHE_DURATION = 72 * 60 * 60 * 1000; // 72 hours
-        this.REQUEST_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '10000', 10);
+        this.REQUEST_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '10000', 10); // 10 seconds
         this.refreshIntervals = new Map(); // Track refresh intervals per league
         
-        // Predefined very dark blue and red color palette for athletes
+        // Predefined very dark blue color palette for athletes
         this.colorPalette = [
-            // '#4A1515', '#5A1A1A', '#3A1010', '#6B2222', '#4A1818',
-            // '#5A1515', '#3A0F0F', '#4A1212', '#5A1818', '#3A1212',
             '#1A2A3A', '#1F3545', '#0F2535', '#1A3040', '#0F1F30',
             '#1F3040', '#1A2535', '#0F2030', '#1A2F3F', '#152535',
             '#1A3545', '#0F2540', '#152A3A', '#1A2F40', '#1F3545',
@@ -194,7 +191,6 @@ class ESPNAthleteProvider extends BaseProvider {
 
     clearCache() {
         this.athleteCache.clear();
-        this.colorCache.clear();
     }
 
     // Initialize cache for all configured leagues using this provider
@@ -202,36 +198,35 @@ class ESPNAthleteProvider extends BaseProvider {
         const supportedLeagues = this.getSupportedLeagues();
         
         if (supportedLeagues.length === 0) {
-            logger.info('No leagues configured for ESPN Athlete provider');
             return;
         }
 
-        logger.info(`Initializing ESPN Athlete cache for ${supportedLeagues.length} league(s): ${supportedLeagues.join(', ')}`);
+        logger.info(`Initializing ESPN Athlete cache for ${supportedLeagues.length} league(s)`);
 
         const { leagues } = require('../leagues');
+        let successCount = 0;
+        let failCount = 0;
         
         // Process leagues sequentially to avoid overwhelming the ESPN API
         for (const leagueKey of supportedLeagues) {
             const league = leagues[leagueKey];
             try {
-                const startTime = Date.now();
                 await this.fetchAthleteData(league);
-                const duration = Date.now() - startTime;
-                logger.info(`Cached athletes for ${league.shortName}`, { 
-                    count: this.athleteCache.get(`${league.shortName}_athletes`)?.data?.length || 0,
-                    duration: `${duration}ms`
-                });
-                
-                // Set up automatic refresh for this league
                 this.scheduleRefresh(league);
+                successCount++;
             } catch (error) {
-                logger.error(`Failed to initialize cache for ${league.shortName}`, { 
-                    error: error.message 
-                });
+                failCount++;
             }
         }
 
-        logger.info('ESPN Athlete cache initialization complete');
+        // Log completion asynchronously so it doesn't block
+        setImmediate(() => {
+            if (failCount > 0) {
+                logger.warn(`ESPN Athlete cache initialized: ${successCount} succeeded, ${failCount} failed`);
+            } else {
+                logger.info(`ESPN Athlete cache initialized: ${successCount} leagues`);
+            }
+        });
     }
 
     // Schedule automatic cache refresh for a league
@@ -341,14 +336,14 @@ class ESPNAthleteProvider extends BaseProvider {
                     athletes.push(...batchResults);
                     
                     // Log progress for large datasets in development only
-                    if (items.length > 100 && process.env.NODE_ENV !== 'production') {
-                        logger.info('Progress', { 
-                            league: league.shortName, 
-                            page: pageIndex,
-                            fetched: athletes.length, 
-                            total: items.length 
-                        });
-                    }
+                    // if (items.length > 100 && process.env.NODE_ENV !== 'production') {
+                    //     logger.info('Progress', { 
+                    //         league: league.shortName, 
+                    //         page: pageIndex,
+                    //         fetched: athletes.length, 
+                    //         total: items.length 
+                    //     });
+                    // }
                 }
                 
                 allAthletes.push(...athletes);

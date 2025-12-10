@@ -45,6 +45,43 @@ class ProviderManager {
     }
 
     /**
+     * Infer provider ID from a provider config object
+     * Automatically detects provider type from config keys
+     * @param {string|Object} providerConfig - Provider configuration
+     * @returns {string|null} Provider ID or null if not found
+     * @private
+     */
+    _inferProviderIdFromConfig(providerConfig) {
+        // Simple string format: provider ID directly
+        if (typeof providerConfig === 'string') {
+            return providerConfig.toLowerCase();
+        }
+        
+        // Object format: check for explicit providerId first
+        if (typeof providerConfig === 'object' && providerConfig !== null) {
+            if (providerConfig.providerId) {
+                return providerConfig.providerId.toLowerCase();
+            }
+            
+            // Infer from config keys by checking which provider this config is for
+            // Look for keys that end with 'Config' or match known provider-specific fields
+            const keys = Object.keys(providerConfig);
+            
+            for (const key of keys) {
+                // Remove 'Config' suffix if present to get provider name
+                const providerName = key.replace(/Config$/, '').toLowerCase();
+                
+                // Check if this provider is registered
+                if (this.providers.has(providerName)) {
+                    return providerName;
+                }
+            }
+        }
+        
+        return null;
+    }
+
+    /**
      * Register a new provider
      * @param {BaseProvider} provider - Provider instance to register
      */
@@ -73,19 +110,7 @@ class ProviderManager {
         if (league.providers && Array.isArray(league.providers)) {
             if (providerIndex < league.providers.length) {
                 const providerConfig = league.providers[providerIndex];
-                
-                // Infer provider ID from config fields
-                let providerId = null;
-                if (typeof providerConfig === 'string') {
-                    providerId = providerConfig;
-                } else if (providerConfig.providerId) {
-                    // Explicit providerId (deprecated but supported)
-                    providerId = providerConfig.providerId;
-                } else if (providerConfig.espn || providerConfig.espnConfig) {
-                    providerId = 'espn';
-                } else if (providerConfig.theSportsDB || providerConfig.theSportsDBConfig) {
-                    providerId = 'thesportsdb';
-                }
+                const providerId = this._inferProviderIdFromConfig(providerConfig);
                 
                 if (providerId) {
                     const provider = this.providers.get(providerId);
@@ -126,18 +151,7 @@ class ProviderManager {
         // Check if league has providers array configured
         if (league.providers && Array.isArray(league.providers)) {
             for (const providerConfig of league.providers) {
-                // Infer provider ID from config fields
-                let providerId = null;
-                if (typeof providerConfig === 'string') {
-                    providerId = providerConfig;
-                } else if (providerConfig.providerId) {
-                    // Explicit providerId (deprecated but supported)
-                    providerId = providerConfig.providerId;
-                } else if (providerConfig.espn || providerConfig.espnConfig) {
-                    providerId = 'espn';
-                } else if (providerConfig.theSportsDB || providerConfig.theSportsDBConfig) {
-                    providerId = 'thesportsdb';
-                }
+                const providerId = this._inferProviderIdFromConfig(providerConfig);
                 
                 if (providerId) {
                     const provider = this.providers.get(providerId);

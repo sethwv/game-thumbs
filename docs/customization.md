@@ -296,6 +296,91 @@ To find the correct ESPN slug for a league:
 
 ---
 
+## HockeyTech Leagues (Auto-Configuration)
+
+For leagues powered by HockeyTech (PWHL, OHL, WHL, QMJHL, CHL), the API can automatically extract configuration from the league's official website.
+
+### Automatic Extraction
+
+Instead of manually finding API keys, simply provide the website URL in the provider config:
+
+```json
+{
+  "pwhl": {
+    "name": "Professional Women's Hockey League",
+    "providers": [
+      {
+        "hockeyTech": {
+          "websiteUrl": "https://www.thepwhl.com/en/"
+        }
+      }
+    ]
+  }
+}
+```
+
+The system will:
+1. **At startup**: Fetch all configured HockeyTech websites
+2. **Extract** the `clientCode` and `apiKey` automatically from each site
+3. **Cache** the configuration for 7 days in `json/hockeytech-config-cache.json`
+4. **Use** the cached config for all subsequent requests
+
+### Manual Configuration (Optional)
+
+You can still provide explicit configuration if you prefer or if auto-extraction fails:
+
+```json
+{
+  "pwhl": {
+    "name": "Professional Women's Hockey League",
+    "providers": [
+      {
+        "hockeyTech": {
+          "clientCode": "pwhl",
+          "apiKey": "446521baf8c38984"
+        }
+      }
+    ]
+  }
+}
+```
+
+### Cache Management
+
+The extracted configurations are automatically cached in `json/hockeytech-config-cache.json`:
+
+```json
+{
+  "https://www.thepwhl.com/en/": {
+    "config": {
+      "clientCode": "pwhl",
+      "apiKey": "446521baf8c38984"
+    },
+    "timestamp": 1702368000000,
+    "extractedFrom": "https://www.thepwhl.com/en/"
+  }
+}
+```
+
+The cache:
+- **Expires after 7 days** and is automatically refreshed
+- **Cleans expired entries** on each startup
+- **Persists between restarts** so extraction only happens once per week
+
+### HockeyTech League Examples
+
+| League | Website URL |
+|--------|-------------|
+| PWHL | `https://www.thepwhl.com/en/` |
+| OHL | `https://ontariohockeyleague.com/` |
+| WHL | `https://whl.ca/` |
+| QMJHL | `https://theqmjhl.ca/` |
+| CHL | `https://chl.ca/` |
+
+**Note:** During startup, you'll see log messages indicating which HockeyTech configs were successfully preloaded.
+
+---
+
 ## Development Setup
 
 For local development, simply edit the files directly in the repository:

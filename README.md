@@ -1,5 +1,7 @@
-### **Note:** This service uses publicly available ESPN APIs and logos. All team names, logos, and trademarks are property of their respective owners.
-
+### **Note:** This service uses publicly available APIs and logos. All team names, logos, and trademarks are property of their respective owners.
+---
+### [![Deployment](https://img.shields.io/badge/dynamic/json?url=https://api.github.com/repos/sethwv/game-thumbs/deployments?environment=Hosted-Instance&query=$[0].payload.display_ref&label=hosted%20instance&logo=github&color=blue)](https://github.com/sethwv/game-thumbs/deployments/Hosted-Instance) ![Last Deployed](https://img.shields.io/badge/dynamic/json?url=https://api.github.com/repos/sethwv/game-thumbs/deployments?environment=Hosted-Instance&query=$[0].created_at&label=&logo=clock&color=lightgrey) ![Commit](https://img.shields.io/badge/dynamic/json?url=https://api.github.com/repos/sethwv/game-thumbs/deployments?environment=Hosted-Instance&query=$[0].sha&label=&color=lightgrey)
+### [![Pages](https://img.shields.io/github/deployments/sethwv/game-thumbs/github-pages?label=documentation&logo=github&color=green)](https://sethwv.github.io/game-thumbs/) ![Last Deployed](https://img.shields.io/badge/dynamic/json?url=https://api.github.com/repos/sethwv/game-thumbs/deployments?environment=github-pages&query=$[0].created_at&label=&logo=clock&color=lightgrey) ![Commit](https://img.shields.io/badge/dynamic/json?url=https://api.github.com/repos/sethwv/game-thumbs/deployments?environment=github-pages&query=$[0].sha&label=&color=lightgrey)
 # Game Thumbs
 
 A sports matchup thumbnail and logo generation API supporting 30+ professional and NCAA leagues.

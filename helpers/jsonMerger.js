@@ -43,7 +43,7 @@ function loadAndMergeJSON(baseFileName, directoryName, mergeType = 'teams') {
     try {
         const rawData = fs.readFileSync(baseFilePath, 'utf8');
         mergedData = JSON.parse(rawData);
-        logger.info(`Loaded base ${baseFileName}`);
+        // logger.info(`Loaded base ${baseFileName}`);
     } catch (error) {
         logger.warn(`Failed to load base file ${baseFileName}: ${error.message}`);
         return {};
@@ -113,7 +113,7 @@ function loadAndMergeJSON(baseFileName, directoryName, mergeType = 'teams') {
                     }
                 }
             } else {
-                logger.info(`No custom files found in ${directoryName}/ (directory is empty)`);
+                // logger.info(`No custom files found in ${directoryName}/ (directory is empty)`);
             }
         }
     } catch (error) {

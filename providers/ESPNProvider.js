@@ -75,15 +75,16 @@ class ESPNProvider extends BaseProvider {
             }));
             
             const aliasMatch = findTeamByAlias(teamIdentifier, league.shortName.toLowerCase(), teamsWithIds);
+            
+            let bestMatch = null;
+            let bestScore = 0;
+            
             if (aliasMatch) {
                 // Use the alias match as the best match
-                var bestMatch = aliasMatch;
-                var bestScore = 1000; // High score for alias matches
+                bestMatch = aliasMatch;
+                bestScore = 1000; // High score for alias matches
             } else {
                 // Find best matching team using weighted scoring
-                var bestMatch = null;
-                var bestScore = 0;
-
                 for (const team of teams) {
                     // Convert ESPN team format to standardized format for matching
                     const teamObj = team.team || {};
