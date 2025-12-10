@@ -16,28 +16,53 @@ jobs:
     - uses: actions/checkout@v4
 
     - id: pre-step
-      name: Image Information
+      name: Determine Docker Tags
       run: |
+        # Extract and normalize the version/branch name from the git ref
         release_version=$(echo ${GITHUB_REF:10} | tr -d '/' | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]._-')
+        
         if [[ "$GITHUB_EVENT_NAME" == "push" || "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
-          # v-prefixed tag push
+          
+          # CASE 1: Version Tag Push (e.g., v1.2.3)
+          # Tags applied: <version>, latest, and latest-major (if vX.0.0)
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             tags+=("$release_version" "latest")
+            
+            # Parse semantic version components
+            if [[ "$release_version" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+) ]]; then
+              major="${BASH_REMATCH[1]}"
+              minor="${BASH_REMATCH[2]}"
+              patch="${BASH_REMATCH[3]}"
+              
+              # Add 'latest-major' tag only for new major version releases (vX.0.0)
+              # Example: v2.0.0 gets 'latest-major', but v2.0.1 or v2.1.0 do not
+              if [[ "$minor" == "0" && "$patch" == "0" ]]; then
+                tags+=("latest-major")
+                echo "🎉 Major version release detected: ${release_version}"
+              fi
+            fi
           
-          # dev branch push
+          # CASE 2: Branch Push (e.g., dev, test/feature)
+          # Tags applied: <branch-name>
           else
             tags+=("$release_version")
           fi
         else
+          echo "Error: Unexpected event type: $GITHUB_EVENT_NAME"
           exit 1
         fi
+        
+        # Export tags for later steps
         echo "tags=$(IFS=,; echo "${tags[*]}")" >> $GITHUB_OUTPUT
-        echo This workflow will build and push a Docker image to the following repository:
-        echo ${{ vars.REPO_ADDRESS }}/${{ vars.REPO_USER }}/${{ vars.REPO_NAME }}
-        echo The following tags will be used:
+        
+        # Display build information
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "Docker Image: ${{ vars.REPO_ADDRESS }}/${{ vars.REPO_USER }}/${{ vars.REPO_NAME }}"
+        echo "Tags to be applied:"
         for tag in ${tags[@]}; do
-          echo ${{ vars.REPO_ADDRESS }}/${{ vars.REPO_USER }}/${{ vars.REPO_NAME }}:$tag
+          echo "  • $tag"
         done
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         
 
     - name: Build Docker Image
