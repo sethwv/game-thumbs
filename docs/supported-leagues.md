@@ -21,6 +21,7 @@ nav_order: 4
 |-------------|------|----------|----------------|
 | National Basketball Association | `nba` | ESPN | |
 | Women's National Basketball Association | `wnba` | ESPN | |
+| NBA G League | `nbag` | ESPN | |
 | National Football League | `nfl` | ESPN | |
 | United Football League | `ufl` | ESPN | |
 | Major League Baseball | `mlb` | ESPN | |
@@ -47,6 +48,7 @@ nav_order: 4
 | Ligue 2 (France) | `ligue2` | ESPN | |
 | Major League Soccer | `mls` | ESPN | |
 | UEFA Champions League | `uefa` | ESPN | |
+| UEFA Women's Champions League | `uefa.wchampions` | ESPN | |
 | UEFA Europa League | `europa` | ESPN | |
 | UEFA Europa Conference League | `conference` | ESPN | |
 | FIFA World Cup | `worldcup` | ESPN | All WCQ Confederations |
