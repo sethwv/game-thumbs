@@ -72,7 +72,8 @@ class HockeyTechProvider extends BaseProvider {
                         fullName: team.name,
                         abbreviation: team.code
                     },
-                    league.shortName
+                    generateSlug(team.city), // Team slug for override lookup
+                    league.shortName // League key for override lookup
                 )
             }));
 
@@ -81,8 +82,8 @@ class HockeyTechProvider extends BaseProvider {
 
             const bestMatch = teamMatches[0];
 
-            // Require a minimum match score
-            if (!bestMatch || bestMatch.score < 0.3) {
+            // Require a minimum match score (300 out of 1000)
+            if (!bestMatch || bestMatch.score < 300) {
                 throw new TeamNotFoundError(teamIdentifier, league, teams);
             }
 

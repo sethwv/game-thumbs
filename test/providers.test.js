@@ -28,39 +28,57 @@ const results = {
 
 // Provider test cases - teams we know should have data in external providers
 const PROVIDER_TESTS = [
-    // NFL - should be available in both ESPN and TheSportsDB
-    { league: 'nfl', team: 'chiefs', name: 'Kansas City Chiefs', hasESPN: true, hasSportsDB: true },
-    { league: 'nfl', team: 'eagles', name: 'Philadelphia Eagles', hasESPN: true, hasSportsDB: true },
-    { league: 'nfl', team: 'cowboys', name: 'Dallas Cowboys', hasESPN: true, hasSportsDB: true },
+    // ESPN Provider - NFL
+    { league: 'nfl', team: 'chiefs', name: 'Kansas City Chiefs', provider: 'ESPN', hasESPN: true, hasSportsDB: true },
+    { league: 'nfl', team: 'eagles', name: 'Philadelphia Eagles', provider: 'ESPN', hasESPN: true, hasSportsDB: true },
+    { league: 'nfl', team: 'cowboys', name: 'Dallas Cowboys', provider: 'ESPN', hasESPN: true, hasSportsDB: true },
     
-    // NBA
-    { league: 'nba', team: 'lakers', name: 'Los Angeles Lakers', hasESPN: true, hasSportsDB: true },
-    { league: 'nba', team: 'celtics', name: 'Boston Celtics', hasESPN: true, hasSportsDB: true },
-    { league: 'nba', team: 'warriors', name: 'Golden State Warriors', hasESPN: true, hasSportsDB: true },
+    // ESPN Provider - NBA
+    { league: 'nba', team: 'lakers', name: 'Los Angeles Lakers', provider: 'ESPN', hasESPN: true, hasSportsDB: true },
+    { league: 'nba', team: 'celtics', name: 'Boston Celtics', provider: 'ESPN', hasESPN: true, hasSportsDB: true },
+    { league: 'nba', team: 'warriors', name: 'Golden State Warriors', provider: 'ESPN', hasESPN: true, hasSportsDB: true },
     
-    // MLB
-    { league: 'mlb', team: 'yankees', name: 'New York Yankees', hasESPN: true, hasSportsDB: true },
-    { league: 'mlb', team: 'red-sox', name: 'Boston Red Sox', hasESPN: true, hasSportsDB: true },
-    { league: 'mlb', team: 'dodgers', name: 'Los Angeles Dodgers', hasESPN: true, hasSportsDB: true },
+    // ESPN Provider - MLB
+    { league: 'mlb', team: 'yankees', name: 'New York Yankees', provider: 'ESPN', hasESPN: true, hasSportsDB: true },
+    { league: 'mlb', team: 'red-sox', name: 'Boston Red Sox', provider: 'ESPN', hasESPN: true, hasSportsDB: true },
+    { league: 'mlb', team: 'dodgers', name: 'Los Angeles Dodgers', provider: 'ESPN', hasESPN: true, hasSportsDB: true },
     
-    // NHL
-    { league: 'nhl', team: 'bruins', name: 'Boston Bruins', hasESPN: true, hasSportsDB: true },
-    { league: 'nhl', team: 'maple-leafs', name: 'Toronto Maple Leafs', hasESPN: true, hasSportsDB: true },
-    { league: 'nhl', team: 'canadiens', name: 'Montreal Canadiens', hasESPN: true, hasSportsDB: true },
+    // ESPN Provider - NHL
+    { league: 'nhl', team: 'bruins', name: 'Boston Bruins', provider: 'ESPN', hasESPN: true, hasSportsDB: true },
+    { league: 'nhl', team: 'maple-leafs', name: 'Toronto Maple Leafs', provider: 'ESPN', hasESPN: true, hasSportsDB: true },
+    { league: 'nhl', team: 'canadiens', name: 'Montreal Canadiens', provider: 'ESPN', hasESPN: true, hasSportsDB: true },
     
-    // EPL
-    { league: 'epl', team: 'manchester-united', name: 'Manchester United', hasESPN: true, hasSportsDB: true },
-    { league: 'epl', team: 'liverpool', name: 'Liverpool', hasESPN: true, hasSportsDB: true },
-    { league: 'epl', team: 'arsenal', name: 'Arsenal', hasESPN: true, hasSportsDB: true },
+    // TheSportsDB Provider - EPL
+    { league: 'epl', team: 'manchester-united', name: 'Manchester United', provider: 'TheSportsDB', hasESPN: true, hasSportsDB: true },
+    { league: 'epl', team: 'liverpool', name: 'Liverpool', provider: 'TheSportsDB', hasESPN: true, hasSportsDB: true },
+    { league: 'epl', team: 'arsenal', name: 'Arsenal', provider: 'TheSportsDB', hasESPN: true, hasSportsDB: true },
     
-    // La Liga
-    { league: 'laliga', team: 'barcelona', name: 'Barcelona', hasESPN: true, hasSportsDB: true },
-    { league: 'laliga', team: 'real-madrid', name: 'Real Madrid', hasESPN: true, hasSportsDB: true },
+    // TheSportsDB Provider - La Liga
+    { league: 'laliga', team: 'barcelona', name: 'Barcelona', provider: 'TheSportsDB', hasESPN: true, hasSportsDB: true },
+    { league: 'laliga', team: 'real-madrid', name: 'Real Madrid', provider: 'TheSportsDB', hasESPN: true, hasSportsDB: true },
     
-    // NCAA - typically better coverage in ESPN
-    { league: 'ncaaf', team: 'alabama', name: 'Alabama', hasESPN: true, hasSportsDB: false },
-    { league: 'ncaam', team: 'duke', name: 'Duke', hasESPN: true, hasSportsDB: false },
-    { league: 'ncaaw', team: 'uconn', name: 'UConn', hasESPN: true, hasSportsDB: false }
+    // HockeyTech Provider - PWHL
+    { league: 'pwhl', team: 'toronto', name: 'Toronto Sceptres', provider: 'HockeyTech', hasESPN: false, hasSportsDB: false },
+    { league: 'pwhl', team: 'boston', name: 'Boston Fleet', provider: 'HockeyTech', hasESPN: false, hasSportsDB: false },
+    { league: 'pwhl', team: 'minnesota', name: 'Minnesota Frost', provider: 'HockeyTech', hasESPN: false, hasSportsDB: false },
+    
+    // HockeyTech Provider - OHL
+    { league: 'ohl', team: 'london', name: 'London Knights', provider: 'HockeyTech', hasESPN: false, hasSportsDB: false },
+    { league: 'ohl', team: 'kitchener', name: 'Kitchener Rangers', provider: 'HockeyTech', hasESPN: false, hasSportsDB: false },
+    
+    // HockeyTech Provider - WHL
+    { league: 'whl', team: 'portland', name: 'Portland Winterhawks', provider: 'HockeyTech', hasESPN: false, hasSportsDB: false },
+    { league: 'whl', team: 'seattle', name: 'Seattle Thunderbirds', provider: 'HockeyTech', hasESPN: false, hasSportsDB: false },
+    
+    // FlagCDN Provider - International
+    { league: 'fifa', team: 'usa', name: 'United States', provider: 'FlagCDN', hasESPN: false, hasSportsDB: false },
+    { league: 'fifa', team: 'brazil', name: 'Brazil', provider: 'FlagCDN', hasESPN: false, hasSportsDB: false },
+    { league: 'fifa', team: 'germany', name: 'Germany', provider: 'FlagCDN', hasESPN: false, hasSportsDB: false },
+    
+    // ESPN Athlete Provider - NCAA
+    { league: 'ncaaf', team: 'alabama', name: 'Alabama', provider: 'ESPNAthlete', hasESPN: true, hasSportsDB: false },
+    { league: 'ncaam', team: 'duke', name: 'Duke', provider: 'ESPNAthlete', hasESPN: true, hasSportsDB: false },
+    { league: 'ncaaw', team: 'uconn', name: 'UConn', provider: 'ESPNAthlete', hasESPN: true, hasSportsDB: false }
 ];
 
 // Obscure teams to test fallback behavior
@@ -384,7 +402,7 @@ async function runAllTests() {
     
     for (const test of PROVIDER_TESTS) {
         testNumber++;
-        console.log(`\n[${testNumber}/${totalTests}] Testing: ${test.league.toUpperCase()} - ${test.name}`);
+        console.log(`\n[${testNumber}/${totalTests}] Testing: ${test.league.toUpperCase()} - ${test.name} (${test.provider})`);
         
         const result = await testProviderData(test.league, test.team, test.name);
         results.tests.push(result);
@@ -481,7 +499,8 @@ function printSummary() {
     const providerStats = {
         withLogo: 0,
         withColors: 0,
-        withoutData: 0
+        withoutData: 0,
+        byProvider: {}
     };
 
     results.tests.forEach(test => {
@@ -489,6 +508,17 @@ function printSummary() {
             if (test.hasLogo) providerStats.withLogo++;
             if (test.hasColors) providerStats.withColors++;
             if (!test.hasLogo && !test.hasColors) providerStats.withoutData++;
+            
+            // Track stats by provider
+            if (test.providerInfo) {
+                if (!providerStats.byProvider[test.providerInfo]) {
+                    providerStats.byProvider[test.providerInfo] = { total: 0, passed: 0, withLogo: 0, withColors: 0 };
+                }
+                providerStats.byProvider[test.providerInfo].total++;
+                if (test.passed) providerStats.byProvider[test.providerInfo].passed++;
+                if (test.hasLogo) providerStats.byProvider[test.providerInfo].withLogo++;
+                if (test.hasColors) providerStats.byProvider[test.providerInfo].withColors++;
+            }
         }
     });
 
@@ -500,6 +530,19 @@ function printSummary() {
             console.log(`  Teams without provider data: ${providerStats.withoutData}`);
         }
         console.log('');
+        
+        // Show per-provider breakdown
+        const providerNames = Object.keys(providerStats.byProvider).sort();
+        if (providerNames.length > 0) {
+            console.log('Coverage by Provider:');
+            providerNames.forEach(provider => {
+                const stats = providerStats.byProvider[provider];
+                console.log(`  ${provider}:`);
+                console.log(`    Tests: ${stats.passed}/${stats.total} passed`);
+                console.log(`    Logos: ${stats.withLogo}, Colors: ${stats.withColors}`);
+            });
+            console.log('');
+        }
     }
 
     if (results.failed > 0) {

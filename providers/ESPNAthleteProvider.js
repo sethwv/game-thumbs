@@ -341,14 +341,14 @@ class ESPNAthleteProvider extends BaseProvider {
                     athletes.push(...batchResults);
                     
                     // Log progress for large datasets in development only
-                    if (items.length > 100 && process.env.NODE_ENV !== 'production') {
-                        logger.info('Progress', { 
-                            league: league.shortName, 
-                            page: pageIndex,
-                            fetched: athletes.length, 
-                            total: items.length 
-                        });
-                    }
+                    // if (items.length > 100 && process.env.NODE_ENV !== 'production') {
+                    //     logger.info('Progress', { 
+                    //         league: league.shortName, 
+                    //         page: pageIndex,
+                    //         fetched: athletes.length, 
+                    //         total: items.length 
+                    //     });
+                    // }
                 }
                 
                 allAthletes.push(...athletes);
