@@ -67,6 +67,22 @@
       }
     ]
   },
+  "nbag": {
+    "name": "NBA G League",
+    "aliases": [
+      "nba g league",
+      "g league",
+      "nba development league"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "nba-development",
+          "espnSport": "basketball"
+        }
+      }
+    ]
+  },
   "nll": {
     "name": "National Lacrosse League",
     "providers": [
@@ -159,6 +175,24 @@
       {
         "espn": {
           "espnSlug": "uefa.champions",
+          "espnSport": "soccer"
+        }
+      }
+    ]
+  },
+  "uefa.wchampions": {
+    "name": "UEFA Women's Champions League",
+    "aliases": [
+      "womens champions league",
+      "uefa womens champions",
+      "uefa.womens.champions",
+      "uclw",
+      "uefaw"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "uefa.wchampions",
           "espnSport": "soccer"
         }
       }
@@ -545,6 +579,7 @@
       }
     ]
   },
+
 
   "__NCAA_SPORTS__": "===========================================",
 
