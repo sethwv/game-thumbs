@@ -1,0 +1,90 @@
+name: Deployment Webhook Handler
+
+on:
+  repository_dispatch:
+    types: [deployment-started, deployment-success, deployment-failure]
+
+jobs:
+  update-deployment:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Update Deployment Status
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const { payload } = context;
+          const { environment, version, git_ref, git_sha, status, server_name } = payload.client_payload;
+          
+          // Determine the best ref to use for the deployment
+          // Priority: git_ref (tag or branch) > git_sha > version tag > main branch
+          let deploymentRef = git_ref || git_sha || version;
+          if (!deploymentRef || deploymentRef === 'latest') {
+            deploymentRef = 'main';  // fallback to main branch
+          }
+          
+          // Create deployment if status is 'started'
+          if (status === 'started') {
+            const { data: deployment } = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: deploymentRef,
+              environment: environment || 'production',
+              auto_merge: false,
+              required_contexts: [],
+              description: `Deploying ${version} to ${server_name || 'Unraid server'}`
+            });
+            
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: deployment.id,
+              state: 'in_progress',
+              description: `Container update initiated on ${server_name || 'Unraid server'}`,
+              environment_url: payload.client_payload.server_url
+            });
+            
+            // Store deployment ID for later updates
+            await github.rest.actions.createRepoVariable({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: `DEPLOYMENT_ID_${environment?.toUpperCase() || 'PRODUCTION'}`,
+              value: deployment.id.toString()
+            }).catch(() => {
+              // Variable exists, update it
+              github.rest.actions.updateRepoVariable({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: `DEPLOYMENT_ID_${environment?.toUpperCase() || 'PRODUCTION'}`,
+                value: deployment.id.toString()
+              });
+            });
+          } 
+          // Update existing deployment status or create new one for direct success
+          else {
+            // For direct success (no 'started' event), create the deployment
+            const { data: deployment } = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: deploymentRef,
+              environment: environment || 'production',
+              auto_merge: false,
+              required_contexts: [],
+              description: `Deployed ${version} to ${server_name || 'Unraid server'}`
+            });
+            
+            const state = status === 'success' ? 'success' : 'failure';
+            const description = status === 'success' 
+              ? `Container ${version} running on ${server_name || 'Unraid server'}${git_sha ? ' (commit: ' + git_sha.substring(0, 7) + ')' : ''}`
+              : `Container update failed on ${server_name || 'Unraid server'}`;
+            
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: deployment.id,
+              state: state,
+              description: description,
+              environment_url: payload.client_payload.server_url
+            });
+            
+            console.log(`✅ Deployment created for ${deploymentRef} (${version})`);
+          }
