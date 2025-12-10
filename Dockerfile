@@ -1,6 +1,15 @@
 # Use Node.js LTS version
 FROM node:lts-alpine
 
+# OCI annotations for image metadata
+LABEL org.opencontainers.image.title="game-thumbs"
+LABEL org.opencontainers.image.description="Dynamic sports thumbnail and logo generation API"
+LABEL org.opencontainers.image.authors="Seth WV"
+LABEL org.opencontainers.image.url="https://github.com/sethwv/game-thumbs"
+LABEL org.opencontainers.image.source="https://github.com/sethwv/game-thumbs"
+LABEL org.opencontainers.image.documentation="https://sethwv.github.io/game-thumbs"
+LABEL org.opencontainers.image.licenses="MIT"
+
 # Install canvas dependencies and git
 # canvas requires Cairo, Pango, and other libraries for image manipulation
 # git is needed for /info endpoint to display git information
