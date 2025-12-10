@@ -107,11 +107,7 @@ function loadAndMergeJSON(baseFileName, directoryName, mergeType = 'teams') {
                             mergedData = { ...mergedData, ...fileData };
                         }
                         
-                        // const itemLabel = mergeType === 'teams' 
-                        //     ? (itemCount === 1 ? 'league with teams' : 'leagues with teams')
-                        //     : (itemCount === 1 ? 'league' : 'leagues');
                         logger.info(`  ✓ Merged ${file}`);
-                        // logger.info(`  ✓ Merged ${file} (${itemCount} ${itemLabel})`);
                     } catch (error) {
                         logger.warn(`  ✗ Failed to load ${file}: ${error.message}`);
                     }

@@ -3,7 +3,9 @@
 // Manages multiple sports data providers and routes requests to appropriate provider
 // ------------------------------------------------------------------------------
 
-const logger = require('../helpers/logger');
+const logger = require('./logger');
+const fs = require('fs');
+const path = require('path');
 
 class ProviderManager {
     constructor() {
@@ -14,28 +16,30 @@ class ProviderManager {
 
     /**
      * Initialize the provider manager with available providers
+     * Automatically discovers and loads all providers from the providers/ directory
      */
     initialize() {
         if (this._initialized) return;
 
-        // Register available providers
+        const providersDir = path.join(__dirname, '../providers');
+        
         try {
-            const ESPNProvider = require('./ESPNProvider');
-            this.registerProvider(new ESPNProvider());
+            const files = fs.readdirSync(providersDir);
+            
+            // Load all provider files (excluding BaseProvider)
+            files.forEach(file => {
+                if (file.endsWith('Provider.js') && file !== 'BaseProvider.js') {
+                    try {
+                        const ProviderClass = require(path.join(providersDir, file));
+                        this.registerProvider(new ProviderClass());
+                    } catch (error) {
+                        logger.warn(`Failed to load provider from ${file}`, { error: error.message });
+                    }
+                }
+            });
         } catch (error) {
-            logger.warn('Failed to load ESPN provider', { error: error.message });
+            logger.error('Failed to read providers directory', { error: error.message });
         }
-
-        try {
-            const TheSportsDBProvider = require('./TheSportsDBProvider');
-            this.registerProvider(new TheSportsDBProvider());
-        } catch (error) {
-            logger.warn('Failed to load TheSportsDB provider', { error: error.message });
-        }
-
-        // Add other providers here as they're implemented
-        // const APISportsProvider = require('./APISportsProvider');
-        // this.registerProvider(new APISportsProvider());
 
         this._initialized = true;
     }
@@ -53,8 +57,6 @@ class ProviderManager {
         supportedLeagues.forEach(leagueId => {
             this.leagueProviderMap.set(leagueId.toLowerCase(), provider);
         });
-
-        // console.log(`Registered provider: ${providerId} (supports: ${supportedLeagues.join(', ')})`);
     }
 
     /**
@@ -165,9 +167,10 @@ class ProviderManager {
     /**
      * Collect all available teams from a league and its feeder/fallback leagues
      * @param {Object} league - League object
+     * @param {boolean} includeRelatedLeagues - Whether to include feeder/fallback leagues (default: true for feeders, false for fallbacks)
      * @returns {Promise<Array>} Array of unique team names from all related leagues
      */
-    async collectAllAvailableTeams(league) {
+    async collectAllAvailableTeams(league, includeRelatedLeagues = true) {
         const allTeams = new Set();
         const { findLeague } = require('../leagues');
         
@@ -175,7 +178,14 @@ class ProviderManager {
         const extractTeamsFromError = (error) => {
             if (error && error.availableTeams && Array.isArray(error.availableTeams)) {
                 error.availableTeams.forEach(team => {
-                    const teamName = team.shortDisplayName || team.displayName || team.name;
+                    // Handle different provider formats:
+                    // - ESPN/ESPNAthlete: displayName, fullName, shortName
+                    // - TheSportsDB: strTeam
+                    // - HockeyTech: city + nickname
+                    let teamName = team.shortDisplayName || team.displayName || team.fullName || team.name || team.strTeam;
+                    if (!teamName && team.city && team.nickname) {
+                        teamName = `${team.city} ${team.nickname}`;
+                    }
                     if (teamName) allTeams.add(teamName);
                 });
             }
@@ -192,33 +202,74 @@ class ProviderManager {
             }
         }
         
-        // Collect teams from feeder leagues
-        if (league.feederLeagues && Array.isArray(league.feederLeagues)) {
-            for (const feederLeagueKey of league.feederLeagues) {
-                const feederLeague = findLeague(feederLeagueKey);
-                if (feederLeague) {
-                    const feederProviders = this.getProvidersForLeague(feederLeague);
-                    for (const provider of feederProviders) {
-                        try {
-                            await provider.resolveTeam(feederLeague, '__impossible_team_name_xyz__');
-                        } catch (error) {
-                            extractTeamsFromError(error);
+        // Only include related leagues if requested
+        if (includeRelatedLeagues) {
+            // Collect teams from feeder leagues
+            if (league.feederLeagues && Array.isArray(league.feederLeagues)) {
+                for (const feederLeagueKey of league.feederLeagues) {
+                    const feederLeague = findLeague(feederLeagueKey);
+                    if (feederLeague) {
+                        const feederProviders = this.getProvidersForLeague(feederLeague);
+                        for (const provider of feederProviders) {
+                            try {
+                                await provider.resolveTeam(feederLeague, '__impossible_team_name_xyz__');
+                            } catch (error) {
+                                extractTeamsFromError(error);
+                            }
                         }
                     }
                 }
             }
         }
         
-        // Collect teams from fallback league
-        if (league.fallbackLeague) {
-            const fallbackLeague = findLeague(league.fallbackLeague);
-            if (fallbackLeague) {
-                const fallbackProviders = this.getProvidersForLeague(fallbackLeague);
-                for (const provider of fallbackProviders) {
+        return Array.from(allTeams).sort();
+    }
+
+    /**
+     * Collect all available teams from specific visited leagues
+     * @param {Object} originalLeague - The original league requested
+     * @param {Set} visitedLeagues - Set of league keys that were actually searched
+     * @returns {Promise<Array>} Array of unique team names from all visited leagues
+     */
+    async collectAllAvailableTeamsFromVisited(originalLeague, visitedLeagues) {
+        const allTeams = new Set();
+        const { findLeague } = require('../leagues');
+        
+        // Helper to extract team names from an error
+        const extractTeamsFromError = (error) => {
+            if (error && error.availableTeams && Array.isArray(error.availableTeams)) {
+                error.availableTeams.forEach(team => {
+                    // Handle different provider formats:
+                    // - ESPN/ESPNAthlete: displayName, fullName, shortName
+                    // - TheSportsDB: strTeam
+                    // - HockeyTech: city + nickname
+                    let teamName = team.shortDisplayName || team.displayName || team.fullName || team.name || team.strTeam;
+                    if (!teamName && team.city && team.nickname) {
+                        teamName = `${team.city} ${team.nickname}`;
+                    }
+                    if (teamName) allTeams.add(teamName);
+                });
+            }
+        };
+        
+        // Collect teams from all visited leagues
+        for (const leagueKey of visitedLeagues) {
+            // Find the league object by key (visitedLeagues contains lowercased keys)
+            const league = findLeague(leagueKey);
+            if (league) {
+                const providers = this.getProvidersForLeague(league);
+                if (providers.length === 0) {
+                    continue; // Skip leagues with no providers
+                }
+                
+                for (const provider of providers) {
                     try {
-                        await provider.resolveTeam(fallbackLeague, '__impossible_team_name_xyz__');
+                        await provider.resolveTeam(league, '__impossible_team_name_xyz__');
                     } catch (error) {
-                        extractTeamsFromError(error);
+                        // Only extract if it's a TeamNotFoundError with available teams
+                        if (error && error.name === 'TeamNotFoundError') {
+                            extractTeamsFromError(error);
+                        }
                     }
                 }
             }
@@ -232,9 +283,14 @@ class ProviderManager {
      * @param {Object} league - League object
      * @param {string} teamIdentifier - Team name, abbreviation, or identifier
      * @param {Set} visitedLeagues - Set of league keys already visited (prevents infinite loops in circular references)
+     * @param {Object} originalLeague - The original league that was requested (for error messaging)
      * @returns {Promise<Object>} Standardized team object
      */
-    async resolveTeam(league, teamIdentifier, visitedLeagues = new Set()) {
+    async resolveTeam(league, teamIdentifier, visitedLeagues = new Set(), originalLeague = null) {
+        // Track the original league for error messaging
+        if (!originalLeague) {
+            originalLeague = league;
+        }
         // Skip if we've already tried this league (prevents infinite loops)
         const leagueKey = league.shortName?.toLowerCase() || league.name?.toLowerCase();
         if (visitedLeagues.has(leagueKey)) {
@@ -249,7 +305,9 @@ class ProviderManager {
         for (let i = 0; i < providers.length; i++) {
             const provider = providers[i];
             try {
-                return await provider.resolveTeam(league, teamIdentifier);
+                const result = await provider.resolveTeam(league, teamIdentifier);
+                logger.teamResolved(provider.getProviderId(), league.shortName, result.fullName || result.name);
+                return result;
             } catch (error) {
                 lastError = error;
                 // Continue to next provider
@@ -269,14 +327,33 @@ class ProviderManager {
                         continue; // Skip this feeder league, try the next one
                     }
                     
-                    // console.log(`Team "${teamIdentifier}" not found in ${league.shortName}, trying feeder league ${feederLeague.shortName}`);
                     try {
-                        return await this.resolveTeam(feederLeague, teamIdentifier, visitedLeagues);
+                        return await this.resolveTeam(feederLeague, teamIdentifier, visitedLeagues, originalLeague);
                     } catch (feederError) {
                         // Continue to next feeder league
                     }
                 }
             }
+            
+            // All feeder leagues failed - create NEW error with teams from ALL visited leagues
+            if (lastError && lastError.name === 'TeamNotFoundError') {
+                try {
+                    const allTeams = await this.collectAllAvailableTeamsFromVisited(originalLeague, visitedLeagues);
+                    if (allTeams.length > 0) {
+                        // Create a new error with the complete team list
+                        const newError = new Error(`Team not found: '${teamIdentifier}' in ${originalLeague.shortName.toUpperCase()}. Available teams: ${allTeams.join(', ')}`);
+                        newError.name = 'TeamNotFoundError';
+                        throw newError;
+                    }
+                } catch (collectError) {
+                    // If collecting teams fails OR we're rethrowing the new error, throw it
+                    if (collectError.name === 'TeamNotFoundError') {
+                        throw collectError;
+                    }
+                    // If collecting teams fails, just use the original error
+                }
+            }
+            throw lastError || new Error(`Failed to resolve team: ${teamIdentifier}`);
         }
         
         // If feederLeagues failed/not configured, try fallbackLeague (for backward compatibility)
@@ -285,16 +362,15 @@ class ProviderManager {
             const fallbackLeague = findLeague(league.fallbackLeague);
             
             if (fallbackLeague) {
-                // console.log(`Team "${teamIdentifier}" not found in ${league.shortName}, trying fallback league ${fallbackLeague.shortName}`);
                 try {
-                    return await this.resolveTeam(fallbackLeague, teamIdentifier, visitedLeagues);
+                    return await this.resolveTeam(fallbackLeague, teamIdentifier, visitedLeagues, originalLeague);
                 } catch (fallbackError) {
-                    // If fallback also fails, enhance error with all available teams
+                    // If fallback also fails, enhance error with teams from ORIGINAL league only
                     if (lastError && lastError.name === 'TeamNotFoundError') {
                         try {
-                            const allTeams = await this.collectAllAvailableTeams(league);
+                            const allTeams = await this.collectAllAvailableTeams(originalLeague, false); // false = don't include related
                             if (allTeams.length > 0) {
-                                lastError.message = `Team not found: '${teamIdentifier}' in ${league.shortName.toUpperCase()}. Available teams: ${allTeams.join(', ')}`;
+                                lastError.message = `Team not found: '${teamIdentifier}' in ${originalLeague.shortName.toUpperCase()}. Available teams: ${allTeams.join(', ')}`;
                             }
                         } catch (collectError) {
                             // If collecting teams fails, just use the original error
@@ -305,13 +381,13 @@ class ProviderManager {
             }
         }
         
-        // No fallback or fallback not configured
-        // Enhance error message with teams from all related leagues
+        // No feeder or fallback leagues
+        // Enhance error message with teams from original league only
         if (lastError && lastError.name === 'TeamNotFoundError') {
             try {
-                const allTeams = await this.collectAllAvailableTeams(league);
+                const allTeams = await this.collectAllAvailableTeams(originalLeague, false);
                 if (allTeams.length > 0) {
-                    lastError.message = `Team not found: '${teamIdentifier}' in ${league.shortName.toUpperCase()}. Available teams: ${allTeams.join(', ')}`;
+                    lastError.message = `Team not found: '${teamIdentifier}' in ${originalLeague.shortName.toUpperCase()}. Available teams: ${allTeams.join(', ')}`;
                 }
             } catch (collectError) {
                 // If collecting teams fails, just use the original error
@@ -350,8 +426,8 @@ class ProviderManager {
             }
         }
         
-        // If all providers failed, throw error
-        throw new Error(`Failed to get league logo for ${league.shortName || 'unknown'}`);
+        // If all providers failed or returned null, return null (some leagues don't have logos)
+        return null;
     }
 
     /**

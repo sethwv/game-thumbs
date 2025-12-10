@@ -6,7 +6,7 @@
 // - Matchup logo: /:league/:team1/:team2/logo
 // ------------------------------------------------------------------------------
 
-const providerManager = require('../providers/ProviderManager');
+const providerManager = require('../helpers/ProviderManager');
 const { generateLogo } = require('../generators/logoGenerator');
 const { downloadImage } = require('../helpers/imageUtils');
 const { findLeague } = require('../leagues');

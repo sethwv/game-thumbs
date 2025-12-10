@@ -6,9 +6,15 @@ A sports matchup thumbnail and logo generation API supporting 30+ professional a
 
 ## Quick Start
 
+### Docker Compose (Recommended)
+
 ```bash
-# Pull and run
-docker pull ghcr.io/sethwv/game-thumbs:latest
+docker compose up -d
+```
+
+### Docker Run
+
+```bash
 docker run -p 3000:3000 ghcr.io/sethwv/game-thumbs:latest
 ```
 
@@ -23,7 +29,7 @@ GET http://localhost:3000/ncaa/football/alabama/georgia/thumb
 
 🏀 Multi-Sport • 🎨 Dynamic Generation • 🖼️ Multiple Styles • 💾 Smart Caching • 🎯 Flexible Matching • 🔧 Customizable
 
-**Supports:** NBA, WNBA, NFL, MLB, NHL, EPL, MLS, UEFA, 21+ NCAA sports, and more
+**Supports:** NBA, WNBA, NFL, MLB, NHL, UFC, PFL, Bellator, EPL, MLS, UEFA, International/Olympics, 21+ NCAA sports, and more
 
 ## Documentation
 

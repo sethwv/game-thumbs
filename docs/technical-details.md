@@ -17,16 +17,119 @@ nav_order: 6
 
 ## Architecture Overview
 
-Game Thumbs is a Node.js Express application that dynamically generates sports matchup thumbnails and logos using team data from ESPN's public APIs.
+Game Thumbs is a Node.js Express application that dynamically generates sports matchup thumbnails and logos using team and athlete data from multiple providers (ESPN, TheSportsDB, HockeyTech).
 
 ### Key Components
 
 - **Express Server**: HTTP server handling API requests
-- **Provider System**: Modular data provider architecture (currently ESPN only)
+- **Provider System**: Modular data provider architecture with multiple providers
 - **Team Matching**: Intelligent fuzzy matching with weighted scoring
 - **Image Generation**: Canvas-based rendering with multiple visual styles
 - **Caching System**: Multi-layer caching for performance optimization
 - **Color Extraction**: Automatic dominant color detection from logos
+
+---
+
+## Data Providers
+
+Game Thumbs uses a modular provider architecture to fetch team and athlete data from multiple sources.
+
+### ESPN Provider
+
+**Leagues**: NBA, NFL, MLB, NHL, NCAA, Soccer, and more  
+**Type**: Team-based sports  
+**Features**:
+- Fetches team rosters, logos, and colors from ESPN's public APIs
+- Supports 30+ professional and NCAA leagues
+- 24-hour team data caching
+- Automatic logo and color extraction
+
+### ESPN Athlete Provider
+
+**Leagues**: UFC, PFL, Bellator (combat sports)  
+**Type**: Athlete-based sports  
+**Features**:
+- Treats individual fighters/athletes as "teams" for matchup generation
+- Fetches complete athlete rosters from ESPN MMA APIs
+- 72-hour athlete data caching with automatic background refresh
+- Smart athlete matching by first name, last name, or full name
+- Randomly assigned dark color palettes (avoids skin tone bias)
+- Headshot images used as athlete "logos"
+- Supports 600+ UFC fighters, 200+ PFL fighters, 300+ Bellator fighters
+
+**Cache Auto-Refresh**: The ESPN Athlete provider automatically refreshes athlete rosters at 95% of cache duration (68.4 hours) to ensure data stays fresh without requiring manual intervention or server restarts.
+
+### TheSportsDB Provider
+
+**Leagues**: CFL, AHL, OHL, WHL, QMJHL, and international soccer  
+**Type**: Team-based sports  
+**Features**:
+- Community-maintained sports database
+- Good coverage for non-US leagues
+- Team colors, logos, and basic information
+- 24-hour team data caching
+
+### HockeyTech Provider
+
+**Leagues**: PWHL, CHL, OHL, WHL  
+**Type**: Team-based sports (hockey)  
+**Features**:
+- Official provider for Canadian hockey leagues
+- Real-time roster data
+- High-quality team information
+- 24-hour team data caching
+
+### FlagCDN Provider
+
+**Leagues**: Country, Olympics  
+**Type**: International country-based matchups  
+**Features**:
+- High-resolution flag images (2560px) from flagcdn.com
+- ISO 3166 alpha-2 and alpha-3 code support (USA, CAN, GBR, etc.)
+- Olympic/sports team codes (ROC, OAR, AOR, RPC)
+- UK home nations support (ENG, SCT, WAL, NIR)
+- Custom color extraction without filtering white colors
+- Desaturation (40%) and darkening (30%) for better thumbnail backgrounds
+- White color replacement (uses non-white color for both if either is white)
+- 7-day caching for country data and extracted colors
+- Smart country matching with weighted scoring
+
+**Country Resolution**: Matches country names, aliases, and ISO codes using intelligent scoring:
+- ISO 3-letter codes: 1.0 weight (highest priority)
+- Exact name matches: 0.9 weight
+- Partial name matches: 0.5-0.8 weight based on similarity
+
+---
+
+## Provider System
+
+### Automatic Provider Discovery
+
+Game Thumbs automatically discovers and registers all providers from the `providers/` directory at startup. No manual registration required.
+
+**How it works:**
+1. Scans `providers/` directory for `*Provider.js` files
+2. Excludes `BaseProvider.js` (abstract base class)
+3. Automatically instantiates and registers each provider
+4. Maps supported leagues to providers
+
+**Adding New Providers:**
+1. Create a new file in `providers/` following the naming convention: `YourNameProvider.js`
+2. Extend `BaseProvider` and implement required methods:
+   - `getProviderId()`: Return unique provider identifier
+   - `resolveTeam()`: Implement team/athlete resolution logic
+   - `getLeagueLogoUrl()`: Implement league logo fetching
+3. Provider is automatically loaded on server restart
+
+**Provider Inference:**
+The system automatically infers which provider to use based on the configuration object keys:
+- `{ espn: {...} }` → ESPN Provider
+- `{ theSportsDB: {...} }` → TheSportsDB Provider
+- `{ hockeytech: {...} }` → HockeyTech Provider
+- `{ espnAthlete: {...} }` → ESPN Athlete Provider
+- `{ flagcdn: {...} }` → FlagCDN Provider
+
+No hardcoded provider lists to maintain!
 
 ---
 
@@ -173,7 +276,7 @@ The system recognizes common location abbreviations:
 | `chi` | Chicago, Chi |
 | `atl` | Atlanta, Atl |
 
-And many more. See `teamMatchingUtils.js` for the complete list.
+And many more. See `teamUtils.js` for the complete list.
 
 ### Matching Scores
 
@@ -234,51 +337,20 @@ The NCAA shorthand route (`/ncaa/:sport/:type`) needs to be registered before th
 
 ## Data Sources
 
-### ESPN APIs
-
-All team data is fetched from ESPN's public APIs:
-
-**Professional Leagues:**
-```
-https://site.api.espn.com/apis/site/v2/sports/{sport}/{slug}/teams
-```
-
-**Examples:**
-- NBA: `/sports/basketball/nba/teams`
-- NFL: `/sports/football/nfl/teams`
-- EPL: `/sports/soccer/eng.1/teams`
-- MLS: `/sports/soccer/usa.1/teams`
-
-**NCAA Leagues:**
-```
-https://site.api.espn.com/apis/site/v2/sports/{sport}/{slug}/teams
-```
-
-**Examples:**
-- NCAAF: `/sports/football/college-football/teams`
-- NCAAM: `/sports/basketball/mens-college-basketball/teams`
-- NCAAW: `/sports/basketball/womens-college-basketball/teams`
-
-### Team Data Structure
-
-ESPN provides:
-- Team ID and slug
-- Display names (full, short, nickname)
-- Location/city information
-- Official abbreviations
-- Team logos (multiple variants)
-- Team colors (primary and alternate)
-- Conference and division data
+Team and athlete data is fetched from multiple providers based on league configuration. See the **Data Providers** section above for details on each provider's API endpoints and data structure.
 
 ### League Logos
 
-**Professional Leagues:**
+**ESPN Leagues:**
 - Fetched from ESPN API or ESPN CDN
 - Format: `https://a.espncdn.com/i/teamlogos/leagues/500/{league}.png`
 
 **NCAA Sports:**
 - Hosted on NCAA.com
 - Format: `https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/{sport}.png`
+
+**Custom Leagues:**
+- Configured via `logoUrl` or `logoUrlDark` in league configuration
 
 ---
 
@@ -422,7 +494,7 @@ Enable with `LOG_TO_FILE=true`:
 
 Potential areas for expansion:
 
-- Additional data providers (beyond ESPN)
+- Additional combat sports (Boxing, Wrestling, etc.)
 - More visual styles and customization options
 - Image format options (JPEG, WebP, SVG)
 - Persistent cache storage (Redis, filesystem)
@@ -430,3 +502,4 @@ Potential areas for expansion:
 - Historical data and archive support
 - Real-time game score integration
 - Custom font and typography options
+- Fighter statistics and rankings display

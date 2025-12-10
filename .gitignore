@@ -23,6 +23,9 @@ helpers/test.js
 test/output/*
 !test/output/.gitkeep
 
+# Environment files
+.env
+
 # IDE files
 .vscode
 .idea

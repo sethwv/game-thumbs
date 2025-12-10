@@ -3,7 +3,7 @@
 // Route to return the raw json data for a league or team
 // ------------------------------------------------------------------------------
 
-const providerManager = require('../providers/ProviderManager');
+const providerManager = require('../helpers/ProviderManager');
 const { findLeague } = require('../leagues');
 
 module.exports = {

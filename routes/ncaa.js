@@ -3,7 +3,7 @@
 // Route to forward NCAA requests to the appropriate handler
 // ------------------------------------------------------------------------------
 
-const providerManager = require('../providers/ProviderManager');
+const providerManager = require('../helpers/ProviderManager');
 const { generateCover } = require('../generators/thumbnailGenerator');
 const { findLeague } = require('../leagues');
 const logger = require('../helpers/logger');

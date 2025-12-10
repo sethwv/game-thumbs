@@ -225,6 +225,96 @@ const testCases = [
         filename: 'leaguecover-nba.png'
     },
     
+    // ESPN Direct endpoints
+    {
+        name: 'ESPN Direct - League Logo',
+        endpoint: '/espn/basketball/nba/logo',
+        expectedStatus: 200,
+        expectedType: 'image/png',
+        saveImage: true,
+        filename: 'espn-league-logo-nba.png'
+    },
+    {
+        name: 'ESPN Direct - Team Logo',
+        endpoint: '/espn/football/nfl/chiefs/logo',
+        expectedStatus: 200,
+        expectedType: 'image/png',
+        saveImage: true,
+        filename: 'espn-team-logo-chiefs.png'
+    },
+    {
+        name: 'ESPN Direct - Matchup Logo',
+        endpoint: '/espn/basketball/nba/lakers/celtics/logo',
+        expectedStatus: 200,
+        expectedType: 'image/png',
+        saveImage: true,
+        filename: 'espn-matchup-logo-nba.png'
+    },
+    {
+        name: 'ESPN Direct - League Thumb',
+        endpoint: '/espn/football/nfl/thumb',
+        expectedStatus: 200,
+        expectedType: 'image/png',
+        saveImage: true,
+        filename: 'espn-league-thumb-nfl.png'
+    },
+    {
+        name: 'ESPN Direct - Team Thumb',
+        endpoint: '/espn/hockey/nhl/bruins/thumb',
+        expectedStatus: 200,
+        expectedType: 'image/png',
+        saveImage: true,
+        filename: 'espn-team-thumb-bruins.png'
+    },
+    {
+        name: 'ESPN Direct - Matchup Thumb',
+        endpoint: '/espn/basketball/nba/heat/bucks/thumb',
+        expectedStatus: 200,
+        expectedType: 'image/png',
+        saveImage: true,
+        filename: 'espn-matchup-thumb-nba.png'
+    },
+    {
+        name: 'ESPN Direct - League Cover',
+        endpoint: '/espn/baseball/mlb/cover',
+        expectedStatus: 200,
+        expectedType: 'image/png',
+        saveImage: true,
+        filename: 'espn-league-cover-mlb.png'
+    },
+    {
+        name: 'ESPN Direct - Team Cover',
+        endpoint: '/espn/soccer/eng.1/arsenal/cover',
+        expectedStatus: 200,
+        expectedType: 'image/png',
+        saveImage: true,
+        filename: 'espn-team-cover-arsenal.png'
+    },
+    {
+        name: 'ESPN Direct - Matchup Cover',
+        endpoint: '/espn/football/nfl/cowboys/eagles/cover',
+        expectedStatus: 200,
+        expectedType: 'image/png',
+        saveImage: true,
+        filename: 'espn-matchup-cover-nfl.png'
+    },
+    {
+        name: 'ESPN Direct - With Fallback',
+        endpoint: '/espn/basketball/nba/invalid-team/logo?fallback=true',
+        expectedStatus: 200,
+        expectedType: 'image/png',
+        saveImage: true,
+        filename: 'espn-fallback-logo.png'
+    },
+    {
+        name: 'ESPN Direct - International League',
+        endpoint: '/espn/soccer/esp.1/barcelona/logo',
+        expectedStatus: 200,
+        expectedType: 'image/png',
+        saveImage: true,
+        filename: 'espn-barcelona-logo.png'
+    },
+    
     // Error cases
     {
         name: 'Invalid League',

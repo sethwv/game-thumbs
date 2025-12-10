@@ -3,7 +3,7 @@
 // Route to return the raw league logo image
 // ------------------------------------------------------------------------------
 
-const providerManager = require('../providers/ProviderManager');
+const providerManager = require('../helpers/ProviderManager');
 const { findLeague } = require('../leagues');
 const { downloadImage } = require('../helpers/imageUtils');
 const logger = require('../helpers/logger');

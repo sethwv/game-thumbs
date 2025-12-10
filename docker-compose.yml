@@ -1,0 +1,44 @@
+services:
+  game-thumbs:
+    image: ghcr.io/sethwv/game-thumbs:latest
+    # image: ghcr.io/sethwv/game-thumbs:dev
+    # build: .
+    container_name: game-thumbs
+    restart: unless-stopped
+    labels:
+      - "autoheal=true"
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      PORT: ${PORT:-3000}
+      NODE_ENV: ${NODE_ENV:-production}
+      TRUST_PROXY: ${TRUST_PROXY:-0}
+      RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-30}
+      IMAGE_CACHE_HOURS: ${IMAGE_CACHE_HOURS:-24}
+
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+      CORS_MAX_AGE: ${CORS_MAX_AGE:-86400}
+
+      SHOW_TIMESTAMP: ${SHOW_TIMESTAMP:-true}
+      LOG_TO_FILE: ${LOG_TO_FILE:-false}
+      MAX_LOG_FILES: ${MAX_LOG_FILES:-10}
+    volumes:
+      - ${CACHE_DIR:-./.cache}:/app/.cache
+      # - ${CUSTOM_TEAMS_DIR:-./custom-config/teams}:/app/json/teams:ro
+      # - ${CUSTOM_LEAGUES_DIR:-./custom-config/leagues}:/app/json/leagues:ro
+      # - ${LOGS_DIR:-./logs}:/app/logs
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (r) => {let d='';r.on('data', (c) => d+=c);r.on('end', () => {if (r.statusCode !== 200) process.exit(1);const j=JSON.parse(d);process.exit(j.status==='ok'?0:1)})}).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+  # autoheal:
+  #   image: willfarrell/autoheal:latest
+  #   container_name: autoheal
+  #   restart: unless-stopped
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock
+  #   environment:
+  #     AUTOHEAL_CONTAINER_LABEL: "autoheal"
