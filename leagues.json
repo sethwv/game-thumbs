@@ -51,8 +51,7 @@
     "providers": [
       {
         "hockeyTech": {
-          "clientCode": "pwhl",
-          "apiKey": "446521baf8c38984"
+          "websiteUrl": "https://www.thepwhl.com/en/"
         }
       }
     ]
@@ -845,13 +844,7 @@
       "whl",
       "qmjhl"
     ],
-    "providers": [
-      {
-        "hockeyTech": {
-          "clientCode": "chl"
-        }
-      }
-    ]
+    "providers": []
   },
   "ohl": {
     "name": "Ontario Hockey League",
@@ -871,7 +864,7 @@
       },
       {
         "hockeyTech": {
-          "clientCode": "ohl"
+          "websiteUrl": "https://chl.ca/ohl/"
         }
       }
     ]
@@ -892,7 +885,7 @@
       },
       {
         "hockeyTech": {
-          "clientCode": "whl"
+          "websiteUrl": "https://chl.ca/whl/"
         }
       }
     ]
@@ -913,7 +906,7 @@
       },
       {
         "hockeyTech": {
-          "clientCode": "lhjmq"
+          "websiteUrl": "https://chl.ca/lhjmq/"
         }
       }
     ]

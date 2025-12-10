@@ -7,7 +7,7 @@
 const axios = require('axios');
 const { createCanvas, loadImage } = require('canvas');
 const BaseProvider = require('./BaseProvider');
-const { getTeamMatchScoreWithOverrides, findTeamByAlias, applyTeamOverrides } = require('../helpers/teamUtils');
+const { findTeamByAlias, applyTeamOverrides } = require('../helpers/teamUtils');
 const { downloadImage } = require('../helpers/imageUtils');
 const logger = require('../helpers/logger');
 
@@ -30,7 +30,7 @@ class FlagCDNProvider extends BaseProvider {
         this.cacheTimestamp = null;
         this.colorCache = new Map();
         this.CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days
-        this.REQUEST_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '10000', 10);
+        this.REQUEST_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '10000', 10); // 10 seconds
         
         // ISO 3166 alpha-3 to alpha-2 code mappings for common Olympic/sports codes
         this.iso3to2 = {

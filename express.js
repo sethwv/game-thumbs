@@ -11,7 +11,8 @@ const logger = require('./helpers/logger');
 
 const app = express();
 let server = null; // Store server instance for graceful shutdown
-let espnAthleteProvider = null; // Store provider instance for cleanup
+let espnAthleteProvider = null; // Store ESPN athlete provider instance for cleanup
+let hockeyTechProvider = null; // Store HockeyTech provider instance for cleanup
 
 module.exports = { init };
 
@@ -163,8 +164,6 @@ function init(port) {
         next();
     });
 
-    logger.info('Registering routes...');
-    
     // Preload team overrides to show configuration at startup
     require('./helpers/teamUtils');
     
@@ -228,17 +227,6 @@ function init(port) {
         }
     });
 
-    // Initialize ESPN Athlete provider cache
-    (async () => {
-        try {
-            const ESPNAthleteProvider = require('./providers/ESPNAthleteProvider');
-            espnAthleteProvider = new ESPNAthleteProvider();
-            await espnAthleteProvider.initializeCache();
-        } catch (error) {
-            logger.error('Failed to initialize ESPN Athlete cache', { error: error.message });
-        }
-    })();
-
     // Global error handler for uncaught route errors
     app.use((err, req, res, next) => {
         logger.error('Unhandled route error', {
@@ -263,6 +251,30 @@ function init(port) {
     });
 
     server = app.listen(port, () => {
+        // Initialize provider caches in parallel (non-blocking)
+        Promise.all([
+            (async () => {
+                try {
+                    const ESPNAthleteProvider = require('./providers/ESPNAthleteProvider');
+                    espnAthleteProvider = new ESPNAthleteProvider();
+                    await espnAthleteProvider.initializeCache();
+                } catch (error) {
+                    logger.error('Failed to initialize ESPN Athlete cache', { error: error.message });
+                }
+            })(),
+            (async () => {
+                try {
+                    const HockeyTechProvider = require('./providers/HockeyTechProvider');
+                    hockeyTechProvider = new HockeyTechProvider();
+                    await hockeyTechProvider.initializeCache();
+                } catch (error) {
+                    logger.error('Failed to initialize HockeyTech config cache', { error: error.message });
+                }
+            })()
+        ]).catch(err => {
+            logger.error('Unexpected error during provider initialization', { error: err.message });
+        });
+        
         logger.startup(`Server Running on Port ${port}`);
     });
     
@@ -272,9 +284,7 @@ function init(port) {
     server.keepAliveTimeout = SERVER_TIMEOUT;
     server.headersTimeout = SERVER_TIMEOUT + 5000;
     
-    logger.info(`Server timeout set to: ${SERVER_TIMEOUT}ms`);
-    
-    // Monitor active connections and log periodically
+    // Monitor active connections
     let activeConnections = 0;
     
     server.on('connection', (socket) => {
@@ -284,10 +294,6 @@ function init(port) {
         socket.setTimeout(SERVER_TIMEOUT);
         
         socket.on('timeout', () => {
-            // logger.warn('Socket timeout - destroying connection', {
-            //     RemoteAddress: socket.remoteAddress,
-            //     ActiveConnections: activeConnections
-            // });
             socket.destroy();
         });
         
@@ -295,11 +301,8 @@ function init(port) {
             activeConnections--;
         });
         
-        socket.on('error', (err) => {
-            // logger.error('Socket error', {
-            //     Error: err.message,
-            //     RemoteAddress: socket.remoteAddress
-            // });
+        socket.on('error', () => {
+            // Silent error handling - these are expected for aborted connections
         });
     });
     
@@ -314,9 +317,6 @@ function init(port) {
     setInterval(() => {
         const memUsage = process.memoryUsage();
         const memUsedMB = Math.round(memUsage.heapUsed / 1024 / 1024);
-        const memTotalMB = Math.round(memUsage.heapTotal / 1024 / 1024);
-        
-        logger.info(`Memory usage: ${memUsedMB}MB / ${memTotalMB}MB heap (RSS: ${Math.round(memUsage.rss / 1024 / 1024)}MB)`);
         
         // Warning if memory usage is high
         if (memUsedMB > 800) {
@@ -356,6 +356,11 @@ function setupGracefulShutdown() {
         // Stop ESPN Athlete provider refresh timers
         if (espnAthleteProvider) {
             espnAthleteProvider.stopAllRefreshes();
+        }
+        
+        // Stop HockeyTech provider refresh timers
+        if (hockeyTechProvider) {
+            hockeyTechProvider.stopAllRefreshes();
         }
         
         // Stop accepting new connections
@@ -399,8 +404,6 @@ function setupGracefulShutdown() {
         // Don't exit immediately, let the process continue
         // but log it for debugging
     });
-    
-    logger.info('Graceful shutdown handlers registered');
 }
 
 // ------------------------------------------------------------------------------
