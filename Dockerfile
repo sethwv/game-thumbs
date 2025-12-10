@@ -1,5 +1,5 @@
-# Use Node.js LTS version
-FROM node:lts-alpine
+# Use Node.js LTS version (Debian-based for better multi-arch support)
+FROM node:lts-slim
 
 # OCI annotations for image metadata
 LABEL org.opencontainers.image.title="game-thumbs"
@@ -13,16 +13,17 @@ LABEL org.opencontainers.image.licenses="MIT"
 # Install canvas dependencies and git
 # canvas requires Cairo, Pango, and other libraries for image manipulation
 # git is needed for /info endpoint to display git information
-RUN apk add --no-cache \
-    build-base \
-    g++ \
-    cairo-dev \
-    jpeg-dev \
-    pango-dev \
-    giflib-dev \
-    pixman-dev \
-    ttf-dejavu \
-    git
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+    build-essential \
+    libcairo2-dev \
+    libpango1.0-dev \
+    libjpeg-dev \
+    libgif-dev \
+    librsvg2-dev \
+    fonts-dejavu-core \
+    git \
+ && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
 WORKDIR /app
