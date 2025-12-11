@@ -464,7 +464,7 @@ class ProviderManager {
                 // Use path.relative to check if resolved path is within app root
                 // If relative path starts with '..', it's outside the app directory
                 const relativePath = path.relative(appRoot, resolvedPath);
-                if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+                if (relativePath.startsWith('..')) {
                     logger.warn('Invalid FALLBACK_LEAGUE_LOGO_URL path', {
                         League: league.shortName,
                         FallbackUrl: fallbackLogoUrl,
