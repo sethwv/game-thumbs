@@ -440,7 +440,48 @@ class ProviderManager {
             }
         }
         
-        // If all providers failed or returned null, return null (some leagues don't have logos)
+        // If all providers failed or returned null, check for fallback logo from environment
+        const fallbackLogoUrl = process.env.FALLBACK_LEAGUE_LOGO_URL;
+        if (fallbackLogoUrl) {
+            // Validate the fallback URL format
+            const isValidUrl = /^https?:\/\//.test(fallbackLogoUrl);
+            const isRelativePath = /^\.\.?\//.test(fallbackLogoUrl);
+            
+            if (!isValidUrl && !isRelativePath) {
+                logger.warn('Invalid FALLBACK_LEAGUE_LOGO_URL format', {
+                    League: league.shortName,
+                    FallbackUrl: fallbackLogoUrl,
+                    Message: 'URL must be an HTTP(S) URL or a relative path starting with ./ or ../'
+                });
+                return null;
+            }
+            
+            // For relative paths, validate they don't escape the application directory
+            if (isRelativePath) {
+                const appRoot = process.cwd();
+                const resolvedPath = path.resolve(appRoot, fallbackLogoUrl);
+                
+                // Use path.relative to check if resolved path is within app root
+                // If relative path starts with '..', it's outside the app directory
+                const relativePath = path.relative(appRoot, resolvedPath);
+                if (relativePath.startsWith('..')) {
+                    logger.warn('Invalid FALLBACK_LEAGUE_LOGO_URL path', {
+                        League: league.shortName,
+                        FallbackUrl: fallbackLogoUrl,
+                        Message: 'Relative path must not escape the application directory'
+                    });
+                    return null;
+                }
+            }
+            
+            logger.debug('Using fallback league logo', {
+                League: league.shortName,
+                FallbackUrl: fallbackLogoUrl
+            });
+            return fallbackLogoUrl;
+        }
+        
+        // If no fallback configured, return null (some leagues don't have logos)
         return null;
     }
 
