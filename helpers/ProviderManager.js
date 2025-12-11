@@ -458,8 +458,8 @@ class ProviderManager {
             
             // For relative paths, validate they don't escape the application directory
             if (isRelativePath) {
-                const resolvedPath = path.resolve(process.cwd(), fallbackLogoUrl);
                 const appRoot = process.cwd();
+                const resolvedPath = path.resolve(appRoot, fallbackLogoUrl);
                 
                 // Use path.relative to check if resolved path is within app root
                 // If relative path starts with '..', it's outside the app directory
