@@ -443,6 +443,20 @@ class ProviderManager {
         // If all providers failed or returned null, check for fallback logo from environment
         const fallbackLogoUrl = process.env.FALLBACK_LEAGUE_LOGO_URL;
         if (fallbackLogoUrl) {
+            // Basic validation: ensure it's either a valid URL or a safe file path
+            const isUrl = fallbackLogoUrl.startsWith('http://') || fallbackLogoUrl.startsWith('https://');
+            const isRelativePath = fallbackLogoUrl.startsWith('./') || fallbackLogoUrl.startsWith('../');
+            const isAbsolutePath = fallbackLogoUrl.startsWith('/');
+            
+            if (!isUrl && !isRelativePath && !isAbsolutePath) {
+                logger.warn('Invalid FALLBACK_LEAGUE_LOGO_URL format', {
+                    League: league.shortName,
+                    FallbackUrl: fallbackLogoUrl,
+                    Message: 'URL must start with http://, https://, ./, ../, or /'
+                });
+                return null;
+            }
+            
             logger.debug('Using fallback league logo', {
                 League: league.shortName,
                 FallbackUrl: fallbackLogoUrl
