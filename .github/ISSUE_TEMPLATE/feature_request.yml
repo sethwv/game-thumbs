@@ -1,0 +1,98 @@
+name: Feature Request
+description: Suggest a new feature or enhancement
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for your feature suggestion! Please provide as much detail as possible.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or Use Case
+      description: Is your feature request related to a problem? What are you trying to accomplish?
+      placeholder: I want to be able to...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the solution you'd like to see
+      placeholder: I'd like the API to support...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Feature Category
+      description: What type of feature is this?
+      options:
+        - New league/sport support
+        - Team data correction/override
+        - New endpoint/route
+        - Image generation enhancement
+        - New image style/layout
+        - Performance improvement
+        - Configuration option
+        - Documentation
+        - Provider integration
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: league-details
+    attributes:
+      label: League Details (if requesting new league)
+      description: |
+        If requesting a new league, provide:
+        - League name and abbreviation
+        - Sport and region
+        - Number of teams and example team names
+        - Known data sources (ESPN, official website, etc.)
+      placeholder: |
+        League: National Hockey League (NHL)
+        Sport: Hockey
+        Region: North America
+        Teams: ~32 teams (e.g., Boston Bruins, Toronto Maple Leafs)
+        Data: ESPN API, NHL.com
+
+  - type: textarea
+    id: team-override
+    attributes:
+      label: Team Data Override (if correcting team data)
+      description: |
+        If requesting team data correction, provide:
+        - League and team name
+        - What's wrong (logo, colors, name, etc.)
+        - Correct data with source
+      placeholder: |
+        League: NFL
+        Team: New England Patriots
+        Issue: Primary color is incorrect
+        Current: #002244
+        Correct: #002244 (verified from patriots.com)
+        Logo URL: https://...
+
+  - type: textarea
+    id: examples
+    attributes:
+      label: Examples or Mockups
+      description: If applicable, provide examples, mockups, or links to similar implementations
+      placeholder: |
+        Example usage:
+        GET /nhl/bruins/leafs/thumb
+        
+        Or attach images/mockups
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other context or information about the feature request
+      placeholder: This would be useful for...

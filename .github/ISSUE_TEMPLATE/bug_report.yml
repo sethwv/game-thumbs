@@ -1,0 +1,70 @@
+name: Bug Report
+description: Report a bug or unexpected behavior
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill out the following information to help us investigate.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: What's wrong? What did you expect vs. what actually happened?
+      placeholder: When I call /nfl/patriots/chiefs/thumb, I expect to see... but instead...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: bug-type
+    attributes:
+      label: Bug Type
+      description: What kind of issue is this?
+      options:
+        - Endpoint/API issue (wrong image, error response, etc.)
+        - Server/Runtime issue (crashes, won't start, performance, etc.)
+    validations:
+      required: true
+
+  - type: input
+    id: endpoint
+    attributes:
+      label: Affected Endpoint (if applicable)
+      description: Full URL or path you're calling
+      placeholder: "https://game-thumbs.com/nfl/patriots/chiefs/thumb?style=2"
+
+  - type: input
+    id: league
+    attributes:
+      label: League/Sport (if applicable)
+      description: Which league or sport is affected?
+      placeholder: "NFL, NBA, NHL, etc."
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error Logs or Screenshots
+      description: If applicable, add error messages, logs, or screenshots
+      placeholder: Paste error messages or drag images here
+
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: Deployment Type
+      description: Where are you running game-thumbs?
+      options:
+        - Self-hosted (Docker)
+        - Self-hosted (Node.js)
+        - Public instance
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other context about the problem
+      placeholder: This started happening after...
