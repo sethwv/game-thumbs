@@ -92,48 +92,46 @@ function makeRequest(endpoint) {
     });
 }
 
-function runTest(testCase) {
-    return new Promise(async (resolve) => {
-        const testResult = {
-            name: testCase.name,
-            endpoint: testCase.endpoint,
-            description: testCase.description,
-            passed: false,
-            error: null,
-            duration: 0
-        };
+async function runTest(testCase) {
+    const testResult = {
+        name: testCase.name,
+        endpoint: testCase.endpoint,
+        description: testCase.description,
+        passed: false,
+        error: null,
+        duration: 0
+    };
 
-        try {
-            const startTime = Date.now();
-            const response = await makeRequest(testCase.endpoint);
-            testResult.duration = Date.now() - startTime;
+    try {
+        const startTime = Date.now();
+        const response = await makeRequest(testCase.endpoint);
+        testResult.duration = Date.now() - startTime;
 
-            // Check status code
-            if (response.status !== testCase.expectedStatus) {
-                throw new Error(`Expected status ${testCase.expectedStatus}, got ${response.status}`);
-            }
-
-            // Check content type
-            if (testCase.expectedType && !response.contentType.includes(testCase.expectedType)) {
-                throw new Error(`Expected content type ${testCase.expectedType}, got ${response.contentType}`);
-            }
-
-            // For images, verify we got valid data
-            if (testCase.expectedType === 'image/png' && response.data.length < 100) {
-                throw new Error('Image data too small, possibly invalid');
-            }
-
-            testResult.passed = true;
-            testResult.actualStatus = response.status;
-            testResult.actualContentType = response.contentType;
-            testResult.dataSize = response.data.length;
-
-        } catch (error) {
-            testResult.error = error.message;
+        // Check status code
+        if (response.status !== testCase.expectedStatus) {
+            throw new Error(`Expected status ${testCase.expectedStatus}, got ${response.status}`);
         }
 
-        resolve(testResult);
-    });
+        // Check content type
+        if (testCase.expectedType && !response.contentType.includes(testCase.expectedType)) {
+            throw new Error(`Expected content type ${testCase.expectedType}, got ${response.contentType}`);
+        }
+
+        // For images, verify we got valid data
+        if (testCase.expectedType === 'image/png' && response.data.length < 100) {
+            throw new Error('Image data too small, possibly invalid');
+        }
+
+        testResult.passed = true;
+        testResult.actualStatus = response.status;
+        testResult.actualContentType = response.contentType;
+        testResult.dataSize = response.data.length;
+
+    } catch (error) {
+        testResult.error = error.message;
+    }
+
+    return testResult;
 }
 
 // ------------------------------------------------------------------------------
