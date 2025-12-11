@@ -1,6 +1,10 @@
 # Node modules (will be installed in container)
 node_modules
 
+# Lock files
+package-lock.json
+yarn.lock
+
 # Cache directory (will be created in container)
 .cache
 

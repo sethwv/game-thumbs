@@ -401,6 +401,18 @@ GET /nba/invalidteam/fake team/thumb?fallback=true
 
 Returns the NBA league thumbnail instead of an error.
 
+**Fallback League Logo:**
+
+When a league logo is not available from the provider, you can configure a default fallback logo using the `FALLBACK_LEAGUE_LOGO_URL` environment variable. This fallback logo will be used:
+- When `fallback=true` is set and the league logo cannot be retrieved
+- On generated images that include league logos (matchup images, covers, thumbnails)
+
+The fallback logo can be:
+- A URL (e.g., `https://example.com/logo.png`)
+- A local file path relative to the application root (e.g., `./assets/default-logo.png`)
+
+If no fallback is configured and the league logo cannot be found, the endpoint will return a 404 error.
+
 ### Timeout Handling
 
 - **Request Timeout**: 10 seconds (configurable via `REQUEST_TIMEOUT`)

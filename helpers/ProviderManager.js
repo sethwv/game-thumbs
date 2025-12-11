@@ -440,7 +440,17 @@ class ProviderManager {
             }
         }
         
-        // If all providers failed or returned null, return null (some leagues don't have logos)
+        // If all providers failed or returned null, check for fallback logo from environment
+        const fallbackLogoUrl = process.env.FALLBACK_LEAGUE_LOGO_URL;
+        if (fallbackLogoUrl) {
+            logger.debug('Using fallback league logo', {
+                League: league.shortName,
+                FallbackUrl: fallbackLogoUrl
+            });
+            return fallbackLogoUrl;
+        }
+        
+        // If no fallback configured, return null (some leagues don't have logos)
         return null;
     }
 
