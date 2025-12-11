@@ -15,6 +15,7 @@ const { generateThumbnail, generateCover } = require('../generators/thumbnailGen
 const { generateLeagueThumb, generateTeamThumb, generateLeagueCover, generateTeamCover } = require('../generators/genericImageGenerator');
 const { downloadImage } = require('../helpers/imageUtils');
 const logger = require('../helpers/logger');
+const { findLeague } = require('../leagues');
 
 // Get or create ESPN provider instance
 const espnProvider = new (require('../providers/ESPNProvider'))();
@@ -47,20 +48,25 @@ module.exports = {
         const endpointType = pathSegments[pathSegments.length - 1]; // 'logo', 'thumb', or 'cover'
 
         try {
-            // Create a minimal league object for ESPN API
-            const leagueObj = {
-                shortName: espnSlug.toUpperCase(),
-                name: espnSlug.toUpperCase(),
-                providerId: 'espn',
-                providers: [
-                    {
-                        espn: {
-                            espnSport,
-                            espnSlug
+            // Try to find an existing league definition first
+            let leagueObj = findLeague(espnSlug);
+            
+            // If no league definition exists, create a minimal league object for ESPN API
+            if (!leagueObj) {
+                leagueObj = {
+                    shortName: espnSlug.toUpperCase(),
+                    name: espnSlug.toUpperCase(),
+                    providerId: 'espn',
+                    providers: [
+                        {
+                            espn: {
+                                espnSport,
+                                espnSlug
+                            }
                         }
-                    }
-                ]
-            };
+                    ]
+                };
+            }
 
             // Route to appropriate handler
             switch (endpointType) {
