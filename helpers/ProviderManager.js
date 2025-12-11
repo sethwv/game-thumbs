@@ -443,18 +443,32 @@ class ProviderManager {
         // If all providers failed or returned null, check for fallback logo from environment
         const fallbackLogoUrl = process.env.FALLBACK_LEAGUE_LOGO_URL;
         if (fallbackLogoUrl) {
-            // Basic validation: ensure it's either a valid URL or a safe file path
-            const isUrl = fallbackLogoUrl.startsWith('http://') || fallbackLogoUrl.startsWith('https://');
-            const isRelativePath = fallbackLogoUrl.startsWith('./') || fallbackLogoUrl.startsWith('../');
-            const isAbsolutePath = fallbackLogoUrl.startsWith('/');
+            // Validate the fallback URL format
+            const isValidUrl = /^https?:\/\//.test(fallbackLogoUrl);
+            const isRelativePath = /^\.\.?\//.test(fallbackLogoUrl);
             
-            if (!isUrl && !isRelativePath && !isAbsolutePath) {
+            if (!isValidUrl && !isRelativePath) {
                 logger.warn('Invalid FALLBACK_LEAGUE_LOGO_URL format', {
                     League: league.shortName,
                     FallbackUrl: fallbackLogoUrl,
-                    Message: 'URL must start with http://, https://, ./, ../, or /'
+                    Message: 'URL must be an HTTP(S) URL or a relative path starting with ./ or ../'
                 });
                 return null;
+            }
+            
+            // For relative paths, validate they don't escape the application directory
+            if (isRelativePath) {
+                const resolvedPath = path.resolve(process.cwd(), fallbackLogoUrl);
+                const appRoot = process.cwd();
+                
+                if (!resolvedPath.startsWith(appRoot)) {
+                    logger.warn('Invalid FALLBACK_LEAGUE_LOGO_URL path', {
+                        League: league.shortName,
+                        FallbackUrl: fallbackLogoUrl,
+                        Message: 'Relative path must not escape the application directory'
+                    });
+                    return null;
+                }
             }
             
             logger.debug('Using fallback league logo', {

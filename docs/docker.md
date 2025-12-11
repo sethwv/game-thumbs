@@ -98,12 +98,13 @@ Configure the server behavior using environment variables:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `FALLBACK_LEAGUE_LOGO_URL` | Fallback league logo URL or file path used when a league logo is not available from the provider. Supports HTTP(S) URLs and local file paths (e.g., `./assets/default-logo.png`). | None |
+| `FALLBACK_LEAGUE_LOGO_URL` | Fallback league logo URL or file path used when a league logo is not available from the provider. Supports HTTP(S) URLs and relative file paths (e.g., `./assets/default-logo.png`). | None |
 
 **Notes:**
 - This fallback logo is used when `fallback=true` is set on endpoints that support it and the league logo cannot be retrieved from the provider
 - The fallback logo will be used on generated images that include league logos (e.g., matchup images, covers, thumbnails)
-- Can be set to a URL (e.g., `https://example.com/logo.png`) or a local file path relative to the application root
+- Can be set to an HTTP(S) URL (e.g., `https://example.com/logo.png`) or a relative file path (e.g., `./assets/default-logo.png`, `../logos/default.png`)
+- For security, only relative paths (starting with `./` or `../`) are allowed for local files, and they must not escape the application directory
 - If not set, requests for league logos that cannot be found will return a 404 error
 
 ---

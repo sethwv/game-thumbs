@@ -408,8 +408,10 @@ When a league logo is not available from the provider, you can configure a defau
 - On generated images that include league logos (matchup images, covers, thumbnails)
 
 The fallback logo can be:
-- A URL (e.g., `https://example.com/logo.png`)
-- A local file path relative to the application root (e.g., `./assets/default-logo.png`)
+- An HTTP(S) URL (e.g., `https://example.com/logo.png`)
+- A relative file path (e.g., `./assets/default-logo.png` or `../logos/default.png`)
+
+For security, only relative paths starting with `./` or `../` are allowed for local files, and they must not escape the application directory.
 
 If no fallback is configured and the league logo cannot be found, the endpoint will return a 404 error.
 
