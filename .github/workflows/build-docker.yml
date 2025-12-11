@@ -7,6 +7,12 @@ on:
         paths-ignore:
           - 'docs/**'
     workflow_dispatch:
+        inputs:
+            no-cache:
+                description: 'Build without cache'
+                required: false
+                type: boolean
+                default: false
 
 jobs:     
   build-and-publish:
@@ -76,6 +82,7 @@ jobs:
         password: ${{ secrets.REPO_TOKEN }}
 
     - name: Cache Docker layers
+      if: ${{ !inputs.no-cache }}
       uses: actions/cache@v4
       with:
         path: /tmp/.buildx-cache
@@ -91,6 +98,14 @@ jobs:
           tag_cmd+="-t ${{ vars.REPO_ADDRESS }}/${{ vars.REPO_USER }}/${{ vars.REPO_NAME }}:$tag "
         done
         
+        # Determine cache arguments based on workflow input
+        if [[ "${{ inputs.no-cache }}" == "true" ]]; then
+          echo "🚫 Building without cache (as requested)"
+          cache_args="--no-cache"
+        else
+          cache_args="--cache-from type=local,src=/tmp/.buildx-cache --cache-to type=local,dest=/tmp/.buildx-cache-new,mode=max"
+        fi
+        
         # Build and push multi-platform image (amd64 and arm64) with layer caching
         docker buildx build \
           $tag_cmd \
@@ -105,13 +120,14 @@ jobs:
           --annotation "index:org.opencontainers.image.url=https://github.com/sethwv/game-thumbs" \
           --annotation "index:org.opencontainers.image.title=game-thumbs" \
           --annotation "index:org.opencontainers.image.licenses=MIT" \
-          --cache-from type=local,src=/tmp/.buildx-cache \
-          --cache-to type=local,dest=/tmp/.buildx-cache-new,mode=max \
+          $cache_args \
           --platform linux/amd64,linux/arm64 \
           --provenance=false \
           --push \
           .
         
-        # Move cache to avoid growing cache size indefinitely
-        rm -rf /tmp/.buildx-cache
-        mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+        # Move cache to avoid growing cache size indefinitely (only if cache was used)
+        if [[ "${{ inputs.no-cache }}" != "true" ]]; then
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+        fi
