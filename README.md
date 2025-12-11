@@ -43,6 +43,12 @@ GET http://localhost:3000/ncaa/football/alabama/georgia/thumb
 - [Customization](https://game-thumbs-docs.swvn.io/customization.html) - Custom leagues and team overrides
 - [Contributing](https://game-thumbs-docs.swvn.io/contributing.html) - How to contribute improvements
 
+## Contributing
+
+🐛 **[Report a Bug](https://github.com/sethwv/game-thumbs/issues/new?template=bug_report.yml)** • 💡 **[Request a Feature](https://github.com/sethwv/game-thumbs/issues/new?template=feature_request.yml)**
+
+Contributions are welcome! See the [Contributing Guide](https://game-thumbs-docs.swvn.io/contributing.html) for details.
+
 ## License
 
 MIT
