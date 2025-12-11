@@ -1,9 +1,6 @@
 # Node modules (will be installed in container)
 node_modules
 
-# Alternative lock file (project uses yarn.lock)
-package-lock.json
-
 # Cache directory (will be created in container)
 .cache
 
