@@ -16,6 +16,7 @@ const { generateLeagueThumb, generateTeamThumb, generateLeagueCover, generateTea
 const { downloadImage } = require('../helpers/imageUtils');
 const logger = require('../helpers/logger');
 const { findLeague } = require('../leagues');
+const { addToCache } = require('../helpers/imageCache');
 
 // Get or create ESPN provider instance
 const espnProvider = new (require('../providers/ESPNProvider'))();
@@ -24,14 +25,23 @@ module.exports = {
     priority: 10, // Load before generic routes
     paths: [
         "/espn/:sport/:league/logo",
+        "/espn/:sport/:league/logo.png",
         "/espn/:sport/:league/thumb",
+        "/espn/:sport/:league/thumb.png",
         "/espn/:sport/:league/cover",
+        "/espn/:sport/:league/cover.png",
         "/espn/:sport/:league/:team1/logo",
+        "/espn/:sport/:league/:team1/logo.png",
         "/espn/:sport/:league/:team1/thumb",
+        "/espn/:sport/:league/:team1/thumb.png",
         "/espn/:sport/:league/:team1/cover",
+        "/espn/:sport/:league/:team1/cover.png",
         "/espn/:sport/:league/:team1/:team2/logo",
+        "/espn/:sport/:league/:team1/:team2/logo.png",
         "/espn/:sport/:league/:team1/:team2/thumb",
-        "/espn/:sport/:league/:team1/:team2/cover"
+        "/espn/:sport/:league/:team1/:team2/thumb.png",
+        "/espn/:sport/:league/:team1/:team2/cover",
+        "/espn/:sport/:league/:team1/:team2/cover.png"
     ],
     method: "get",
     handler: async (req, res) => {
@@ -71,13 +81,16 @@ module.exports = {
             // Route to appropriate handler
             switch (endpointType) {
                 case 'logo':
-                    return await handleLogoEndpoint(leagueObj, team1, team2, { size, logo, style, useLight, trim, fallback, variant, includeLeague }, res);
+                case 'logo.png':
+                    return await handleLogoEndpoint(req, leagueObj, team1, team2, { size, logo, style, useLight, trim, fallback, variant, includeLeague }, res);
                 
                 case 'thumb':
-                    return await handleThumbEndpoint(leagueObj, team1, team2, { logo, style, fallback, aspect, variant }, res);
+                case 'thumb.png':
+                    return await handleThumbEndpoint(req, leagueObj, team1, team2, { logo, style, fallback, aspect, variant }, res);
                 
                 case 'cover':
-                    return await handleCoverEndpoint(leagueObj, team1, team2, { logo, style, fallback, aspect, variant }, res);
+                case 'cover.png':
+                    return await handleCoverEndpoint(req, leagueObj, team1, team2, { logo, style, fallback, aspect, variant }, res);
                 
                 default:
                     return res.status(400).json({ error: 'Invalid endpoint type' });
@@ -131,9 +144,10 @@ async function handleFallbackToLeague(leagueObj, variant, generateFn, dimensions
     return await generateFn(leagueLogoUrl, { ...dimensions, leagueLogoUrlAlt });
 }
 
-function sendImageResponse(res, buffer) {
+function sendImageResponse(req, res, buffer) {
     res.set('Content-Type', 'image/png');
     res.set('Cache-Control', 'public, max-age=86400');
+    addToCache(req, res, buffer);
     res.send(buffer);
 }
 
@@ -141,7 +155,7 @@ function sendImageResponse(res, buffer) {
 // Handler functions for each endpoint type
 // ------------------------------------------------------------------------------
 
-async function handleLogoEndpoint(leagueObj, team1, team2, options, res) {
+async function handleLogoEndpoint(req, leagueObj, team1, team2, options, res) {
     const { size, logo, style, useLight, trim, fallback, variant, includeLeague } = options;
 
     // Validate variant
@@ -218,27 +232,27 @@ async function handleLogoEndpoint(leagueObj, team1, team2, options, res) {
         logoBuffer = await generateLogo(resolvedTeam1, resolvedTeam2, logoOptions);
     }
 
-    sendImageResponse(res, logoBuffer);
+    sendImageResponse(req, res, logoBuffer);
 }
 
-async function handleThumbEndpoint(leagueObj, team1, team2, options, res) {
+async function handleThumbEndpoint(req, leagueObj, team1, team2, options, res) {
     const dimensions = getDimensions(options.aspect, { default: [1440, 1080], '1-1': [1080, 1080], '16-9': [1920, 1080] });
     const buffer = await handleImageEndpoint(
         leagueObj, team1, team2, options,
         generateLeagueThumb, generateTeamThumb, generateThumbnail,
         dimensions
     );
-    sendImageResponse(res, buffer);
+    sendImageResponse(req, res, buffer);
 }
 
-async function handleCoverEndpoint(leagueObj, team1, team2, options, res) {
+async function handleCoverEndpoint(req, leagueObj, team1, team2, options, res) {
     const dimensions = getDimensions(options.aspect, { default: [1080, 1440], '1-1': [1080, 1080], '9-16': [1080, 1920], '16-9': [1920, 1080] });
     const buffer = await handleImageEndpoint(
         leagueObj, team1, team2, options,
         generateLeagueCover, generateTeamCover, generateCover,
         dimensions
     );
-    sendImageResponse(res, buffer);
+    sendImageResponse(req, res, buffer);
 }
 
 // Unified image handler for thumb/cover
