@@ -32,6 +32,9 @@ const CACHE_ENABLED = CACHE_HOURS > 0;
 // Cache for white logo versions to avoid recreating them
 const whiteLogoCache = new Map();
 
+// Cache for greyscale logo versions
+const greyscaleLogoCache = new Map();
+
 // Cache directory for trimmed logos
 const TRIMMED_CACHE_DIR = path.join(__dirname, '..', '.cache', 'trimmed');
 if (!fsSync.existsSync(TRIMMED_CACHE_DIR)) {
@@ -63,6 +66,10 @@ module.exports = {
     selectBestLogo,
     trimImage,
     loadTrimmedLogo,
+    convertToGreyscale,
+    generateFallbackPlaceholder,
+    generateFallbackTeamObject,
+    resolveTeamsWithFallback,
 
     // Color utilities
     hexToRgb,
@@ -293,6 +300,216 @@ function getWhiteLogo(logoImage, size) {
     whiteLogoCache.set(cacheKey, tempCanvas);
 
     return tempCanvas;
+}
+
+/**
+ * Convert a logo to greyscale with reduced opacity
+ * @param {Image|Buffer} logoImageOrBuffer - Logo image or buffer to convert
+ * @param {number} opacity - Opacity level (0-1), default 0.35 for 35%
+ * @returns {Promise<Canvas>} Canvas with greyscale, semi-transparent logo
+ */
+async function convertToGreyscale(logoImageOrBuffer, opacity = 0.35) {
+    // Generate cache key
+    let cacheKey;
+    if (logoImageOrBuffer.src) {
+        cacheKey = `${logoImageOrBuffer.src}_${opacity}`;
+    } else if (Buffer.isBuffer(logoImageOrBuffer)) {
+        const hash = crypto.createHash('md5').update(logoImageOrBuffer).digest('hex');
+        cacheKey = `${hash}_${opacity}`;
+    } else {
+        // For canvas or other image objects, generate hash from pixel data
+        const tempCanvas = createCanvas(logoImageOrBuffer.width, logoImageOrBuffer.height);
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCtx.drawImage(logoImageOrBuffer, 0, 0);
+        const imageData = tempCtx.getImageData(0, 0, logoImageOrBuffer.width, logoImageOrBuffer.height);
+        const hash = crypto.createHash('md5').update(Buffer.from(imageData.data.buffer)).digest('hex');
+        cacheKey = `${hash}_${opacity}`;
+    }
+
+    // Check cache
+    if (greyscaleLogoCache.has(cacheKey)) {
+        return greyscaleLogoCache.get(cacheKey);
+    }
+
+    // Load the image if it's a buffer
+    let logoImage = logoImageOrBuffer;
+    if (Buffer.isBuffer(logoImageOrBuffer)) {
+        logoImage = await loadImage(logoImageOrBuffer);
+    }
+
+    // Create canvas with greyscale version
+    const canvas = createCanvas(logoImage.width, logoImage.height);
+    const ctx = canvas.getContext('2d');
+
+    // Draw original image
+    ctx.drawImage(logoImage, 0, 0);
+
+    // Get image data and convert to greyscale
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+
+    for (let i = 0; i < data.length; i += 4) {
+        // Calculate greyscale value using luminance formula
+        const grey = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+        
+        data[i] = grey;     // R
+        data[i + 1] = grey; // G
+        data[i + 2] = grey; // B
+        
+        // Apply opacity to alpha channel
+        data[i + 3] = data[i + 3] * opacity;
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+
+    // Cache the result (with size limit)
+    if (greyscaleLogoCache.size >= MAX_CACHE_SIZE) {
+        const entriesToRemove = Math.floor(MAX_CACHE_SIZE * 0.2);
+        const keys = Array.from(greyscaleLogoCache.keys());
+        for (let i = 0; i < entriesToRemove; i++) {
+            greyscaleLogoCache.delete(keys[i]);
+        }
+    }
+    greyscaleLogoCache.set(cacheKey, canvas);
+
+    return canvas;
+}
+
+/**
+ * Generate a fallback placeholder image with grey background and greyscale logo
+ * @param {string} leagueLogoUrl - URL of the league logo to use
+ * @param {Object} options - Options for the placeholder
+ * @param {number} options.width - Width of the placeholder
+ * @param {number} options.height - Height of the placeholder
+ * @param {string} options.backgroundColor - Background color (default: #d3d3d3 - light grey)
+ * @param {number} options.logoOpacity - Logo opacity (default: 0.35)
+ * @param {number} options.logoSizePercent - Logo size as percentage of smaller dimension (default: 0.6)
+ * @returns {Promise<Buffer>} PNG buffer of the placeholder
+ */
+async function generateFallbackPlaceholder(leagueLogoUrl, options = {}) {
+    const {
+        width = 1024,
+        height = 1024,
+        backgroundColor = '#d3d3d3',
+        logoOpacity = 0.35,
+        logoSizePercent = 0.6
+    } = options;
+
+    const canvas = createCanvas(width, height);
+    const ctx = canvas.getContext('2d');
+
+    // Fill with light grey background
+    ctx.fillStyle = backgroundColor;
+    ctx.fillRect(0, 0, width, height);
+
+    // Download and load the league logo
+    const logoBuffer = await downloadImage(leagueLogoUrl);
+    const trimmedLogoBuffer = await trimImage(logoBuffer, leagueLogoUrl);
+    const logo = await loadImage(trimmedLogoBuffer);
+
+    // Convert to greyscale with reduced opacity
+    const greyscaleLogo = await convertToGreyscale(logo, logoOpacity);
+
+    // Calculate logo size and position (centered)
+    const logoSize = Math.min(width, height) * logoSizePercent;
+    const aspectRatio = greyscaleLogo.width / greyscaleLogo.height;
+    
+    let drawWidth, drawHeight;
+    if (aspectRatio > 1) {
+        drawWidth = logoSize;
+        drawHeight = logoSize / aspectRatio;
+    } else {
+        drawHeight = logoSize;
+        drawWidth = logoSize * aspectRatio;
+    }
+
+    const logoX = (width - drawWidth) / 2;
+    const logoY = (height - drawHeight) / 2;
+
+    // Draw the greyscale logo
+    ctx.drawImage(greyscaleLogo, logoX, logoY, drawWidth, drawHeight);
+
+    return canvas.toBuffer('image/png');
+}
+
+/**
+ * Generate a fallback team object using greyscale league logo
+ * This can be used in matchup generation when a team is not found
+ * The logo will be processed to be greyscale with reduced opacity
+ * @param {string} leagueLogoUrl - URL of the league logo
+ * @param {string} teamName - Name for the fallback team (e.g., "Unknown Team")
+ * @returns {Promise<Object>} Team object compatible with generators
+ */
+async function generateFallbackTeamObject(leagueLogoUrl, teamName = 'Unknown Team') {
+    // Download and process the league logo to greyscale
+    const logoBuffer = await downloadImage(leagueLogoUrl);
+    const trimmedLogoBuffer = await trimImage(logoBuffer, leagueLogoUrl);
+    const logo = await loadImage(trimmedLogoBuffer);
+    
+    // Convert to greyscale (we'll store as buffer for reuse)
+    const greyscaleLogo = await convertToGreyscale(logo, 0.35);
+    const greyscaleBuffer = greyscaleLogo.toBuffer('image/png');
+    
+    // Create a temporary file path or data URL for the greyscale logo
+    // For simplicity, we'll use a base64 data URL
+    const base64Logo = `data:image/png;base64,${greyscaleBuffer.toString('base64')}`;
+    
+    return {
+        name: teamName,
+        logo: base64Logo,
+        logoAlt: base64Logo,
+        color: '#d3d3d3',  // Light grey
+        alternateColor: '#b8b8b8',  // Slightly darker grey
+        isFallback: true  // Mark this as a fallback team
+    };
+}
+
+/**
+ * Resolve both teams with fallback support for matchup generation
+ * @param {Object} providerManager - The provider manager instance
+ * @param {Object} leagueObj - League object
+ * @param {string} team1Identifier - First team identifier
+ * @param {string} team2Identifier - Second team identifier
+ * @param {boolean} enableFallback - Whether to use fallback for missing teams
+ * @param {string} leagueLogoUrl - League logo URL for fallback
+ * @returns {Promise<{team1: Object, team2: Object}>}
+ */
+async function resolveTeamsWithFallback(providerManager, leagueObj, team1Identifier, team2Identifier, enableFallback, leagueLogoUrl) {
+    let resolvedTeam1, resolvedTeam2;
+    let team1Failed = false, team2Failed = false;
+    
+    try {
+        resolvedTeam1 = await providerManager.resolveTeam(leagueObj, team1Identifier);
+    } catch (team1Error) {
+        if (enableFallback && team1Error.name === 'TeamNotFoundError') {
+            team1Failed = true;
+        } else {
+            throw team1Error;
+        }
+    }
+    
+    try {
+        resolvedTeam2 = await providerManager.resolveTeam(leagueObj, team2Identifier);
+    } catch (team2Error) {
+        if (enableFallback && team2Error.name === 'TeamNotFoundError') {
+            team2Failed = true;
+        } else {
+            throw team2Error;
+        }
+    }
+    
+    // Generate fallback team objects for failed teams
+    if (team1Failed) {
+        resolvedTeam1 = await generateFallbackTeamObject(leagueLogoUrl, team1Identifier);
+    }
+    if (team2Failed) {
+        resolvedTeam2 = await generateFallbackTeamObject(leagueLogoUrl, team2Identifier);
+    }
+    
+    return {
+        team1: resolvedTeam1,
+        team2: resolvedTeam2
+    };
 }
 
 // ------------------------------------------------------------------------------
