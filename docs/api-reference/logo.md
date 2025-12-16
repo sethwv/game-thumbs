@@ -33,7 +33,7 @@ nav_order: 6
 | `size` | integer | 1024 | Output size: 256, 512, 1024, or 2048 (matchup only) |
 | `logo` | boolean | false | Include league logo (matchup only) |
 | `trim` | boolean | true | Trim whitespace (matchup only) |
-| `fallback` | boolean | false | Return league logo if team not found |
+| `fallback` | boolean | false | **Single team:** Return league logo. **Matchup:** Use greyscale league logo for missing teams |
 
 ---
 
