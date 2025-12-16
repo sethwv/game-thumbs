@@ -393,13 +393,24 @@ When a team is not found, the API returns:
 
 **Fallback Option:**
 
-Set `fallback=true` query parameter to return league thumbnail/cover/logo instead of an error:
+Set `fallback=true` query parameter to handle missing teams gracefully:
 
+**Single Team Endpoints:**
 ```
-GET /nba/invalidteam/fake team/thumb?fallback=true
+GET /nba/invalidteam/thumb?fallback=true
 ```
-
 Returns the NBA league thumbnail instead of an error.
+
+**Matchup Endpoints:**
+```
+GET /nba/lakers/invalidteam/thumb?style=1&fallback=true
+```
+Generates the matchup using:
+- Lakers logo and colors for team 1
+- **Greyscale league logo (35% opacity) with light grey colors** (#d3d3d3) for the missing team
+- The selected style and options are preserved
+
+This allows matchup generation to continue even when one or both teams are not found, using a subtle placeholder that clearly indicates missing data while maintaining the overall design aesthetic.
 
 ### Timeout Handling
 
