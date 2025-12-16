@@ -8,7 +8,7 @@
 
 const providerManager = require('../helpers/ProviderManager');
 const { generateLogo } = require('../generators/logoGenerator');
-const { downloadImage } = require('../helpers/imageUtils');
+const { downloadImage, generateFallbackPlaceholder, resolveTeamsWithFallback } = require('../helpers/imageUtils');
 const { findLeague } = require('../leagues');
 const logger = require('../helpers/logger');
 
@@ -120,33 +120,17 @@ module.exports = {
                     logoOptions.height = sizeValue;
                 }
 
-                let resolvedTeam1, resolvedTeam2;
-                try {
-                    resolvedTeam1 = await providerManager.resolveTeam(leagueObj, team1);
-                    resolvedTeam2 = await providerManager.resolveTeam(leagueObj, team2);
-                } catch (teamError) {
-                    // If fallback is enabled and team lookup fails, return raw league logo instead
-                    if (fallback === 'true' && teamError.name === 'TeamNotFoundError') {
-                        const darkLogoPreferred = useLight !== 'true';
-                        const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj, darkLogoPreferred);
-                        
-                        logoBuffer = await downloadImage(leagueLogoUrl);
-                        
-                        res.set('Content-Type', 'image/png');
-                        res.send(logoBuffer);
-                        
-                        try {
-                            require('../helpers/imageCache').addToCache(req, res, logoBuffer);
-                        } catch (cacheError) {
-                            logger.error('Failed to cache image', {
-                                Error: cacheError.message,
-                                URL: req.url
-                            });
-                        }
-                        return;
-                    }
-                    throw teamError;
-                }
+                const darkLogoPreferred = useLight !== 'true';
+                const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj, darkLogoPreferred);
+                
+                const { team1: resolvedTeam1, team2: resolvedTeam2 } = await resolveTeamsWithFallback(
+                    providerManager,
+                    leagueObj,
+                    team1,
+                    team2,
+                    fallback === 'true',
+                    leagueLogoUrl
+                );
 
                 // Get league logo URL if needed
                 let leagueInfo = null;

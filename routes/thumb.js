@@ -10,6 +10,7 @@
 const providerManager = require('../helpers/ProviderManager');
 const { generateThumbnail } = require('../generators/thumbnailGenerator');
 const { generateLeagueThumb, generateTeamThumb } = require('../generators/genericImageGenerator');
+const { generateFallbackPlaceholder, resolveTeamsWithFallback } = require('../helpers/imageUtils');
 const { findLeague } = require('../leagues');
 const logger = require('../helpers/logger');
 
@@ -118,37 +119,16 @@ module.exports = {
                     league: logo === 'false' ? null : league
                 };
 
-                let resolvedTeam1, resolvedTeam2;
-                try {
-                    resolvedTeam1 = await providerManager.resolveTeam(leagueObj, team1);
-                    resolvedTeam2 = await providerManager.resolveTeam(leagueObj, team2);
-                } catch (teamError) {
-                    // If fallback is enabled and team lookup fails, generate league thumbnail instead
-                    if (fallback === 'true' && teamError.name === 'TeamNotFoundError') {
-                        const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj, false);
-                        const leagueLogoUrlAlt = await providerManager.getLeagueLogoUrl(leagueObj, true);
-                        
-                        buffer = await generateLeagueThumb(leagueLogoUrl, {
-                            width,
-                            height,
-                            leagueLogoUrlAlt: leagueLogoUrlAlt
-                        });
-                        
-                        res.set('Content-Type', 'image/png');
-                        res.send(buffer);
-                        
-                        try {
-                            require('../helpers/imageCache').addToCache(req, res, buffer);
-                        } catch (cacheError) {
-                            logger.error('Failed to cache image', {
-                                Error: cacheError.message,
-                                URL: req.url
-                            });
-                        }
-                        return;
-                    }
-                    throw teamError;
-                }
+                const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj, false);
+                
+                const { team1: resolvedTeam1, team2: resolvedTeam2 } = await resolveTeamsWithFallback(
+                    providerManager,
+                    leagueObj,
+                    team1,
+                    team2,
+                    fallback === 'true',
+                    leagueLogoUrl
+                );
 
                 // Get league logo URL if needed
                 let leagueInfo = null;
