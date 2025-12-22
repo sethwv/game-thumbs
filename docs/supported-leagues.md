@@ -67,12 +67,14 @@ nav_order: 4
 |-------------|------|----------|-------|
 | Country Matchups | `country` | FlagCDN | Country flags for international matchups |
 | Olympic Games | `olympics` | FlagCDN | Olympic team flags and colors |
+| International Ice Hockey Federation | `iihf` | FlagCDN | World Juniors, World Junior Championship |
 
 **Examples:**
 ```
 GET /country/canada/usa/thumb
 GET /olympics/usa/china/cover
 GET /country/france/germany/logo
+GET /iihf/canada/usa/thumb
 ```
 
 **Features:**
@@ -131,7 +133,7 @@ GET /bellator/ryan-bader/corey-anderson/cover
 
 | Sport | Code | Provider | Fallback |
 |-------|------|----------|----------|
-| NCAA Women's Basketball | `ncaaw` | ESPN | Men's Basketball |
+| NCAA Women's Basketball | `ncaaw` | ESPN | Football |
 | NCAA Ice Hockey (Women's) | `ncaawh` | ESPN | Men's Hockey |
 | NCAA Soccer (Women's) | `ncaaws` | ESPN | Men's Soccer |
 | NCAA Softball | `ncaasbw` | ESPN | Football |
