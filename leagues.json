@@ -966,6 +966,22 @@
 
   "__INTERNATIONAL__": "===========================================",
 
+ "iihf": {
+    "name": "International Ice Hockey Federation",
+    "aliases": [
+      "world juniors",
+      "world junior championship",
+      "iihf wjc",
+      "wjc"
+    ],
+    "logoUrl": "./assets/IIHF.png",
+    "providers": [
+      {
+        "flagcdn": {}
+      }
+    ]
+  },
+
  "olympics": {
     "name": "Olympic Games",
     "logoUrl": "./assets/2026_OLYMPICS.png",
