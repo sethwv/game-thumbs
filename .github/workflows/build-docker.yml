@@ -16,6 +16,8 @@ on:
 
 jobs:     
   build-and-publish:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     if: github.actor != 'dependabot[bot]' && github.actor != 'github-actions[bot]'
     steps:
