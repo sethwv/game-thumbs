@@ -31,7 +31,7 @@ nav_order: 7
 | `aspect` | string | `4-3` | Aspect ratio: `4-3` (1440x1080), `16-9` (1920x1080), or `1-1` (1080x1080) |
 | `style` | integer | 1 | Visual style 1-4 (matchup only) |
 | `logo` | boolean | true | Include league logo (matchup only) |
-| `fallback` | boolean | false | Return league thumb if team not found |
+| `fallback` | boolean | false | **Single team:** Return league thumb. **Matchup:** Use greyscale league logo for missing teams |
 
 ---
 

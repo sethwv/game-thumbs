@@ -331,18 +331,50 @@ function checkPartialMatches(expandedInput, compactInput, normalized) {
     let score = 0;
     
     // Helper to check if input contains field or vice versa
-    const checkSubstring = (field, compactField, containsScore, isContainedScore) => {
+    // For name fields, prevent short generic words from matching when followed by substantial text
+    const checkSubstring = (field, compactField, containsScore, isContainedScore, checkTrailingText = false) => {
         let s = 0;
-        if (field && field.length >= MIN_LENGTH && expandedInput.includes(field)) s = Math.max(s, containsScore);
-        if (compactField && compactField.length >= MIN_LENGTH && compactInput.includes(compactField)) s = Math.max(s, containsScore);
+        
+        // Check if input contains field
+        if (field && field.length >= MIN_LENGTH && expandedInput.includes(field)) {
+            if (checkTrailingText) {
+                // Don't match if short field is followed by substantial text (likely a different team)
+                const fieldIndex = expandedInput.indexOf(field);
+                const textAfterField = expandedInput.substring(fieldIndex + field.length);
+                // If field is short (<=6 chars) and followed by 4+ more chars, skip it
+                if (field.length <= 6 && textAfterField.length >= 4) {
+                    s = 0;
+                } else {
+                    s = Math.max(s, containsScore);
+                }
+            } else {
+                s = Math.max(s, containsScore);
+            }
+        }
+        
+        if (compactField && compactField.length >= MIN_LENGTH && compactInput.includes(compactField)) {
+            if (checkTrailingText) {
+                const fieldIndex = compactInput.indexOf(compactField);
+                const textAfterField = compactInput.substring(fieldIndex + compactField.length);
+                if (compactField.length <= 6 && textAfterField.length >= 4) {
+                    s = 0;
+                } else {
+                    s = Math.max(s, containsScore);
+                }
+            } else {
+                s = Math.max(s, containsScore);
+            }
+        }
+        
         if (field && expandedInput.length >= MIN_LENGTH && field.includes(expandedInput)) s = Math.max(s, isContainedScore);
         if (compactField && compactInput.length >= MIN_LENGTH && compactField.includes(compactInput)) s = Math.max(s, isContainedScore);
         return s;
     };
     
     // Team name/shortDisplayName (score: 400 if input contains, 300 if contains input)
-    score = Math.max(score, checkSubstring(normalized.name, normalized.compactName, 400, 300));
-    score = Math.max(score, checkSubstring(normalized.shortDisplayName, normalized.compactShortDisplayName, 400, 300));
+    // Use trailing text check to prevent "Ohio" from matching "OhioWesleyanBattlingBishops"
+    score = Math.max(score, checkSubstring(normalized.name, normalized.compactName, 400, 300, true));
+    score = Math.max(score, checkSubstring(normalized.shortDisplayName, normalized.compactShortDisplayName, 400, 300, true));
     
     // Full name (score: 200)
     if (normalized.fullName && expandedInput.length >= MIN_LENGTH && normalized.fullName.includes(expandedInput)) {
