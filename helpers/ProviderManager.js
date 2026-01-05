@@ -367,7 +367,14 @@ class ProviderManager {
                     // If collecting teams fails, just use the original error
                 }
             }
-            throw lastError || new Error(`Failed to resolve team: ${teamIdentifier}`);
+            // Create a TeamNotFoundError for consistency
+            const feederError = lastError || new Error(`Failed to resolve team: ${teamIdentifier}`);
+            if (!feederError.name || feederError.name !== 'TeamNotFoundError') {
+                feederError.name = 'TeamNotFoundError';
+                feederError.teamIdentifier = teamIdentifier;
+                feederError.league = originalLeague.shortName;
+            }
+            throw feederError;
         }
         
         // If feederLeagues failed/not configured, try fallbackLeague (for backward compatibility)
