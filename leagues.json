@@ -880,7 +880,13 @@
       "whl",
       "qmjhl"
     ],
-    "providers": []
+    "providers": [
+      {
+        "hockeyTech": {
+          "websiteUrl": "https://chl.ca/"
+        }
+      }
+    ]
   },
   "ohl": {
     "name": "Ontario Hockey League",
@@ -959,6 +965,87 @@
         "theSportsDB": {
           "leagueId": "4738",
           "leagueName": "American AHL"
+        }
+      }
+    ]
+  },
+  "bchl": {
+    "name": "British Columbia Hockey League",
+    "providers": [
+      {
+        "hockeyTech": {
+          "websiteUrl": "https://bchl.ca/"
+        }
+      }
+    ]
+  },
+  "sjhl": {
+    "name": "Saskatchewan Junior Hockey League",
+    "providers": [
+      {
+        "hockeyTech": {
+          "websiteUrl": "https://www.sjhl.ca"
+        }
+      }
+    ]
+  },
+  "ajhl": {
+    "name": "Alberta Junior Hockey League",
+    "providers": [
+      {
+        "hockeyTech": {
+          "websiteUrl": "https://www.ajhl.ca/"
+        }
+      }
+    ]
+  },
+  "mjhl": {
+    "name": "Manitoba Junior Hockey League",
+    "providers": [
+      {
+        "hockeyTech": {
+          "websiteUrl": "https://www.mjhlhockey.ca/"
+        }
+      }
+    ]
+  },
+  "mhl": {
+    "name": "Maritime Junior Hockey League",
+    "providers": [
+      {
+        "hockeyTech": {
+          "websiteUrl": "https://www.themhl.ca/"
+        }
+      }
+    ]
+  },
+  "echl": {
+    "name": "East Coast Hockey League",
+    "providers": [
+      {
+        "hockeyTech": {
+          "clientCode": "echl",
+          "apiKey": "2c2b89ea7345cae8"
+        }
+      }
+    ]
+  },
+  "ojhl": {
+    "name": "Ontario Junior Hockey League",
+    "providers": [
+      {
+        "hockeyTech": {
+          "websiteUrl": "https://www.ojhl.ca/"
+        }
+      }
+    ]
+  },
+  "csshl": {
+    "name": "Canadian Sport School Hockey League",
+    "providers": [
+      {
+        "hockeyTech": {
+          "websiteUrl": "https://www.csshl.ca/"
         }
       }
     ]
