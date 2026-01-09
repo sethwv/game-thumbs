@@ -56,6 +56,23 @@
       }
     ]
   },
+  "ushl": {
+    "name": "United States Hockey League",
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4917",
+          "leagueName": "American USHL"
+        }
+      },
+      {
+        "hockeyTech": {
+          "clientCode": "ushl",
+          "apiKey": "339ce9395e9353fb"
+        }
+      }
+    ]
+  },
   "wnba": {
     "name": "Women's National Basketball Association",
     "providers": [
