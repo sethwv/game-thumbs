@@ -971,6 +971,7 @@
   },
   "bchl": {
     "name": "British Columbia Hockey League",
+    "logoUrl": "https://bchl.ca/wp-content/uploads/2015/12/BCHL-Footer-Logo.png",
     "providers": [
       {
         "hockeyTech": {
@@ -981,6 +982,7 @@
   },
   "sjhl": {
     "name": "Saskatchewan Junior Hockey League",
+    "logoUrl": "https://www.sjhl.ca/wp-content/uploads/sites/2/2019/08/SJHL_Logo_512px.png",
     "providers": [
       {
         "hockeyTech": {
@@ -991,6 +993,7 @@
   },
   "ajhl": {
     "name": "Alberta Junior Hockey League",
+    "logoUrl": "https://www.ajhl.ca/wp-content/uploads/sites/2/2022/05/cropped-ajhl_512.png",
     "providers": [
       {
         "hockeyTech": {
@@ -1001,6 +1004,7 @@
   },
   "mjhl": {
     "name": "Manitoba Junior Hockey League",
+    "logoUrl": "https://www.mjhlhockey.ca/wp-content/uploads/sites/2/2019/06/cropped-MJHLalternate-web-600x.png",
     "providers": [
       {
         "hockeyTech": {
@@ -1011,6 +1015,7 @@
   },
   "mhl": {
     "name": "Maritime Junior Hockey League",
+    "logoUrl": "https://www.themhl.ca/wp-content/uploads/sites/2/2021/10/cropped-mhl_512.png",
     "providers": [
       {
         "hockeyTech": {
@@ -1021,6 +1026,7 @@
   },
   "echl": {
     "name": "East Coast Hockey League",
+    "logoUrl": "./assets/ECHL.png",
     "providers": [
       {
         "hockeyTech": {
@@ -1032,6 +1038,7 @@
   },
   "ojhl": {
     "name": "Ontario Junior Hockey League",
+    "logoUrl": "https://www.ojhl.ca/wp-content/uploads/sites/2/2023/04/cropped-ojhl-512.png",
     "providers": [
       {
         "hockeyTech": {
@@ -1042,6 +1049,7 @@
   },
   "csshl": {
     "name": "Canadian Sport School Hockey League",
+    "logoUrl": "./assets/CSSHL.png",
     "providers": [
       {
         "hockeyTech": {
