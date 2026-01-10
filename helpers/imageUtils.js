@@ -519,8 +519,13 @@ async function resolveTeamsWithFallback(providerManager, leagueObj, team1Identif
 const REQUEST_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '10000', 10); // 10 seconds default
 
 async function downloadImage(urlOrPath) {
+    // Validate URL exists
+    if (!urlOrPath || typeof urlOrPath !== 'string') {
+        throw new Error(`Invalid URL or path: ${urlOrPath}`);
+    }
+    
     // If it's a local file path, load from filesystem
-    if (typeof urlOrPath === 'string' && (urlOrPath.startsWith('/') || urlOrPath.startsWith('./') || urlOrPath.startsWith('../'))) {
+    if (urlOrPath.startsWith('/') || urlOrPath.startsWith('./') || urlOrPath.startsWith('../')) {
         return fs.readFile(path.resolve(urlOrPath));
     }
     
@@ -544,6 +549,11 @@ async function downloadImage(urlOrPath) {
 
 async function selectBestLogo(team, backgroundColor) {
     try {
+        // Validate that we have a primary logo
+        if (!team.logo) {
+            throw new Error('No logo available for team');
+        }
+        
         // If no logoAlt, use the primary logo
         if (!team.logoAlt) {
             return team.logo;
@@ -577,7 +587,7 @@ async function selectBestLogo(team, backgroundColor) {
         // Otherwise use primary logo
         return team.logo;
     } catch (error) {
-        logger.warn('Error selecting best logo', { error: error.message });
+        logger.warn('Error selecting best logo', { error: error.message, team: team.name });
         // Fallback to primary logo on error
         return team.logo;
     }
@@ -613,6 +623,12 @@ async function loadTrimmedLogo(team, backgroundColor) {
 function trimImage(imageBuffer, enableCache = true) {
     return new Promise(async (resolve, reject) => {
         try {
+            // Validate input
+            if (!imageBuffer || !Buffer.isBuffer(imageBuffer)) {
+                reject(new Error('Invalid image buffer provided to trimImage'));
+                return;
+            }
+            
             // Only cache if caching is enabled and explicitly requested
             // Pass false/null to skip caching for final composed outputs
             const shouldCache = CACHE_ENABLED && enableCache;

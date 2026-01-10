@@ -22,6 +22,7 @@ nav_order: 4
 | National Basketball Association | `nba` | ESPN | |
 | Women's National Basketball Association | `wnba` | ESPN | |
 | NBA G League | `nbag` | ESPN | |
+| Unrivaled Basketball | `ubl` | TSDB | |
 | National Football League | `nfl` | ESPN | |
 | United Football League | `ufl` | ESPN | |
 | Major League Baseball | `mlb` | ESPN | |
@@ -29,11 +30,6 @@ nav_order: 4
 | National Lacrosse League | `nll` | ESPN | |
 | Professional Women's Hockey League | `pwhl` | HockeyTech | |
 | Canadian Football League | `cfl` | TheSportsDB | |
-| Canadian Hockey League | `chl` | Local Logo Only | OHL, WHL, QMJHL |
-| Ontario Hockey League | `ohl` | TheSportsDB | CHL |
-| Western Hockey League | `whl` | TheSportsDB | CHL |
-| Quebec Maritimes Junior Hockey League | `qmjhl` | TheSportsDB | CHL |
-| American Hockey League | `ahl` | TheSportsDB | |
 | English Premier League | `epl` | TheSportsDB / ESPN | Championship, League One, League Two |
 | EFL Championship | `championship` | ESPN | |
 | EFL League One | `league-one` | ESPN | |
@@ -58,6 +54,25 @@ nav_order: 4
 | FIFA WCQ - AFC | `wcq-afc` | ESPN | |
 | FIFA WCQ - CAF | `wcq-caf` | ESPN | |
 | FIFA WCQ - OFC | `wcq-ofc` | ESPN | |
+
+---
+
+## Junior & Minor Leagues
+
+| League Name | Code | Provider | Feeder Leagues |
+|-------------|------|----------|----------------|
+| Canadian Hockey League | `chl` | Local Logo Only | OHL, WHL, QMJHL |
+| Ontario Hockey League | `ohl` | HockeyTech / TheSportsDB | CHL |
+| Western Hockey League | `whl` | HockeyTech / TheSportsDB | CHL |
+| Quebec Maritimes Junior Hockey League | `qmjhl` | HockeyTech / TheSportsDB | CHL |
+| American Hockey League | `ahl` | TheSportsDB | |
+| East Coast Hockey League | `echl` | HockeyTech | |
+| British Columbia Hockey League | `bchl` | HockeyTech | |
+| Saskatchewan Junior Hockey League | `sjhl` | HockeyTech | |
+| Alberta Junior Hockey League | `ajhl` | HockeyTech | |
+| Manitoba Junior Hockey League | `mjhl` | HockeyTech | |
+| Maritime Junior Hockey League | `mhl` | HockeyTech | |
+| Ontario Junior Hockey League | `ojhl` | HockeyTech | |
 
 ---
 
@@ -175,6 +190,8 @@ GET /nfl/chiefs/49ers/cover
 GET /mlb/yankees/redsox/logo
 GET /nhl/maple-leafs/canadiens/thumb
 GET /ohl/london-knights/ottawa-67s/cover
+GET /bchl/penticton-vees/trail-smoke-eaters/thumb
+GET /echl/adirondack-thunder/worcester-railers/cover
 GET /epl/manchester-united/chelsea/thumb
 GET /mls/lafc/galaxy/cover
 ```

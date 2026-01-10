@@ -143,11 +143,13 @@ async function extractDominantColors(imageUrl, numColors = 2) {
         }
         
         // If we didn't find enough distinct colors, fall back to the most frequent
-        while (distinctColors.length < numColors && sortedColors.length > distinctColors.length) {
-            const color = sortedColors[distinctColors.length];
+        let fallbackIndex = distinctColors.length;
+        while (distinctColors.length < numColors && fallbackIndex < sortedColors.length) {
+            const color = sortedColors[fallbackIndex];
             if (!distinctColors.some(c => c[0] === color[0] && c[1] === color[1] && c[2] === color[2])) {
                 distinctColors.push(color);
             }
+            fallbackIndex++; // Always increment to prevent infinite loop
         }
         
         // Convert to hex colors
