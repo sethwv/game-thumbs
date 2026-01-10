@@ -22,6 +22,7 @@ nav_order: 4
 | National Basketball Association | `nba` | ESPN | |
 | Women's National Basketball Association | `wnba` | ESPN | |
 | NBA G League | `nbag` | ESPN | |
+| Unrivaled Basketball | `ubl` | TSDB | |
 | National Football League | `nfl` | ESPN | |
 | United Football League | `ufl` | ESPN | |
 | Major League Baseball | `mlb` | ESPN | |

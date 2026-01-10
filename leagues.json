@@ -1,6 +1,5 @@
 {
   "__MAJOR_PROFESSIONAL_LEAGUES__": "===========================================",
-
   "nfl": {
     "name": "National Football League",
     "providers": [
@@ -101,6 +100,22 @@
       }
     ]
   },
+  "ubl": {
+    "name": "Unrivaled Basketball",
+    "aliases": [
+      "unrivaled basketball league",
+      "ub",
+      "unrivaled"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "5622",
+          "leagueName": "Unrivaled Basketball"
+        }
+      }
+    ]
+  },
   "nll": {
     "name": "National Lacrosse League",
     "providers": [
@@ -112,9 +127,7 @@
       }
     ]
   },
-
   "__COMBAT_SPORTS__": "===========================================",
-
   "ufc": {
     "name": "Ultimate Fighting Championship",
     "aliases": [
@@ -151,9 +164,7 @@
       }
     ]
   },
-
   "__OTHER_FOOTBALL_LEAGUES__": "===========================================",
-
   "ufl": {
     "name": "United Football League",
     "providers": [
@@ -179,9 +190,7 @@
       }
     ]
   },
-
   "__SOCCER_LEAGUES__": "===========================================",
-
   "uefa": {
     "name": "UEFA Champions League",
     "aliases": [
@@ -597,10 +606,7 @@
       }
     ]
   },
-
-
   "__NCAA_SPORTS__": "===========================================",
-
   "ncaaf": {
     "name": "NCAA Football",
     "aliases": [
@@ -882,9 +888,7 @@
       }
     ]
   },
-
   "__MINOR_REGIONAL_LEAGUES__": "===========================================",
-
   "chl": {
     "name": "Canadian Hockey League",
     "aliases": [
@@ -970,7 +974,6 @@
       }
     ]
   },
-
   "ahl": {
     "name": "American Hockey League",
     "aliases": [
@@ -1075,10 +1078,8 @@
       }
     ]
   },
-
   "__INTERNATIONAL__": "===========================================",
-
- "iihf": {
+  "iihf": {
     "name": "International Ice Hockey Federation",
     "aliases": [
       "world juniors",
@@ -1093,8 +1094,7 @@
       }
     ]
   },
-
- "olympics": {
+  "olympics": {
     "name": "Olympic Games",
     "logoUrl": "./assets/2026_OLYMPICS.png",
     "providers": [
@@ -1103,7 +1103,6 @@
       }
     ]
   },
-
   "country": {
     "name": "Country Flags",
     "aliases": [
