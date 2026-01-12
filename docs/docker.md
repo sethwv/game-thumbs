@@ -51,6 +51,7 @@ Configure the server behavior using environment variables:
 | `NODE_ENV` | Environment mode (`development` or `production`). In development, error stack traces are included in responses. | `production` |
 | `SERVER_TIMEOUT` | Timeout for HTTP connections (in milliseconds). | `30000` |
 | `REQUEST_TIMEOUT` | Timeout for external API calls and image downloads (in milliseconds). | `10000` |
+| `ALLOW_CUSTOM_BADGES` | Allow custom badge parameter entries on matchup generation endpoints. | `false` |
 
 ### Caching
 

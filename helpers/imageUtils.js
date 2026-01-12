@@ -26,7 +26,10 @@ const VALID_BADGE_KEYWORDS = [
     // Quality indicators
     '4K', 'HD', 'FHD', 'UHD',
     // Alternate Feed indicator
-    'ALT', 'MANNINGCAST',
+    'ALT', 'MANNINGCAST', 'PRIMEVISION', 
+    'PEYTONCAST', 'PEYTON AND ELI',
+    // Event indicators
+    'PLAYOFFS', 'PRESEASON',
     // Language indicators
     'EN', 'ENG', 'ENGLISH',
     'ES', 'ESP', 'SPANISH',
@@ -34,12 +37,15 @@ const VALID_BADGE_KEYWORDS = [
     'DE', 'GER', 'GERMAN',
     'IT', 'ITA', 'ITALIAN',
     // Network indicators
-    'NBC', 'ESPN', 'FOX', 'CBS', 'ABC', 'NFLN', 'MLBN', 'NBA TV'
+    'NBC', 'ESPN', 'FOX', 'CBS',
+    'ABC', 'NFLN', 'MLBN', 'NBA TV',
+    'CW', 'PEACOCK'
 ];
 
 // Helper function to validate badge keywords
 function isValidBadge(badge) {
-    return badge && VALID_BADGE_KEYWORDS.includes(badge.toUpperCase());
+    return  (badge && lower(process.env.ALLOW_CUSTOM_BADGES.trim()) === 'true') ||
+            (badge && VALID_BADGE_KEYWORDS.includes(badge.toUpperCase()));
 }
 
 // ------------------------------------------------------------------------------
