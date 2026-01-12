@@ -10,7 +10,8 @@
 const providerManager = require('../helpers/ProviderManager');
 const { generateCover } = require('../generators/thumbnailGenerator');
 const { generateLeagueCover, generateTeamCover } = require('../generators/genericImageGenerator');
-const { generateFallbackPlaceholder, resolveTeamsWithFallback } = require('../helpers/imageUtils');
+const { generateFallbackPlaceholder, resolveTeamsWithFallback, addBadgeOverlay, isValidBadge } = require('../helpers/imageUtils');
+const { getCachedImage, addToCache } = require('../helpers/imageCache');
 const { findLeague } = require('../leagues');
 const logger = require('../helpers/logger');
 
@@ -26,7 +27,7 @@ module.exports = {
     method: "get",
     handler: async (req, res) => {
         const { league, team1, team2 } = req.params;
-        const { logo, style, fallback, aspect, variant } = req.query;
+        const { logo, style, fallback, aspect, variant, badge } = req.query;
 
         // Determine dimensions based on aspect ratio
         let width, height;
@@ -139,10 +140,41 @@ module.exports = {
                     }
                 }
 
-                buffer = await generateCover(resolvedTeam1, resolvedTeam2, {
-                    ...coverOptions,
-                    league: leagueInfo
-                });
+                // If badge is requested, check if we have the base image cached
+                let baseImageUrl = req.originalUrl;
+                if (isValidBadge(badge)) {
+                    // Remove badge parameter from URL to get base image URL
+                    baseImageUrl = req.originalUrl.replace(/[?&]badge=[^&]*/i, '').replace(/\?$/, '');
+                    const cachedBase = getCachedImage(baseImageUrl);
+                    
+                    if (cachedBase) {
+                        // Use cached base and just add badge
+                        buffer = await addBadgeOverlay(cachedBase, badge.toUpperCase());
+                    } else {
+                        // Generate image and cache base version
+                        buffer = await generateCover(resolvedTeam1, resolvedTeam2, {
+                            ...coverOptions,
+                            league: leagueInfo
+                        });
+                        
+                        // Cache the base image (without badge)
+                        try {
+                            const baseReq = { originalUrl: baseImageUrl };
+                            addToCache(baseReq, res, buffer);
+                        } catch (cacheError) {
+                            logger.error('Failed to cache base image', { Error: cacheError.message });
+                        }
+                        
+                        // Add badge to generated image
+                        buffer = await addBadgeOverlay(buffer, badge.toUpperCase());
+                    }
+                } else {
+                    // No badge, generate normally
+                    buffer = await generateCover(resolvedTeam1, resolvedTeam2, {
+                        ...coverOptions,
+                        league: leagueInfo
+                    });
+                }
             }
             
             // Send successful response
@@ -151,7 +183,7 @@ module.exports = {
             
             // Cache successful result (don't let caching errors affect the response)
             try {
-                require('../helpers/imageCache').addToCache(req, res, buffer);
+                addToCache(req, res, buffer);
             } catch (cacheError) {
                 logger.error('Failed to cache image', {
                     Error: cacheError.message,

@@ -73,6 +73,8 @@ GET /ncaa/football/alabama/georgia/thumb
 GET /ncaa/basketball/duke/unc/cover
 GET /ncaa/womens-basketball/uconn/south-carolina/thumb?style=2
 GET /ncaa/softball/oklahoma/alabama/cover
+GET /ncaa/football/ohio-state/michigan/thumb?badge=4K
+GET /ncaa/basketball/duke/unc/logo?badge=ALT&style=3
 ```
 
 ### Raw Data
@@ -90,5 +92,5 @@ Returns the raw team data in JSON format.
 ## Notes
 
 - The NCAA shorthand route automatically forwards to the unified endpoints ([Logo](logo.html), [Thumbnail](thumb.html), [Cover](cover.html))
-- All query parameters from the unified endpoints are supported (e.g., `style`, `aspect`, `variant`, `fallback`)
+- All query parameters from the unified endpoints are supported (e.g., `style`, `aspect`, `variant`, `fallback`, `badge`)
 - Deprecated endpoints like `teamlogo` and `leaguelogo` still work but use the unified endpoints instead

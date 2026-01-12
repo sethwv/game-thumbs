@@ -344,6 +344,14 @@ class HockeyTechProvider extends BaseProvider {
             const html = response.data;
             const config = this.parseConfigFromHtml(html);
 
+            // If we found clientCode but no apiKey, check for external JS file
+            if (config.clientCode && !config.apiKey) {
+                const externalConfig = await this.tryExtractFromExternalJs(html, config.clientCode, url);
+                if (externalConfig.apiKey) {
+                    config.apiKey = externalConfig.apiKey;
+                }
+            }
+
             if (!config.clientCode || !config.apiKey) {
                 throw new Error('Could not extract clientCode or apiKey from website');
             }
@@ -370,18 +378,68 @@ class HockeyTechProvider extends BaseProvider {
     parseConfigFromHtml(html) {
         const config = {};
 
-        // Extract client code - matches: var clientCode = 'value', or other common patterns
+        // Extract client code - multiple patterns to handle different formats
         if (!config.clientCode) {
-            const clientMatch = html.match(/(?:var\s+clientCode\s*=\s*|["']?(?:league|client_code|LS_CLIENT_CODE)["']?\s*[:=]\s*|[?&]client_code=)["']?([a-z0-9_-]+)["']?/i);
-            if (clientMatch) config.clientCode = clientMatch[1];
+            // Pattern 1: var client_code = 'value' or var clientCode = 'value'
+            let clientMatch = html.match(/var\s+(?:client_code|clientCode)\s*=\s*['"]([a-z0-9_-]+)['"]/i);
+            if (clientMatch) {
+                config.clientCode = clientMatch[1];
+            } else {
+                // Pattern 2: Other common patterns
+                clientMatch = html.match(/["']?(?:league|client_code|LS_CLIENT_CODE)["']?\s*[:=]\s*["']?([a-z0-9_-]+)["']?/i);
+                if (clientMatch) config.clientCode = clientMatch[1];
+            }
         }
 
         // Extract API key - matches: var appKey = 'value', or other common patterns (16-char hex)
         if (!config.apiKey) {
-            const keyMatch = html.match(/(?:var\s+appKey\s*=\s*|["']?(?:site_api_key|key|LS_API_KEY|api_key)["']?\s*[:=]\s*|[?&]key=)["']?([a-f0-9]{16})["']?/i);
-            if (keyMatch) config.apiKey = keyMatch[1];
+            // Pattern 1: var appKey = 'value'
+            let keyMatch = html.match(/var\s+appKey\s*=\s*["']([a-f0-9]{16})["']/i);
+            if (keyMatch) {
+                config.apiKey = keyMatch[1];
+            } else {
+                // Pattern 2: Other common patterns
+                keyMatch = html.match(/["']?(?:site_api_key|key|LS_API_KEY|api_key)["']?\s*[:=]\s*["']?([a-f0-9]{16})["']?/i);
+                if (keyMatch) config.apiKey = keyMatch[1];
+            }
         }
 
+        return config;
+    }
+
+    /**
+     * Try to extract API key from external JavaScript file
+     * Some sites (like SJHL) split the config across main page and external JS
+     * @param {string} html - Main HTML content
+     * @param {string} clientCode - Already extracted client code
+     * @param {string} baseUrl - Base URL for resolving relative paths
+     * @returns {Promise<Object>} Config object with apiKey if found
+     */
+    async tryExtractFromExternalJs(html, clientCode, baseUrl) {
+        const config = {};
+        
+        try {
+            // Look for pattern: statview-X.X.X/js/client/{clientCode}/base.rX.js
+            const jsFileMatch = html.match(new RegExp(`(https?://[^"'\\s]+/statview-[^/]+/js/client/${clientCode}/base\\.r\\d+\\.js)`, 'i'));
+            
+            if (jsFileMatch) {
+                const jsUrl = jsFileMatch[1];
+                
+                const response = await axios.get(jsUrl, {
+                    timeout: this.REQUEST_TIMEOUT,
+                    headers: { 'User-Agent': 'Mozilla/5.0' }
+                });
+                
+                // Look for var appKey = "value" in the external JS
+                const keyMatch = response.data.match(/var\s+appKey\s*=\s*["']([a-f0-9]{16})["']/i);
+                if (keyMatch) {
+                    config.apiKey = keyMatch[1];
+                }
+            }
+        } catch (error) {
+            logger.warn('Failed to extract from external JS', { error: error.message });
+        }
+        
         return config;
     }
 
@@ -456,6 +514,45 @@ class HockeyTechProvider extends BaseProvider {
         }
         this.refreshTimers.clear();
         logger.info('Stopped all HockeyTech config auto-refreshes');
+    }
+
+    /**
+     * Extract and display all HockeyTech credentials from leagues
+     * Useful for debugging and credential verification
+     */
+    static async displayAllCredentials() {
+        const { getAllLeagues } = require('../leagues');
+        const provider = new HockeyTechProvider();
+        const leagues = getAllLeagues();
+        
+        console.log('\n🏒 HockeyTech Credentials\n');
+        console.log('League'.padEnd(40) + ' Key'.padEnd(8) + ' Client Code'.padEnd(15) + ' API Key');
+        console.log('='.repeat(90));
+        
+        for (const [key, league] of Object.entries(leagues)) {
+            const config = provider.getLeagueConfig(league);
+            
+            if (config) {
+                let clientCode = config.clientCode || 'N/A';
+                let apiKey = config.apiKey || 'N/A';
+                
+                // If websiteUrl exists but no clientCode, try to extract
+                if (config.websiteUrl && !config.clientCode) {
+                    try {
+                        const extracted = await provider.extractConfigFromWebsite(config.websiteUrl);
+                        clientCode = extracted.clientCode || 'N/A';
+                        apiKey = extracted.apiKey || 'N/A';
+                    } catch (error) {
+                        console.log(`${league.name.padEnd(40)} ${key.toUpperCase().padEnd(8)} ❌ Failed: ${error.message}`);
+                        continue;
+                    }
+                }
+                
+                console.log(`${league.name.padEnd(40)} ${key.toUpperCase().padEnd(8)} ${clientCode.padEnd(15)} ${apiKey}`);
+            }
+        }
+        
+        console.log('');
     }
 }
 

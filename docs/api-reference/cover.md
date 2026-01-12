@@ -31,6 +31,7 @@ nav_order: 8
 | `aspect` | string | `3-4` | Aspect ratio: `3-4` (1080x1440), `9-16` (1080x1920), or `1-1` (1080x1080) |
 | `style` | integer | 1 | Visual style 1-4 (matchup only) |
 | `logo` | boolean | true | Include league logo (matchup only) |
+| `badge` | string | - | Add quality badge overlay: `ALT`, `4K`, `HD`, `FHD`, or `UHD` (matchup only) |
 | `fallback` | boolean | false | **Single team:** Return league cover. **Matchup:** Use greyscale league logo for missing teams |
 
 ---
@@ -70,6 +71,8 @@ GET /nba/lakers/celtics/cover
 GET /nfl/chiefs/49ers/cover?style=2
 GET /ncaaf/alabama/georgia/cover?logo=false
 GET /nhl/tor/mtl/cover?style=99
+GET /epl/arsenal/chelsea/cover?badge=UHD
+GET /nba/lakers/celtics/cover?badge=4K&style=2
 ```
 
 ---
