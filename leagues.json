@@ -395,14 +395,12 @@
       "premier league",
       "premier",
       "england",
-      "eng.1",
-      "eng.fa"
+      "eng.1"
     ],
     "feederLeagues": [
       "championship",
       "league-one",
-      "league-two",
-      "eng.fa"
+      "league-two"
     ],
     "providers": [
       {
@@ -414,6 +412,28 @@
       {
         "espn": {
           "espnSlug": "eng.1",
+          "espnSport": "soccer"
+        }
+      }
+    ]
+  },
+  "engfa": {
+    "name": "FA Cup",
+    "aliases": [
+      "fa cup",
+      "english fa cup",
+      "eng.fa.cup"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4482",
+          "leagueName": "FA Cup"
+        }
+      },
+      {
+        "espn": {
+          "espnSlug": "eng.fa",
           "espnSport": "soccer"
         }
       }
