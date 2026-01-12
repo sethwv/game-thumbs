@@ -395,14 +395,12 @@
       "premier league",
       "premier",
       "england",
-      "eng.1",
-      "eng.fa"
+      "eng.1"
     ],
     "feederLeagues": [
       "championship",
       "league-one",
-      "league-two",
-      "eng.fa"
+      "league-two"
     ],
     "providers": [
       {
