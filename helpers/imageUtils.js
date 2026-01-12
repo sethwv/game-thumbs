@@ -21,6 +21,27 @@ const MAX_CACHE_SIZE = 50; // Maximum number of cached white logos
 const EDGE_BRIGHTNESS_THRESHOLD = 200; // Average edge brightness above this means logo likely has white/light outline
 const COLOR_SIMILARITY_THRESHOLD = 120; // Colors closer than this need special handling
 
+// Valid badge keywords for overlay text
+const VALID_BADGE_KEYWORDS = [
+    // Quality indicators
+    '4K', 'HD', 'FHD', 'UHD',
+    // Alternate Feed indicator
+    'ALT', 'MANNINGCAST',
+    // Language indicators
+    'EN', 'ENG', 'ENGLISH',
+    'ES', 'ESP', 'SPANISH',
+    'FR', 'FRE', 'FRENCH',
+    'DE', 'GER', 'GERMAN',
+    'IT', 'ITA', 'ITALIAN',
+    // Network indicators
+    'NBC', 'ESPN', 'FOX', 'CBS', 'ABC', 'NFLN', 'MLBN', 'NBA TV'
+];
+
+// Helper function to validate badge keywords
+function isValidBadge(badge) {
+    return badge && VALID_BADGE_KEYWORDS.includes(badge.toUpperCase());
+}
+
 // ------------------------------------------------------------------------------
 // Cache
 // ------------------------------------------------------------------------------
@@ -34,6 +55,9 @@ const whiteLogoCache = new Map();
 
 // Cache for greyscale logo versions
 const greyscaleLogoCache = new Map();
+
+// Cache for badge overlays (keyed by text+scale+dimensions)
+const badgeCache = new Map();
 
 // Cache directory for trimmed logos
 const TRIMMED_CACHE_DIR = path.join(__dirname, '..', '.cache', 'trimmed');
@@ -70,6 +94,8 @@ module.exports = {
     generateFallbackPlaceholder,
     generateFallbackTeamObject,
     resolveTeamsWithFallback,
+    addBadgeOverlay,
+    isValidBadge,
 
     // Color utilities
     hexToRgb,
@@ -480,6 +506,35 @@ async function resolveTeamsWithFallback(providerManager, leagueObj, team1Identif
     
     try {
         resolvedTeam1 = await providerManager.resolveTeam(leagueObj, team1Identifier);
+        // Check if team was found but has no logo - try other providers in parallel
+        if (!resolvedTeam1.logo && !resolvedTeam1.logoAlt) {
+            // Try all providers in parallel
+            const providers = providerManager.getProvidersForLeague(leagueObj);
+            const providerPromises = providers.map(provider => 
+                provider.resolveTeam(leagueObj, team1Identifier)
+                    .then(team => ({ provider, team }))
+                    .catch(() => null)
+            );
+            
+            const results = await Promise.all(providerPromises);
+            const teamWithLogo = results.find(result => 
+                result && result.team && (result.team.logo || result.team.logoAlt)
+            );
+            
+            if (teamWithLogo) {
+                logger.info(`Using logo from alternate provider`, {
+                    team: team1Identifier,
+                    provider: teamWithLogo.provider.getProviderId()
+                });
+                resolvedTeam1 = teamWithLogo.team;
+            } else {
+                logger.warn(`No logo found from any provider, using fallback`, { 
+                    team: team1Identifier, 
+                    league: leagueObj.shortName 
+                });
+                team1Failed = true;
+            }
+        }
     } catch (team1Error) {
         if (enableFallback && team1Error.name === 'TeamNotFoundError') {
             team1Failed = true;
@@ -490,6 +545,35 @@ async function resolveTeamsWithFallback(providerManager, leagueObj, team1Identif
     
     try {
         resolvedTeam2 = await providerManager.resolveTeam(leagueObj, team2Identifier);
+        // Check if team was found but has no logo - try other providers in parallel
+        if (!resolvedTeam2.logo && !resolvedTeam2.logoAlt) {
+            // Try all providers in parallel
+            const providers = providerManager.getProvidersForLeague(leagueObj);
+            const providerPromises = providers.map(provider => 
+                provider.resolveTeam(leagueObj, team2Identifier)
+                    .then(team => ({ provider, team }))
+                    .catch(() => null)
+            );
+            
+            const results = await Promise.all(providerPromises);
+            const teamWithLogo = results.find(result => 
+                result && result.team && (result.team.logo || result.team.logoAlt)
+            );
+            
+            if (teamWithLogo) {
+                logger.info(`Using logo from alternate provider`, {
+                    team: team2Identifier,
+                    provider: teamWithLogo.provider.getProviderId()
+                });
+                resolvedTeam2 = teamWithLogo.team;
+            } else {
+                logger.warn(`No logo found from any provider, using fallback`, { 
+                    team: team2Identifier, 
+                    league: leagueObj.shortName 
+                });
+                team2Failed = true;
+            }
+        }
     } catch (team2Error) {
         if (enableFallback && team2Error.name === 'TeamNotFoundError') {
             team2Failed = true;
@@ -498,7 +582,7 @@ async function resolveTeamsWithFallback(providerManager, leagueObj, team1Identif
         }
     }
     
-    // Generate fallback team objects for failed teams
+    // Generate fallback team objects for failed teams or teams without logos
     if (team1Failed) {
         resolvedTeam1 = await generateFallbackTeamObject(leagueLogoUrl, team1Identifier);
     }
@@ -519,8 +603,13 @@ async function resolveTeamsWithFallback(providerManager, leagueObj, team1Identif
 const REQUEST_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '10000', 10); // 10 seconds default
 
 async function downloadImage(urlOrPath) {
+    // Validate URL exists
+    if (!urlOrPath || typeof urlOrPath !== 'string') {
+        throw new Error(`Invalid URL or path: ${urlOrPath}`);
+    }
+    
     // If it's a local file path, load from filesystem
-    if (typeof urlOrPath === 'string' && (urlOrPath.startsWith('/') || urlOrPath.startsWith('./') || urlOrPath.startsWith('../'))) {
+    if (urlOrPath.startsWith('/') || urlOrPath.startsWith('./') || urlOrPath.startsWith('../')) {
         return fs.readFile(path.resolve(urlOrPath));
     }
     
@@ -544,6 +633,11 @@ async function downloadImage(urlOrPath) {
 
 async function selectBestLogo(team, backgroundColor) {
     try {
+        // Validate that we have a primary logo
+        if (!team.logo) {
+            throw new Error('No logo available for team');
+        }
+        
         // If no logoAlt, use the primary logo
         if (!team.logoAlt) {
             return team.logo;
@@ -577,7 +671,7 @@ async function selectBestLogo(team, backgroundColor) {
         // Otherwise use primary logo
         return team.logo;
     } catch (error) {
-        logger.warn('Error selecting best logo', { error: error.message });
+        logger.warn('Error selecting best logo', { error: error.message, team: team.name });
         // Fallback to primary logo on error
         return team.logo;
     }
@@ -613,6 +707,12 @@ async function loadTrimmedLogo(team, backgroundColor) {
 function trimImage(imageBuffer, enableCache = true) {
     return new Promise(async (resolve, reject) => {
         try {
+            // Validate input
+            if (!imageBuffer || !Buffer.isBuffer(imageBuffer)) {
+                reject(new Error('Invalid image buffer provided to trimImage'));
+                return;
+            }
+            
             // Only cache if caching is enabled and explicitly requested
             // Pass false/null to skip caching for final composed outputs
             const shouldCache = CACHE_ENABLED && enableCache;
@@ -791,4 +891,144 @@ function getAverageColor(image) {
         g: Math.round(g / count),
         b: Math.round(b / count)
     };
+}
+
+/**
+ * Add a badge overlay to an image buffer
+ * @param {Buffer} imageBuffer - The input image buffer
+ * @param {string} badgeText - The text to display on the badge ('ALT' or '4K')
+ * @param {Object} options - Optional positioning and styling options
+ * @returns {Promise<Buffer>} - The image buffer with badge overlay
+ */
+async function addBadgeOverlay(imageBuffer, badgeText, options = {}) {
+    const {
+        position = 'top-right', // 'top-right', 'top-left', 'bottom-right', 'bottom-left'
+        padding = 8, // Padding from edges
+        badgeScale = 0.10, // Badge size as percentage of base dimension (default 10%)
+    } = options;
+
+    // Load the image from buffer
+    const image = await loadImage(imageBuffer);
+    
+    // Create canvas matching the original image dimensions
+    const canvas = createCanvas(image.width, image.height);
+    const ctx = canvas.getContext('2d');
+    
+    // Draw the original image
+    ctx.drawImage(image, 0, 0);
+    
+    // Create cache key based on badge text, scale, and image dimensions
+    const cacheKey = `${badgeText}_${badgeScale}_${image.width}x${image.height}`;
+    
+    // Check if we have a cached badge canvas
+    let badgeCanvas = badgeCache.get(cacheKey);
+    
+    if (!badgeCanvas) {
+        // Calculate badge dimensions based on image size
+        const baseSize = Math.min(image.width, image.height);
+        const badgeHeight = Math.round(baseSize * badgeScale);
+        const badgeRadius = Math.round(badgeHeight * 0.3); // 30% of height for rounded corners
+        
+        // Set font and measure text
+        const fontSize = Math.round(badgeHeight * 0.55); // Font size is 55% of badge height
+        const tempCtx = createCanvas(1, 1).getContext('2d');
+        tempCtx.font = `bold ${fontSize}px Arial`;
+        const textMetrics = tempCtx.measureText(badgeText);
+        const textWidth = textMetrics.width;
+        
+        // Badge width is text width + padding on each side
+        const badgeWidth = Math.round(textWidth + (badgeHeight * 0.8));
+        
+        // Shadow properties (reduced and softened)
+        const shadowBlur = 4;
+        const shadowOffsetX = 1;
+        const shadowOffsetY = 1;
+        
+        // Calculate extra space needed for shadow
+        const shadowMargin = shadowBlur + Math.max(Math.abs(shadowOffsetX), Math.abs(shadowOffsetY));
+        
+        // Create a canvas for the badge with extra space for shadow
+        const canvasWidth = badgeWidth + (shadowMargin * 2);
+        const canvasHeight = badgeHeight + (shadowMargin * 2);
+        badgeCanvas = createCanvas(canvasWidth, canvasHeight);
+        const badgeCtx = badgeCanvas.getContext('2d');
+        
+        // Store shadow margin on the canvas object for positioning later
+        badgeCanvas.shadowMargin = shadowMargin;
+        
+        // Offset the drawing position to account for shadow margin
+        const drawX = shadowMargin;
+        const drawY = shadowMargin;
+        
+        // Add shadow to the rounded rectangle
+        badgeCtx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+        badgeCtx.shadowBlur = shadowBlur;
+        badgeCtx.shadowOffsetX = shadowOffsetX;
+        badgeCtx.shadowOffsetY = shadowOffsetY;
+        
+        // Draw rounded rectangle background (white)
+        badgeCtx.fillStyle = 'white';
+        badgeCtx.beginPath();
+        badgeCtx.moveTo(drawX + badgeRadius, drawY);
+        badgeCtx.lineTo(drawX + badgeWidth - badgeRadius, drawY);
+        badgeCtx.arcTo(drawX + badgeWidth, drawY, drawX + badgeWidth, drawY + badgeRadius, badgeRadius);
+        badgeCtx.lineTo(drawX + badgeWidth, drawY + badgeHeight - badgeRadius);
+        badgeCtx.arcTo(drawX + badgeWidth, drawY + badgeHeight, drawX + badgeWidth - badgeRadius, drawY + badgeHeight, badgeRadius);
+        badgeCtx.lineTo(drawX + badgeRadius, drawY + badgeHeight);
+        badgeCtx.arcTo(drawX, drawY + badgeHeight, drawX, drawY + badgeHeight - badgeRadius, badgeRadius);
+        badgeCtx.lineTo(drawX, drawY + badgeRadius);
+        badgeCtx.arcTo(drawX, drawY, drawX + badgeRadius, drawY, badgeRadius);
+        badgeCtx.closePath();
+        badgeCtx.fill();
+        
+        // Reset shadow
+        badgeCtx.shadowColor = 'transparent';
+        badgeCtx.shadowBlur = 0;
+        badgeCtx.shadowOffsetX = 0;
+        badgeCtx.shadowOffsetY = 0;
+        
+        // Draw text (black, bold)
+        badgeCtx.fillStyle = 'black';
+        badgeCtx.font = `bold ${fontSize}px Arial`;
+        badgeCtx.textAlign = 'center';
+        badgeCtx.textBaseline = 'middle';
+        badgeCtx.fillText(badgeText, drawX + badgeWidth / 2, drawY + badgeHeight / 2);
+        
+        // Cache the badge canvas (limit cache size)
+        if (badgeCache.size >= MAX_CACHE_SIZE) {
+            const firstKey = badgeCache.keys().next().value;
+            badgeCache.delete(firstKey);
+        }
+        badgeCache.set(cacheKey, badgeCanvas);
+    }
+    
+    // Calculate badge position based on position parameter
+    // Account for shadow margin to position the visible badge correctly
+    const shadowMargin = badgeCanvas.shadowMargin || 0;
+    let badgeX, badgeY;
+    switch (position) {
+        case 'top-left':
+            badgeX = padding - shadowMargin;
+            badgeY = padding - shadowMargin;
+            break;
+        case 'bottom-left':
+            badgeX = padding - shadowMargin;
+            badgeY = image.height - badgeCanvas.height - padding + shadowMargin;
+            break;
+        case 'bottom-right':
+            badgeX = image.width - badgeCanvas.width - padding + shadowMargin;
+            badgeY = image.height - badgeCanvas.height - padding + shadowMargin;
+            break;
+        case 'top-right':
+        default:
+            badgeX = image.width - badgeCanvas.width - padding + shadowMargin;
+            badgeY = padding - shadowMargin;
+            break;
+    }
+    
+    // Draw the cached badge onto the main canvas
+    ctx.drawImage(badgeCanvas, badgeX, badgeY);
+    
+    // Return the buffer
+    return canvas.toBuffer('image/png');
 }

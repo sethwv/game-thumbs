@@ -1,6 +1,5 @@
 {
   "__MAJOR_PROFESSIONAL_LEAGUES__": "===========================================",
-
   "nfl": {
     "name": "National Football League",
     "providers": [
@@ -56,6 +55,23 @@
       }
     ]
   },
+  "ushl": {
+    "name": "United States Hockey League",
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4917",
+          "leagueName": "American USHL"
+        }
+      },
+      {
+        "hockeyTech": {
+          "clientCode": "ushl",
+          "apiKey": "339ce9395e9353fb"
+        }
+      }
+    ]
+  },
   "wnba": {
     "name": "Women's National Basketball Association",
     "providers": [
@@ -84,6 +100,22 @@
       }
     ]
   },
+  "ubl": {
+    "name": "Unrivaled Basketball",
+    "aliases": [
+      "unrivaled basketball league",
+      "ub",
+      "unrivaled"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "5622",
+          "leagueName": "Unrivaled Basketball"
+        }
+      }
+    ]
+  },
   "nll": {
     "name": "National Lacrosse League",
     "providers": [
@@ -95,9 +127,7 @@
       }
     ]
   },
-
   "__COMBAT_SPORTS__": "===========================================",
-
   "ufc": {
     "name": "Ultimate Fighting Championship",
     "aliases": [
@@ -134,9 +164,7 @@
       }
     ]
   },
-
   "__OTHER_FOOTBALL_LEAGUES__": "===========================================",
-
   "ufl": {
     "name": "United Football League",
     "providers": [
@@ -162,9 +190,7 @@
       }
     ]
   },
-
   "__SOCCER_LEAGUES__": "===========================================",
-
   "uefa": {
     "name": "UEFA Champions League",
     "aliases": [
@@ -391,6 +417,28 @@
       }
     ]
   },
+  "engfa": {
+    "name": "FA Cup",
+    "aliases": [
+      "fa cup",
+      "english fa cup",
+      "eng.fa.cup"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4482",
+          "leagueName": "FA Cup"
+        }
+      },
+      {
+        "espn": {
+          "espnSlug": "eng.fa",
+          "espnSport": "soccer"
+        }
+      }
+    ]
+  },
   "laliga": {
     "name": "La Liga",
     "feederLeagues": [
@@ -580,10 +628,7 @@
       }
     ]
   },
-
-
   "__NCAA_SPORTS__": "===========================================",
-
   "ncaaf": {
     "name": "NCAA Football",
     "aliases": [
@@ -865,9 +910,7 @@
       }
     ]
   },
-
   "__MINOR_REGIONAL_LEAGUES__": "===========================================",
-
   "chl": {
     "name": "Canadian Hockey League",
     "aliases": [
@@ -880,7 +923,13 @@
       "whl",
       "qmjhl"
     ],
-    "providers": []
+    "providers": [
+      {
+        "hockeyTech": {
+          "websiteUrl": "https://chl.ca/"
+        }
+      }
+    ]
   },
   "ohl": {
     "name": "Ontario Hockey League",
@@ -947,7 +996,6 @@
       }
     ]
   },
-
   "ahl": {
     "name": "American Hockey League",
     "aliases": [
@@ -963,10 +1011,97 @@
       }
     ]
   },
-
+  "bchl": {
+    "name": "British Columbia Hockey League",
+    "logoUrl": "https://bchl.ca/wp-content/uploads/2015/12/BCHL-Footer-Logo.png",
+    "providers": [
+      {
+        "hockeyTech": {
+          "websiteUrl": "https://bchl.ca/"
+        }
+      }
+    ]
+  },
+  "sjhl": {
+    "name": "Saskatchewan Junior Hockey League",
+    "logoUrl": "https://www.sjhl.ca/wp-content/uploads/sites/2/2019/08/SJHL_Logo_512px.png",
+    "providers": [
+      {
+        "hockeyTech": {
+          "websiteUrl": "https://www.sjhl.ca"
+        }
+      }
+    ]
+  },
+  "ajhl": {
+    "name": "Alberta Junior Hockey League",
+    "logoUrl": "https://www.ajhl.ca/wp-content/uploads/sites/2/2022/05/cropped-ajhl_512.png",
+    "providers": [
+      {
+        "hockeyTech": {
+          "websiteUrl": "https://www.ajhl.ca/"
+        }
+      }
+    ]
+  },
+  "mjhl": {
+    "name": "Manitoba Junior Hockey League",
+    "logoUrl": "https://www.mjhlhockey.ca/wp-content/uploads/sites/2/2019/06/cropped-MJHLalternate-web-600x.png",
+    "providers": [
+      {
+        "hockeyTech": {
+          "websiteUrl": "https://www.mjhlhockey.ca/"
+        }
+      }
+    ]
+  },
+  "mhl": {
+    "name": "Maritime Junior Hockey League",
+    "logoUrl": "https://www.themhl.ca/wp-content/uploads/sites/2/2021/10/cropped-mhl_512.png",
+    "providers": [
+      {
+        "hockeyTech": {
+          "websiteUrl": "https://www.themhl.ca/"
+        }
+      }
+    ]
+  },
+  "echl": {
+    "name": "East Coast Hockey League",
+    "logoUrl": "./assets/ECHL.png",
+    "providers": [
+      {
+        "hockeyTech": {
+          "clientCode": "echl",
+          "apiKey": "2c2b89ea7345cae8"
+        }
+      }
+    ]
+  },
+  "ojhl": {
+    "name": "Ontario Junior Hockey League",
+    "logoUrl": "https://www.ojhl.ca/wp-content/uploads/sites/2/2023/04/cropped-ojhl-512.png",
+    "providers": [
+      {
+        "hockeyTech": {
+          "websiteUrl": "https://www.ojhl.ca/"
+        }
+      }
+    ]
+  },
+  "csshl": {
+    "name": "Canadian Sport School Hockey League",
+    "logoUrl": "./assets/CSSHL.png",
+    "providers": [
+      {
+        "hockeyTech": {
+          "websiteUrl": "https://www.csshl.ca/"
+        }
+      }
+    ]
+  },
   "__INTERNATIONAL__": "===========================================",
-
- "iihf": {
+  "iihf": {
     "name": "International Ice Hockey Federation",
     "aliases": [
       "world juniors",
@@ -981,8 +1116,7 @@
       }
     ]
   },
-
- "olympics": {
+  "olympics": {
     "name": "Olympic Games",
     "logoUrl": "./assets/2026_OLYMPICS.png",
     "providers": [
@@ -991,7 +1125,6 @@
       }
     ]
   },
-
   "country": {
     "name": "Country Flags",
     "aliases": [

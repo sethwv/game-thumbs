@@ -55,19 +55,19 @@ async function generateLogo(teamA, teamB, options = {}) {
 }
 
 // ------------------------------------------------------------------------------
-// Style 1: Diagonal Split
+// Style 1: Diagonal Split (Thumbnail-style, compact)
+// Thumbnail style 1 shrunk to logo style 6 footprint with transparent background
 // ------------------------------------------------------------------------------
 
 async function generateDiagonalSplit(teamA, teamB, width, height, league, useLight) {
-    // Create canvas with transparent background
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
     
-    // Select which logo to use (logoAlt by default, unless useLight is true)
-    const teamALogoUrl = useLight ? teamA.logo : (teamA.logoAlt || teamA.logo);
-    const teamBLogoUrl = useLight ? teamB.logo : (teamB.logoAlt || teamB.logo);
+    const { colorA, colorB } = adjustColors(teamA, teamB);
     
-    // Load both logos
+    const teamALogoUrl = useLight ? teamA.logo : await selectBestLogo(teamA, colorA);
+    const teamBLogoUrl = useLight ? teamB.logo : await selectBestLogo(teamB, colorB);
+    
     if (!teamA.logo || !teamB.logo) {
         throw new Error('Both teams must have logos');
     }
@@ -80,121 +80,127 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league, useLig
     logoBBuffer = await trimImage(logoBBuffer, teamBLogoUrl);
     const logoB = await loadImage(logoBBuffer);
     
-    // Calculate diagonal split points (same as thumbnail)
-    // Diagonal goes from 66% width at top to 33% width at bottom (pointing right)
-    const topDiagonalX = width * 0.66;
-    const bottomDiagonalX = width * 0.33;
-    
-    // Draw teamA logo on the left side (clipped to left of diagonal)
-    ctx.save();
-    
-    // Create clipping path for left side
-    ctx.beginPath();
-    ctx.moveTo(0, 0);                    // Top-left corner
-    ctx.lineTo(topDiagonalX, 0);         // Top diagonal point (66% width)
-    ctx.lineTo(bottomDiagonalX, height); // Bottom diagonal point (33% width)
-    ctx.lineTo(0, height);               // Bottom-left corner
-    ctx.closePath();
-    ctx.clip();
-    
-    // Draw left logo (centered on canvas, but clipped)
-    const logoSize = Math.min(width, height) * 0.8;
-    const logoX = (width - logoSize) / 2;
-    const logoY = (height - logoSize) / 2;
-    
-    // Outlines disabled - always use shadow
-    drawLogoWithShadow(ctx, logoA, logoX, logoY, logoSize);
-    ctx.restore();
-    
-    // Draw teamB logo on the right side (clipped to right of diagonal)
-    ctx.save();
-    
-    // Create clipping path for right side
-    ctx.beginPath();
-    ctx.moveTo(topDiagonalX, 0);         // Top diagonal point (66% width)
-    ctx.lineTo(width, 0);                // Top-right corner
-    ctx.lineTo(width, height);           // Bottom-right corner
-    ctx.lineTo(bottomDiagonalX, height); // Bottom diagonal point (33% width)
-    ctx.closePath();
-    ctx.clip();
-    
-    // Draw right logo (centered on canvas, but clipped)
-    // Outlines disabled - always use shadow
-    drawLogoWithShadow(ctx, logoB, logoX, logoY, logoSize);
-    ctx.restore();
-    
-    // Draw diagonal line through the middle (shorter, white)
-    ctx.save();
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-    ctx.lineWidth = Math.min(width, height) * 0.01; // 1% of canvas size
-    
-    // Calculate shorter line (75% of canvas size from center)
-    const centerX = (topDiagonalX + bottomDiagonalX) / 2;
+    // Calculate thumbnail dimensions (same size as style 6 badge area)
+    const centerX = width / 2;
     const centerY = height / 2;
-    const lineLength = Math.min(width, height) * 0.85;
-    const angle = Math.atan2(height, bottomDiagonalX - topDiagonalX);
+    const availableWidth = width * 0.95;
+    const badgeSize = availableWidth / 3;
     
-    const lineStartX = centerX - (lineLength / 2) * Math.cos(angle);
-    const lineStartY = centerY - (lineLength / 2) * Math.sin(angle);
-    const lineEndX = centerX + (lineLength / 2) * Math.cos(angle);
-    const lineEndY = centerY + (lineLength / 2) * Math.sin(angle);
+    // Use the same dimensions as style 6: 3 badges wide, 1 badge tall
+    const thumbWidth = badgeSize * 3;
+    const thumbHeight = badgeSize;
     
+    const thumbX = centerX - (thumbWidth / 2);
+    const thumbY = centerY - (thumbHeight / 2);
+    
+    // Draw with shadow
+    ctx.save();
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+    ctx.shadowBlur = 15;
+    ctx.shadowOffsetX = 3;
+    ctx.shadowOffsetY = 3;
+    
+    // Diagonal split points (50% less horizontal than thumbnail style 1)
+    const topDiagonalX = thumbX + (thumbWidth * 0.5825);
+    const bottomDiagonalX = thumbX + (thumbWidth * 0.4175);
+    
+    // Left side (teamA)
+    ctx.fillStyle = colorA;
     ctx.beginPath();
-    ctx.moveTo(lineStartX, lineStartY);
-    ctx.lineTo(lineEndX, lineEndY);
+    ctx.moveTo(thumbX, thumbY);
+    ctx.lineTo(topDiagonalX, thumbY);
+    ctx.lineTo(bottomDiagonalX, thumbY + thumbHeight);
+    ctx.lineTo(thumbX, thumbY + thumbHeight);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Right side (teamB)
+    ctx.fillStyle = colorB;
+    ctx.beginPath();
+    ctx.moveTo(topDiagonalX, thumbY);
+    ctx.lineTo(thumbX + thumbWidth, thumbY);
+    ctx.lineTo(thumbX + thumbWidth, thumbY + thumbHeight);
+    ctx.lineTo(bottomDiagonalX, thumbY + thumbHeight);
+    ctx.closePath();
+    ctx.fill();
+    
+    ctx.restore();
+    
+    // Draw white diagonal line with clipping to rectangle bounds
+    ctx.save();
+    // Clip to rectangle
+    ctx.beginPath();
+    ctx.rect(thumbX, thumbY, thumbWidth, thumbHeight);
+    ctx.clip();
+    
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = Math.max(2, thumbHeight * 0.015);
+    ctx.lineCap = 'butt';
+    ctx.lineJoin = 'miter';
+    ctx.beginPath();
+    const dx = bottomDiagonalX - topDiagonalX;
+    const dy = thumbHeight;
+    const length = Math.sqrt(dx * dx + dy * dy);
+    const unitX = dx / length;
+    const unitY = dy / length;
+    const extension = 100;
+    ctx.moveTo(topDiagonalX - unitX * extension, thumbY - unitY * extension);
+    ctx.lineTo(bottomDiagonalX + unitX * extension, thumbY + thumbHeight + unitY * extension);
     ctx.stroke();
     ctx.restore();
     
-    // Draw league logo as a badge in the bottom right corner if league logo URL is provided
-    // This is drawn LAST so it appears on top
+    // Draw logos (same size as style 6)
+    const logoMaxSize = badgeSize * 0.8;
+    
+    // Team A logo (left side)
+    const logoAX = thumbX + (thumbWidth * 0.2) - (logoMaxSize / 2);
+    const logoAY = thumbY + (thumbHeight / 2) - (logoMaxSize / 2);
+    drawLogoWithShadow(ctx, logoA, logoAX, logoAY, logoMaxSize);
+    
+    // Team B logo (right side)
+    const logoBX = thumbX + (thumbWidth * 0.8) - (logoMaxSize / 2);
+    const logoBY = thumbY + (thumbHeight / 2) - (logoMaxSize / 2);
+    drawLogoWithShadow(ctx, logoB, logoBX, logoBY, logoMaxSize);
+    
+    // Draw league logo in center if provided
     if (league && league.logoUrl) {
         try {
-            const leagueLogoBuffer = await downloadImage(league.logoUrl);
+            const leagueLogoUrl = league.logoUrl || league.logoUrlAlt;
+            let leagueLogoBuffer = await downloadImage(leagueLogoUrl);
+            leagueLogoBuffer = await trimImage(leagueLogoBuffer, leagueLogoUrl);
             const leagueLogo = await loadImage(leagueLogoBuffer);
             
-            // Save context for league logo
+            const leagueLogoSize = badgeSize * 0.6;
+            const leagueLogoX = centerX - (leagueLogoSize / 2);
+            const leagueLogoY = centerY - (leagueLogoSize / 2);
+            
             ctx.save();
-            
-            // League logo is smaller as a badge (20% of canvas size)
-            const leagueLogoSize = Math.min(width, height) * 0.2;
-            const padding = Math.min(width, height) * 0.05; // 5% padding from edges
-            const leagueLogoX = width - leagueLogoSize - padding;
-            const leagueLogoY = height - leagueLogoSize - padding;
-            
-            // Never add outline to league logo, always use shadow
             ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-            ctx.shadowBlur = 15;
-            ctx.shadowOffsetX = 3;
-            ctx.shadowOffsetY = 3;
+            ctx.shadowBlur = 10;
+            ctx.shadowOffsetX = 2;
+            ctx.shadowOffsetY = 2;
             
-            // Calculate dimensions maintaining aspect ratio
             const aspectRatio = leagueLogo.width / leagueLogo.height;
             let drawWidth, drawHeight;
             
             if (aspectRatio > 1) {
-                // Wider than tall
                 drawWidth = leagueLogoSize;
                 drawHeight = leagueLogoSize / aspectRatio;
             } else {
-                // Taller than wide or square
                 drawHeight = leagueLogoSize;
                 drawWidth = leagueLogoSize * aspectRatio;
             }
             
-            // Adjust position to maintain centering
             const adjustedX = leagueLogoX + (leagueLogoSize - drawWidth) / 2;
             const adjustedY = leagueLogoY + (leagueLogoSize - drawHeight) / 2;
             
             ctx.drawImage(leagueLogo, adjustedX, adjustedY, drawWidth, drawHeight);
-            
             ctx.restore();
         } catch (error) {
             logger.warn('Error loading league logo', { error: error.message });
-            // Continue without league logo if it fails
         }
     }
     
-    // Return PNG buffer with transparency
     return canvas.toBuffer('image/png');
 }
 

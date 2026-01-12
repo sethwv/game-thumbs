@@ -31,6 +31,7 @@ nav_order: 7
 | `aspect` | string | `4-3` | Aspect ratio: `4-3` (1440x1080), `16-9` (1920x1080), or `1-1` (1080x1080) |
 | `style` | integer | 1 | Visual style 1-4 (matchup only) |
 | `logo` | boolean | true | Include league logo (matchup only) |
+| `badge` | string | - | Add quality badge overlay: `ALT`, `4K`, `HD`, `FHD`, or `UHD` (matchup only) |
 | `fallback` | boolean | false | **Single team:** Return league thumb. **Matchup:** Use greyscale league logo for missing teams |
 
 ---
@@ -70,6 +71,8 @@ GET /nba/lakers/celtics/thumb
 GET /nfl/chiefs/49ers/thumb?style=2
 GET /ncaaf/alabama/georgia/thumb?logo=false
 GET /nhl/tor/mtl/thumb?style=99
+GET /epl/arsenal/chelsea/thumb?badge=4K
+GET /nba/lakers/celtics/thumb?badge=HD&style=3
 ```
 
 ---

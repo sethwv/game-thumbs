@@ -61,7 +61,7 @@ The ESPN Direct endpoints support the same query parameters as their correspondi
 - **Thumbnail parameters:** See [Thumbnail Endpoint documentation](/thumb.html#query-parameters)
 - **Cover parameters:** See [Cover Endpoint documentation](/cover.html#query-parameters)
 
-All standard parameters (`variant`, `size`, `style`, `aspect`, `logo`, `fallback`, etc.) work identically to the unified endpoints.
+All standard parameters (`variant`, `size`, `style`, `aspect`, `logo`, `fallback`, `badge`, etc.) work identically to the unified endpoints.
 
 ---
 
