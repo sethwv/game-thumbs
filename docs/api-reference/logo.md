@@ -42,7 +42,7 @@ nav_order: 6
 
 **Applies to:** `/:league/:team1/:team2/logo` only
 
-- **Style 1:** Diagonal split with dividing line
+- **Style 1:** Compact diagonal split (thumbnail style 1 in logo footprint, transparent background)
 - **Style 2:** Side by side
 - **Style 3:** Circle badges with team colors (league logo overlays bottom)
 - **Style 4:** Square badges with team colors (league logo overlays bottom)
