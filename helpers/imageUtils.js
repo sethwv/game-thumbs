@@ -481,6 +481,35 @@ async function resolveTeamsWithFallback(providerManager, leagueObj, team1Identif
     
     try {
         resolvedTeam1 = await providerManager.resolveTeam(leagueObj, team1Identifier);
+        // Check if team was found but has no logo - try other providers in parallel
+        if (!resolvedTeam1.logo && !resolvedTeam1.logoAlt) {
+            // Try all providers in parallel
+            const providers = providerManager.getProvidersForLeague(leagueObj);
+            const providerPromises = providers.map(provider => 
+                provider.resolveTeam(leagueObj, team1Identifier)
+                    .then(team => ({ provider, team }))
+                    .catch(() => null)
+            );
+            
+            const results = await Promise.all(providerPromises);
+            const teamWithLogo = results.find(result => 
+                result && result.team && (result.team.logo || result.team.logoAlt)
+            );
+            
+            if (teamWithLogo) {
+                logger.info(`Using logo from alternate provider`, {
+                    team: team1Identifier,
+                    provider: teamWithLogo.provider.getProviderId()
+                });
+                resolvedTeam1 = teamWithLogo.team;
+            } else {
+                logger.warn(`No logo found from any provider, using fallback`, { 
+                    team: team1Identifier, 
+                    league: leagueObj.shortName 
+                });
+                team1Failed = true;
+            }
+        }
     } catch (team1Error) {
         if (enableFallback && team1Error.name === 'TeamNotFoundError') {
             team1Failed = true;
@@ -491,6 +520,35 @@ async function resolveTeamsWithFallback(providerManager, leagueObj, team1Identif
     
     try {
         resolvedTeam2 = await providerManager.resolveTeam(leagueObj, team2Identifier);
+        // Check if team was found but has no logo - try other providers in parallel
+        if (!resolvedTeam2.logo && !resolvedTeam2.logoAlt) {
+            // Try all providers in parallel
+            const providers = providerManager.getProvidersForLeague(leagueObj);
+            const providerPromises = providers.map(provider => 
+                provider.resolveTeam(leagueObj, team2Identifier)
+                    .then(team => ({ provider, team }))
+                    .catch(() => null)
+            );
+            
+            const results = await Promise.all(providerPromises);
+            const teamWithLogo = results.find(result => 
+                result && result.team && (result.team.logo || result.team.logoAlt)
+            );
+            
+            if (teamWithLogo) {
+                logger.info(`Using logo from alternate provider`, {
+                    team: team2Identifier,
+                    provider: teamWithLogo.provider.getProviderId()
+                });
+                resolvedTeam2 = teamWithLogo.team;
+            } else {
+                logger.warn(`No logo found from any provider, using fallback`, { 
+                    team: team2Identifier, 
+                    league: leagueObj.shortName 
+                });
+                team2Failed = true;
+            }
+        }
     } catch (team2Error) {
         if (enableFallback && team2Error.name === 'TeamNotFoundError') {
             team2Failed = true;
@@ -499,7 +557,7 @@ async function resolveTeamsWithFallback(providerManager, leagueObj, team1Identif
         }
     }
     
-    // Generate fallback team objects for failed teams
+    // Generate fallback team objects for failed teams or teams without logos
     if (team1Failed) {
         resolvedTeam1 = await generateFallbackTeamObject(leagueLogoUrl, team1Identifier);
     }
