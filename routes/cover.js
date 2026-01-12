@@ -11,6 +11,7 @@ const providerManager = require('../helpers/ProviderManager');
 const { generateCover } = require('../generators/thumbnailGenerator');
 const { generateLeagueCover, generateTeamCover } = require('../generators/genericImageGenerator');
 const { generateFallbackPlaceholder, resolveTeamsWithFallback, addBadgeOverlay, isValidBadge } = require('../helpers/imageUtils');
+const { getCachedImage, addToCache } = require('../helpers/imageCache');
 const { findLeague } = require('../leagues');
 const logger = require('../helpers/logger');
 

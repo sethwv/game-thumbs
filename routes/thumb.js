@@ -11,6 +11,7 @@ const providerManager = require('../helpers/ProviderManager');
 const { generateThumbnail } = require('../generators/thumbnailGenerator');
 const { generateLeagueThumb, generateTeamThumb } = require('../generators/genericImageGenerator');
 const { generateFallbackPlaceholder, resolveTeamsWithFallback, addBadgeOverlay, isValidBadge } = require('../helpers/imageUtils');
+const { getCachedImage, addToCache } = require('../helpers/imageCache');
 const { findLeague } = require('../leagues');
 const logger = require('../helpers/logger');
 
@@ -152,7 +153,7 @@ module.exports = {
                     } else {
                         // Generate image and cache base version
                         buffer = await generateThumbnail(resolvedTeam1, resolvedTeam2, {
-                            ...thumbOptions,
+                            ...thumbnailOptions,
                             league: leagueInfo
                         });
                         
@@ -170,7 +171,7 @@ module.exports = {
                 } else {
                     // No badge, generate normally
                     buffer = await generateThumbnail(resolvedTeam1, resolvedTeam2, {
-                        ...thumbOptions,
+                        ...thumbnailOptions,
                         league: leagueInfo
                     });
                 }
