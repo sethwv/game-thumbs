@@ -13,7 +13,7 @@
 const { generateLogo } = require('../generators/logoGenerator');
 const { generateThumbnail, generateCover } = require('../generators/thumbnailGenerator');
 const { generateLeagueThumb, generateTeamThumb, generateLeagueCover, generateTeamCover } = require('../generators/genericImageGenerator');
-const { downloadImage } = require('../helpers/imageUtils');
+const { downloadImage, addBadgeOverlay } = require('../helpers/imageUtils');
 const logger = require('../helpers/logger');
 const { findLeague } = require('../leagues');
 const { addToCache } = require('../helpers/imageCache');
@@ -46,7 +46,7 @@ module.exports = {
     method: "get",
     handler: async (req, res) => {
         const { sport, league, team1, team2 } = req.params;
-        const { size, logo, style, useLight, trim, fallback, variant, aspect } = req.query;
+        const { size, logo, style, useLight, trim, fallback, variant, aspect, badge } = req.query;
         const includeLeague = req.query.league; // Can't destructure 'league' due to param conflict
 
         // Trim sport and league but don't normalize
@@ -82,15 +82,15 @@ module.exports = {
             switch (endpointType) {
                 case 'logo':
                 case 'logo.png':
-                    return await handleLogoEndpoint(req, leagueObj, team1, team2, { size, logo, style, useLight, trim, fallback, variant, includeLeague }, res);
+                    return await handleLogoEndpoint(req, leagueObj, team1, team2, { size, logo, style, useLight, trim, fallback, variant, includeLeague, badge }, res);
                 
                 case 'thumb':
                 case 'thumb.png':
-                    return await handleThumbEndpoint(req, leagueObj, team1, team2, { logo, style, fallback, aspect, variant }, res);
+                    return await handleThumbEndpoint(req, leagueObj, team1, team2, { logo, style, fallback, aspect, variant, badge }, res);
                 
                 case 'cover':
                 case 'cover.png':
-                    return await handleCoverEndpoint(req, leagueObj, team1, team2, { logo, style, fallback, aspect, variant }, res);
+                    return await handleCoverEndpoint(req, leagueObj, team1, team2, { logo, style, fallback, aspect, variant, badge }, res);
                 
                 default:
                     return res.status(400).json({ error: 'Invalid endpoint type' });
@@ -156,7 +156,7 @@ function sendImageResponse(req, res, buffer) {
 // ------------------------------------------------------------------------------
 
 async function handleLogoEndpoint(req, leagueObj, team1, team2, options, res) {
-    const { size, logo, style, useLight, trim, fallback, variant, includeLeague } = options;
+    const { size, logo, style, useLight, trim, fallback, variant, includeLeague, badge } = options;
 
     // Validate variant
     if (variant && variant !== 'light' && variant !== 'dark') {
@@ -230,6 +230,15 @@ async function handleLogoEndpoint(req, leagueObj, team1, team2, options, res) {
         }
         
         logoBuffer = await generateLogo(resolvedTeam1, resolvedTeam2, logoOptions);
+        
+        // Apply badge overlay if requested (only for matchups)
+        if (badge) {
+            const badgeUpper = badge.toUpperCase();
+            const validBadges = ['ALT', '4K', 'HD', 'FHD', 'UHD'];
+            if (validBadges.includes(badgeUpper)) {
+                logoBuffer = await addBadgeOverlay(logoBuffer, badgeUpper, { badgeScale: 0.18 });
+            }
+        }
     }
 
     sendImageResponse(req, res, logoBuffer);
@@ -257,7 +266,7 @@ async function handleCoverEndpoint(req, leagueObj, team1, team2, options, res) {
 
 // Unified image handler for thumb/cover
 async function handleImageEndpoint(leagueObj, team1, team2, options, leagueGenerator, teamGenerator, matchupGenerator, [width, height]) {
-    const { logo, style, fallback } = options;
+    const { logo, style, fallback, badge } = options;
 
     // League only
     if (!team1 && !team2) {
@@ -307,7 +316,18 @@ async function handleImageEndpoint(leagueObj, team1, team2, options, leagueGener
         league: logo === 'false' ? null : { logoUrl: await espnProvider.getLeagueLogoUrl(leagueObj) }
     };
     
-    return await matchupGenerator(resolvedTeam1, resolvedTeam2, matchupOptions);
+    let buffer = await matchupGenerator(resolvedTeam1, resolvedTeam2, matchupOptions);
+    
+    // Apply badge overlay if requested (only for matchups)
+    if (badge) {
+        const badgeUpper = badge.toUpperCase();
+        const validBadges = ['ALT', '4K', 'HD', 'FHD', 'UHD'];
+        if (validBadges.includes(badgeUpper)) {
+            buffer = await addBadgeOverlay(buffer, badgeUpper);
+        }
+    }
+    
+    return buffer;
 }
 
 function getDimensions(aspect, presets) {

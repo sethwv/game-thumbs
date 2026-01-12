@@ -10,7 +10,7 @@
 const providerManager = require('../helpers/ProviderManager');
 const { generateThumbnail } = require('../generators/thumbnailGenerator');
 const { generateLeagueThumb, generateTeamThumb } = require('../generators/genericImageGenerator');
-const { generateFallbackPlaceholder, resolveTeamsWithFallback } = require('../helpers/imageUtils');
+const { generateFallbackPlaceholder, resolveTeamsWithFallback, addBadgeOverlay } = require('../helpers/imageUtils');
 const { findLeague } = require('../leagues');
 const logger = require('../helpers/logger');
 
@@ -26,7 +26,7 @@ module.exports = {
     method: "get",
     handler: async (req, res) => {
         const { league, team1, team2 } = req.params;
-        const { logo, style, fallback, aspect, variant } = req.query;
+        const { logo, style, fallback, aspect, badge } = req.query;
 
         // Determine dimensions based on aspect ratio
         let width, height;
@@ -143,6 +143,15 @@ module.exports = {
                     ...thumbnailOptions,
                     league: leagueInfo
                 });
+                
+                // Apply badge overlay if requested (only for matchups)
+                if (badge) {
+                    const badgeUpper = badge.toUpperCase();
+                    const validBadges = ['ALT', '4K', 'HD', 'FHD', 'UHD'];
+                    if (validBadges.includes(badgeUpper)) {
+                        buffer = await addBadgeOverlay(buffer, badgeUpper);
+                    }
+                }
             }
             
             // Send successful response

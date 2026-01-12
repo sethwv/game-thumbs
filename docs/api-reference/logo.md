@@ -33,6 +33,7 @@ nav_order: 6
 | `size` | integer | 1024 | Output size: 256, 512, 1024, or 2048 (matchup only) |
 | `logo` | boolean | false | Include league logo (matchup only) |
 | `trim` | boolean | true | Trim whitespace (matchup only) |
+| `badge` | string | - | Add quality badge overlay: `ALT`, `4K`, `HD`, `FHD`, or `UHD` (matchup only) |
 | `fallback` | boolean | false | **Single team:** Return league logo. **Matchup:** Use greyscale league logo for missing teams |
 
 ---
@@ -71,6 +72,8 @@ GET /nhl/toronto/logo?variant=dark
 GET /nba/lakers/celtics/logo
 GET /nfl/chiefs/49ers/logo?style=3
 GET /ncaaf/alabama/georgia/logo?size=2048
+GET /nhl/tor/mtl/logo?badge=4K
+GET /epl/arsenal/chelsea/logo?badge=ALT&style=2
 ```
 
 ---

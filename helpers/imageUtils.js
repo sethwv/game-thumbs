@@ -70,6 +70,7 @@ module.exports = {
     generateFallbackPlaceholder,
     generateFallbackTeamObject,
     resolveTeamsWithFallback,
+    addBadgeOverlay,
 
     // Color utilities
     hexToRgb,
@@ -807,4 +808,103 @@ function getAverageColor(image) {
         g: Math.round(g / count),
         b: Math.round(b / count)
     };
+}
+
+/**
+ * Add a badge overlay to an image buffer
+ * @param {Buffer} imageBuffer - The input image buffer
+ * @param {string} badgeText - The text to display on the badge ('ALT' or '4K')
+ * @param {Object} options - Optional positioning and styling options
+ * @returns {Promise<Buffer>} - The image buffer with badge overlay
+ */
+async function addBadgeOverlay(imageBuffer, badgeText, options = {}) {
+    const {
+        position = 'top-right', // 'top-right', 'top-left', 'bottom-right', 'bottom-left'
+        padding = 8, // Padding from edges
+        badgeScale = 0.10, // Badge size as percentage of base dimension (default 10%)
+    } = options;
+
+    // Load the image from buffer
+    const image = await loadImage(imageBuffer);
+    
+    // Create canvas matching the original image dimensions
+    const canvas = createCanvas(image.width, image.height);
+    const ctx = canvas.getContext('2d');
+    
+    // Draw the original image
+    ctx.drawImage(image, 0, 0);
+    
+    // Calculate badge dimensions based on image size
+    // Scale badge size relative to image dimensions
+    const baseSize = Math.min(image.width, image.height);
+    const badgeHeight = Math.round(baseSize * badgeScale);
+    const badgeRadius = Math.round(badgeHeight * 0.3); // 30% of height for rounded corners
+    
+    // Set font and measure text
+    const fontSize = Math.round(badgeHeight * 0.55); // Font size is 55% of badge height
+    ctx.font = `bold ${fontSize}px Arial`;
+    const textMetrics = ctx.measureText(badgeText);
+    const textWidth = textMetrics.width;
+    
+    // Badge width is text width + padding on each side
+    const badgeWidth = Math.round(textWidth + (badgeHeight * 0.8));
+    
+    // Calculate badge position based on position parameter
+    let badgeX, badgeY;
+    switch (position) {
+        case 'top-left':
+            badgeX = padding;
+            badgeY = padding;
+            break;
+        case 'bottom-left':
+            badgeX = padding;
+            badgeY = image.height - badgeHeight - padding;
+            break;
+        case 'bottom-right':
+            badgeX = image.width - badgeWidth - padding;
+            badgeY = image.height - badgeHeight - padding;
+            break;
+        case 'top-right':
+        default:
+            badgeX = image.width - badgeWidth - padding;
+            badgeY = padding;
+            break;
+    }
+    
+    // Add shadow to the rounded rectangle
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+    ctx.shadowBlur = 8;
+    ctx.shadowOffsetX = 2;
+    ctx.shadowOffsetY = 2;
+    
+    // Draw rounded rectangle background (white)
+    ctx.fillStyle = 'white';
+    ctx.beginPath();
+    ctx.moveTo(badgeX + badgeRadius, badgeY);
+    ctx.lineTo(badgeX + badgeWidth - badgeRadius, badgeY);
+    ctx.arcTo(badgeX + badgeWidth, badgeY, badgeX + badgeWidth, badgeY + badgeRadius, badgeRadius);
+    ctx.lineTo(badgeX + badgeWidth, badgeY + badgeHeight - badgeRadius);
+    ctx.arcTo(badgeX + badgeWidth, badgeY + badgeHeight, badgeX + badgeWidth - badgeRadius, badgeY + badgeHeight, badgeRadius);
+    ctx.lineTo(badgeX + badgeRadius, badgeY + badgeHeight);
+    ctx.arcTo(badgeX, badgeY + badgeHeight, badgeX, badgeY + badgeHeight - badgeRadius, badgeRadius);
+    ctx.lineTo(badgeX, badgeY + badgeRadius);
+    ctx.arcTo(badgeX, badgeY, badgeX + badgeRadius, badgeY, badgeRadius);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Reset shadow
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+    
+    // Draw text (black, bold)
+    ctx.fillStyle = 'black';
+    ctx.font = `bold ${fontSize}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(badgeText, badgeX + badgeWidth / 2, badgeY + badgeHeight / 2);
+    
+    // Return the buffer
+    return canvas.toBuffer('image/png');
 }

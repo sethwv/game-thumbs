@@ -8,7 +8,7 @@
 
 const providerManager = require('../helpers/ProviderManager');
 const { generateLogo } = require('../generators/logoGenerator');
-const { downloadImage, generateFallbackPlaceholder, resolveTeamsWithFallback } = require('../helpers/imageUtils');
+const { downloadImage, generateFallbackPlaceholder, resolveTeamsWithFallback, addBadgeOverlay } = require('../helpers/imageUtils');
 const { findLeague } = require('../leagues');
 const logger = require('../helpers/logger');
 
@@ -24,7 +24,7 @@ module.exports = {
     method: "get",
     handler: async (req, res) => {
         const { league, team1, team2 } = req.params;
-        const { size, logo, style, useLight, trim, fallback, variant } = req.query;
+        const { size, logo, style, useLight, trim, fallback, variant, badge } = req.query;
 
         try {
             const leagueObj = findLeague(league);
@@ -154,6 +154,15 @@ module.exports = {
                     ...logoOptions,
                     league: leagueInfo
                 });
+                
+                // Apply badge overlay if requested (only for matchups)
+                if (badge) {
+                    const badgeUpper = badge.toUpperCase();
+                    const validBadges = ['ALT', '4K', 'HD', 'FHD', 'UHD'];
+                    if (validBadges.includes(badgeUpper)) {
+                        logoBuffer = await addBadgeOverlay(logoBuffer, badgeUpper, { badgeScale: 0.18 });
+                    }
+                }
             }
 
             // Send successful response
