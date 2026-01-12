@@ -10,7 +10,7 @@
 const providerManager = require('../helpers/ProviderManager');
 const { generateThumbnail } = require('../generators/thumbnailGenerator');
 const { generateLeagueThumb, generateTeamThumb } = require('../generators/genericImageGenerator');
-const { generateFallbackPlaceholder, resolveTeamsWithFallback, addBadgeOverlay } = require('../helpers/imageUtils');
+const { generateFallbackPlaceholder, resolveTeamsWithFallback, addBadgeOverlay, isValidBadge } = require('../helpers/imageUtils');
 const { findLeague } = require('../leagues');
 const logger = require('../helpers/logger');
 
@@ -139,18 +139,40 @@ module.exports = {
                     }
                 }
 
-                buffer = await generateThumbnail(resolvedTeam1, resolvedTeam2, {
-                    ...thumbnailOptions,
-                    league: leagueInfo
-                });
-                
-                // Apply badge overlay if requested (only for matchups)
-                if (badge) {
-                    const badgeUpper = badge.toUpperCase();
-                    const validBadges = ['ALT', '4K', 'HD', 'FHD', 'UHD'];
-                    if (validBadges.includes(badgeUpper)) {
-                        buffer = await addBadgeOverlay(buffer, badgeUpper);
+                // If badge is requested, check if we have the base image cached
+                let baseImageUrl = req.originalUrl;
+                if (isValidBadge(badge)) {
+                    // Remove badge parameter from URL to get base image URL
+                    baseImageUrl = req.originalUrl.replace(/[?&]badge=[^&]*/i, '').replace(/\?$/, '');
+                    const cachedBase = getCachedImage(baseImageUrl);
+                    
+                    if (cachedBase) {
+                        // Use cached base and just add badge
+                        buffer = await addBadgeOverlay(cachedBase, badge.toUpperCase());
+                    } else {
+                        // Generate image and cache base version
+                        buffer = await generateThumbnail(resolvedTeam1, resolvedTeam2, {
+                            ...thumbOptions,
+                            league: leagueInfo
+                        });
+                        
+                        // Cache the base image (without badge)
+                        try {
+                            const baseReq = { originalUrl: baseImageUrl };
+                            addToCache(baseReq, res, buffer);
+                        } catch (cacheError) {
+                            logger.error('Failed to cache base image', { Error: cacheError.message });
+                        }
+                        
+                        // Add badge to generated image
+                        buffer = await addBadgeOverlay(buffer, badge.toUpperCase());
                     }
+                } else {
+                    // No badge, generate normally
+                    buffer = await generateThumbnail(resolvedTeam1, resolvedTeam2, {
+                        ...thumbOptions,
+                        league: leagueInfo
+                    });
                 }
             }
             
@@ -160,7 +182,7 @@ module.exports = {
             
             // Cache successful result (don't let caching errors affect the response)
             try {
-                require('../helpers/imageCache').addToCache(req, res, buffer);
+                addToCache(req, res, buffer);
             } catch (cacheError) {
                 logger.error('Failed to cache image', {
                     Error: cacheError.message,

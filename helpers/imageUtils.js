@@ -21,6 +21,27 @@ const MAX_CACHE_SIZE = 50; // Maximum number of cached white logos
 const EDGE_BRIGHTNESS_THRESHOLD = 200; // Average edge brightness above this means logo likely has white/light outline
 const COLOR_SIMILARITY_THRESHOLD = 120; // Colors closer than this need special handling
 
+// Valid badge keywords for overlay text
+const VALID_BADGE_KEYWORDS = [
+    // Quality indicators
+    '4K', 'HD', 'FHD', 'UHD',
+    // Alternate Feed indicator
+    'ALT', 'MANNINGCAST',
+    // Language indicators
+    'EN', 'ENG', 'ENGLISH',
+    'ES', 'ESP', 'SPANISH',
+    'FR', 'FRE', 'FRENCH',
+    'DE', 'GER', 'GERMAN',
+    'IT', 'ITA', 'ITALIAN',
+    // Network indicators
+    'NBC', 'ESPN', 'FOX', 'CBS', 'ABC', 'NFLN', 'MLBN', 'NBA TV'
+];
+
+// Helper function to validate badge keywords
+function isValidBadge(badge) {
+    return badge && VALID_BADGE_KEYWORDS.includes(badge.toUpperCase());
+}
+
 // ------------------------------------------------------------------------------
 // Cache
 // ------------------------------------------------------------------------------
@@ -34,6 +55,9 @@ const whiteLogoCache = new Map();
 
 // Cache for greyscale logo versions
 const greyscaleLogoCache = new Map();
+
+// Cache for badge overlays (keyed by text+scale+dimensions)
+const badgeCache = new Map();
 
 // Cache directory for trimmed logos
 const TRIMMED_CACHE_DIR = path.join(__dirname, '..', '.cache', 'trimmed');
@@ -71,6 +95,7 @@ module.exports = {
     generateFallbackTeamObject,
     resolveTeamsWithFallback,
     addBadgeOverlay,
+    isValidBadge,
 
     // Color utilities
     hexToRgb,
@@ -892,76 +917,117 @@ async function addBadgeOverlay(imageBuffer, badgeText, options = {}) {
     // Draw the original image
     ctx.drawImage(image, 0, 0);
     
-    // Calculate badge dimensions based on image size
-    // Scale badge size relative to image dimensions
-    const baseSize = Math.min(image.width, image.height);
-    const badgeHeight = Math.round(baseSize * badgeScale);
-    const badgeRadius = Math.round(badgeHeight * 0.3); // 30% of height for rounded corners
+    // Create cache key based on badge text, scale, and image dimensions
+    const cacheKey = `${badgeText}_${badgeScale}_${image.width}x${image.height}`;
     
-    // Set font and measure text
-    const fontSize = Math.round(badgeHeight * 0.55); // Font size is 55% of badge height
-    ctx.font = `bold ${fontSize}px Arial`;
-    const textMetrics = ctx.measureText(badgeText);
-    const textWidth = textMetrics.width;
+    // Check if we have a cached badge canvas
+    let badgeCanvas = badgeCache.get(cacheKey);
     
-    // Badge width is text width + padding on each side
-    const badgeWidth = Math.round(textWidth + (badgeHeight * 0.8));
+    if (!badgeCanvas) {
+        // Calculate badge dimensions based on image size
+        const baseSize = Math.min(image.width, image.height);
+        const badgeHeight = Math.round(baseSize * badgeScale);
+        const badgeRadius = Math.round(badgeHeight * 0.3); // 30% of height for rounded corners
+        
+        // Set font and measure text
+        const fontSize = Math.round(badgeHeight * 0.55); // Font size is 55% of badge height
+        const tempCtx = createCanvas(1, 1).getContext('2d');
+        tempCtx.font = `bold ${fontSize}px Arial`;
+        const textMetrics = tempCtx.measureText(badgeText);
+        const textWidth = textMetrics.width;
+        
+        // Badge width is text width + padding on each side
+        const badgeWidth = Math.round(textWidth + (badgeHeight * 0.8));
+        
+        // Shadow properties (reduced and softened)
+        const shadowBlur = 4;
+        const shadowOffsetX = 1;
+        const shadowOffsetY = 1;
+        
+        // Calculate extra space needed for shadow
+        const shadowMargin = shadowBlur + Math.max(Math.abs(shadowOffsetX), Math.abs(shadowOffsetY));
+        
+        // Create a canvas for the badge with extra space for shadow
+        const canvasWidth = badgeWidth + (shadowMargin * 2);
+        const canvasHeight = badgeHeight + (shadowMargin * 2);
+        badgeCanvas = createCanvas(canvasWidth, canvasHeight);
+        const badgeCtx = badgeCanvas.getContext('2d');
+        
+        // Store shadow margin on the canvas object for positioning later
+        badgeCanvas.shadowMargin = shadowMargin;
+        
+        // Offset the drawing position to account for shadow margin
+        const drawX = shadowMargin;
+        const drawY = shadowMargin;
+        
+        // Add shadow to the rounded rectangle
+        badgeCtx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+        badgeCtx.shadowBlur = shadowBlur;
+        badgeCtx.shadowOffsetX = shadowOffsetX;
+        badgeCtx.shadowOffsetY = shadowOffsetY;
+        
+        // Draw rounded rectangle background (white)
+        badgeCtx.fillStyle = 'white';
+        badgeCtx.beginPath();
+        badgeCtx.moveTo(drawX + badgeRadius, drawY);
+        badgeCtx.lineTo(drawX + badgeWidth - badgeRadius, drawY);
+        badgeCtx.arcTo(drawX + badgeWidth, drawY, drawX + badgeWidth, drawY + badgeRadius, badgeRadius);
+        badgeCtx.lineTo(drawX + badgeWidth, drawY + badgeHeight - badgeRadius);
+        badgeCtx.arcTo(drawX + badgeWidth, drawY + badgeHeight, drawX + badgeWidth - badgeRadius, drawY + badgeHeight, badgeRadius);
+        badgeCtx.lineTo(drawX + badgeRadius, drawY + badgeHeight);
+        badgeCtx.arcTo(drawX, drawY + badgeHeight, drawX, drawY + badgeHeight - badgeRadius, badgeRadius);
+        badgeCtx.lineTo(drawX, drawY + badgeRadius);
+        badgeCtx.arcTo(drawX, drawY, drawX + badgeRadius, drawY, badgeRadius);
+        badgeCtx.closePath();
+        badgeCtx.fill();
+        
+        // Reset shadow
+        badgeCtx.shadowColor = 'transparent';
+        badgeCtx.shadowBlur = 0;
+        badgeCtx.shadowOffsetX = 0;
+        badgeCtx.shadowOffsetY = 0;
+        
+        // Draw text (black, bold)
+        badgeCtx.fillStyle = 'black';
+        badgeCtx.font = `bold ${fontSize}px Arial`;
+        badgeCtx.textAlign = 'center';
+        badgeCtx.textBaseline = 'middle';
+        badgeCtx.fillText(badgeText, drawX + badgeWidth / 2, drawY + badgeHeight / 2);
+        
+        // Cache the badge canvas (limit cache size)
+        if (badgeCache.size >= MAX_CACHE_SIZE) {
+            const firstKey = badgeCache.keys().next().value;
+            badgeCache.delete(firstKey);
+        }
+        badgeCache.set(cacheKey, badgeCanvas);
+    }
     
     // Calculate badge position based on position parameter
+    // Account for shadow margin to position the visible badge correctly
+    const shadowMargin = badgeCanvas.shadowMargin || 0;
     let badgeX, badgeY;
     switch (position) {
         case 'top-left':
-            badgeX = padding;
-            badgeY = padding;
+            badgeX = padding - shadowMargin;
+            badgeY = padding - shadowMargin;
             break;
         case 'bottom-left':
-            badgeX = padding;
-            badgeY = image.height - badgeHeight - padding;
+            badgeX = padding - shadowMargin;
+            badgeY = image.height - badgeCanvas.height - padding + shadowMargin;
             break;
         case 'bottom-right':
-            badgeX = image.width - badgeWidth - padding;
-            badgeY = image.height - badgeHeight - padding;
+            badgeX = image.width - badgeCanvas.width - padding + shadowMargin;
+            badgeY = image.height - badgeCanvas.height - padding + shadowMargin;
             break;
         case 'top-right':
         default:
-            badgeX = image.width - badgeWidth - padding;
-            badgeY = padding;
+            badgeX = image.width - badgeCanvas.width - padding + shadowMargin;
+            badgeY = padding - shadowMargin;
             break;
     }
     
-    // Add shadow to the rounded rectangle
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-    ctx.shadowBlur = 8;
-    ctx.shadowOffsetX = 2;
-    ctx.shadowOffsetY = 2;
-    
-    // Draw rounded rectangle background (white)
-    ctx.fillStyle = 'white';
-    ctx.beginPath();
-    ctx.moveTo(badgeX + badgeRadius, badgeY);
-    ctx.lineTo(badgeX + badgeWidth - badgeRadius, badgeY);
-    ctx.arcTo(badgeX + badgeWidth, badgeY, badgeX + badgeWidth, badgeY + badgeRadius, badgeRadius);
-    ctx.lineTo(badgeX + badgeWidth, badgeY + badgeHeight - badgeRadius);
-    ctx.arcTo(badgeX + badgeWidth, badgeY + badgeHeight, badgeX + badgeWidth - badgeRadius, badgeY + badgeHeight, badgeRadius);
-    ctx.lineTo(badgeX + badgeRadius, badgeY + badgeHeight);
-    ctx.arcTo(badgeX, badgeY + badgeHeight, badgeX, badgeY + badgeHeight - badgeRadius, badgeRadius);
-    ctx.lineTo(badgeX, badgeY + badgeRadius);
-    ctx.arcTo(badgeX, badgeY, badgeX + badgeRadius, badgeY, badgeRadius);
-    ctx.closePath();
-    ctx.fill();
-    
-    // Reset shadow
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
-    
-    // Draw text (black, bold)
-    ctx.fillStyle = 'black';
-    ctx.font = `bold ${fontSize}px Arial`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(badgeText, badgeX + badgeWidth / 2, badgeY + badgeHeight / 2);
+    // Draw the cached badge onto the main canvas
+    ctx.drawImage(badgeCanvas, badgeX, badgeY);
     
     // Return the buffer
     return canvas.toBuffer('image/png');

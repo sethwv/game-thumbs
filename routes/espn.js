@@ -13,7 +13,7 @@
 const { generateLogo } = require('../generators/logoGenerator');
 const { generateThumbnail, generateCover } = require('../generators/thumbnailGenerator');
 const { generateLeagueThumb, generateTeamThumb, generateLeagueCover, generateTeamCover } = require('../generators/genericImageGenerator');
-const { downloadImage, addBadgeOverlay } = require('../helpers/imageUtils');
+const { downloadImage, addBadgeOverlay, isValidBadge } = require('../helpers/imageUtils');
 const logger = require('../helpers/logger');
 const { findLeague } = require('../leagues');
 const { addToCache } = require('../helpers/imageCache');
@@ -232,12 +232,8 @@ async function handleLogoEndpoint(req, leagueObj, team1, team2, options, res) {
         logoBuffer = await generateLogo(resolvedTeam1, resolvedTeam2, logoOptions);
         
         // Apply badge overlay if requested (only for matchups)
-        if (badge) {
-            const badgeUpper = badge.toUpperCase();
-            const validBadges = ['ALT', '4K', 'HD', 'FHD', 'UHD'];
-            if (validBadges.includes(badgeUpper)) {
-                logoBuffer = await addBadgeOverlay(logoBuffer, badgeUpper, { badgeScale: 0.18 });
-            }
+        if (isValidBadge(badge)) {
+            logoBuffer = await addBadgeOverlay(logoBuffer, badge.toUpperCase(), { badgeScale: 0.18 });
         }
     }
 
@@ -319,12 +315,8 @@ async function handleImageEndpoint(leagueObj, team1, team2, options, leagueGener
     let buffer = await matchupGenerator(resolvedTeam1, resolvedTeam2, matchupOptions);
     
     // Apply badge overlay if requested (only for matchups)
-    if (badge) {
-        const badgeUpper = badge.toUpperCase();
-        const validBadges = ['ALT', '4K', 'HD', 'FHD', 'UHD'];
-        if (validBadges.includes(badgeUpper)) {
-            buffer = await addBadgeOverlay(buffer, badgeUpper);
-        }
+    if (isValidBadge(badge)) {
+        buffer = await addBadgeOverlay(buffer, badge.toUpperCase());
     }
     
     return buffer;
