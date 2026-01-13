@@ -95,6 +95,36 @@ Configure the server behavior using environment variables:
 | `CORS_ORIGIN` | Allowed CORS origin(s). Set to `*` for all origins, or a specific domain like `https://example.com`. | `*` |
 | `CORS_MAX_AGE` | How long (in seconds) browsers should cache CORS preflight requests. | `86400` (24 hours) |
 
+### League Feature Flags
+
+Optional leagues can be enabled/disabled using environment variables. When disabled, these leagues will not initialize caches and will not be available via the API.
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `LEAGUES_ENABLE_TENNIS` | Enable tennis leagues (ATP, WTA). When enabled, initializes athlete cache (~33,800 athletes). | `false` |
+| `LEAGUES_ENABLE_MMA` | Enable MMA/combat sports leagues (UFC, PFL, Bellator). When enabled, initializes athlete caches. | `false` |
+
+**Example - Enable tennis:**
+```bash
+docker run -p 3000:3000 \
+  -e LEAGUES_ENABLE_TENNIS=true \
+  ghcr.io/sethwv/game-thumbs:latest
+```
+
+**Example - Enable both tennis and MMA:**
+```bash
+docker run -p 3000:3000 \
+  -e LEAGUES_ENABLE_TENNIS=true \
+  -e LEAGUES_ENABLE_MMA=true \
+  ghcr.io/sethwv/game-thumbs:latest
+```
+
+**Notes:**
+- These leagues are disabled by default to reduce startup time and memory usage
+- Tennis leagues have 33,800+ athletes and may take 5-30 minutes for initial cache population
+- When disabled, API requests to these leagues will return a "league not found" error
+- Athlete caches are not created when the league is disabled
+
 ---
 
 ## Volume Mounts

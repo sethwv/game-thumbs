@@ -107,6 +107,9 @@ GET /iihf/canada/usa/thumb
 
 Game Thumbs supports **athlete-based** combat sports and individual sports where athletes are treated as "teams" for matchup generation.
 
+{: .important }
+> **Feature Flag Required:** Combat sports leagues require the `LEAGUES_ENABLE_MMA=true` environment variable to be enabled. See [Docker Setup - League Feature Flags](docker.html#league-feature-flags) for details.
+
 ### Mixed Martial Arts (MMA)
 
 | League Name | Code | Provider | Athletes |
@@ -124,12 +127,15 @@ GET /bellator/ryan-bader/corey-anderson/cover
 
 ### Tennis
 
+{: .important }
+> **Feature Flag Required:** Tennis leagues require the `LEAGUES_ENABLE_TENNIS=true` environment variable to be enabled. See [Docker Setup - League Feature Flags](docker.html#league-feature-flags) for details.
+
 | League Name | Code | Provider | Athletes |
 |-------------|------|----------|----------|
 | Tennis (ATP & WTA) | `tennis` | ESPN Athlete | 33,800+ |
 
 {: .warning }
-> **Initial Cache:** Tennis has 33,800+ athletes across ATP and WTA. First-time cache population takes **5-30 minutes** depending on ESPN API rate limits. Subsequent server restarts load from cached files instantly.
+> **Initial Cache:** Tennis has 33,800+ athletes across ATP and WTA. First-time cache population takes **5-30 minutes** depending on ESPN API rate limits. Subsequent server restarts load from cached files instantly. **Athlete caches are only created when the feature flag is enabled.**
 
 **Singles Examples:**
 ```
