@@ -625,13 +625,33 @@ async function downloadImage(urlOrPath) {
             responseType: 'arraybuffer',
             timeout: REQUEST_TIMEOUT,
             maxRedirects: 5,
-            headers: { 'User-Agent': 'Mozilla/5.0' }
+            headers: { 
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Referer': 'https://www.espn.com/'
+            }
         });
         
         return Buffer.from(response.data);
     } catch (error) {
         if (error.code === 'ECONNABORTED') {
             throw new Error(`Request timeout after ${REQUEST_TIMEOUT}ms: ${urlOrPath}`);
+        }
+        // For 404 errors on ESPN athlete headshots, this is expected (many athletes don't have photos)
+        // Only log in development mode to reduce noise
+        // Silently fail for missing athlete headshots (404s are expected)
+        const isAthleteHeadshot = urlOrPath.includes('espncdn.com/i/headshots/');
+        const is404 = error.response?.status === 404;
+        
+        if (!isAthleteHeadshot || !is404) {
+            // Log non-404 errors or non-athlete image errors
+            logger.warn('Failed to download image', {
+                url: urlOrPath,
+                status: error.response?.status,
+                statusText: error.response?.statusText,
+                error: error.message
+            });
         }
         throw error;
     }
@@ -649,18 +669,35 @@ async function selectBestLogo(team, backgroundColor) {
             return team.logo;
         }
 
-        // Load both logos and check contrast
-        const [primaryBuffer, altBuffer] = await Promise.all([
-            downloadImage(team.logo),
-            downloadImage(team.logoAlt)
-        ]);
+        // Check if this is an athlete (headshot + flag scenario)
+        const isAthlete = team.logo.includes('espncdn.com/i/headshots/');
+        
+        // Try to load primary logo first
+        let primaryBuffer, primaryImage;
+        try {
+            primaryBuffer = await downloadImage(team.logo);
+            primaryImage = await loadImage(primaryBuffer);
+            
+            // For athletes, always prefer headshot if it loads successfully
+            if (isAthlete) {
+                return team.logo;
+            }
+        } catch (error) {
+            // Primary logo failed (e.g., 404 for athlete headshot), use logoAlt instead
+            return team.logoAlt;
+        }
 
-        const [primaryImage, altImage] = await Promise.all([
-            loadImage(primaryBuffer),
-            loadImage(altBuffer)
-        ]);
+        // For non-athletes (teams), try to load alternate logo and choose based on contrast
+        let altBuffer, altImage;
+        try {
+            altBuffer = await downloadImage(team.logoAlt);
+            altImage = await loadImage(altBuffer);
+        } catch (error) {
+            // Alt logo failed, use primary
+            return team.logo;
+        }
 
-        // Calculate color distances for both logos
+        // Both logos loaded successfully, calculate color distances
         const primaryAvgColor = getAverageColor(primaryImage);
         const primaryHex = rgbToHex(primaryAvgColor);
         const primaryDistance = colorDistance(primaryHex, backgroundColor);
@@ -692,7 +729,7 @@ async function selectBestLogo(team, backgroundColor) {
  */
 async function loadTrimmedLogo(team, backgroundColor) {
     try {
-        // Select best logo based on contrast
+        // Select best logo based on contrast (handles fallback to logoAlt automatically)
         const logoUrl = await selectBestLogo(team, backgroundColor);
         
         // Download and trim the logo (with URL as cache key)
@@ -752,22 +789,28 @@ function trimImage(imageBuffer, enableCache = true) {
             // Find the bounds of non-transparent pixels
             let minX = image.width, maxX = 0;
             let minY = image.height, maxY = 0;
+            let opaquePixelCount = 0;
             
             for (let y = 0; y < image.height; y++) {
                 for (let x = 0; x < image.width; x++) {
                     const alpha = data[(y * image.width + x) * 4 + 3];
-                    if (alpha > 0) { // Non-transparent pixel
+                    if (alpha > 10) { // Non-transparent pixel (threshold to ignore very faint pixels)
                         minX = Math.min(minX, x);
                         maxX = Math.max(maxX, x);
                         minY = Math.min(minY, y);
                         maxY = Math.max(maxY, y);
+                        opaquePixelCount++;
                     }
                 }
             }
             
-            // If all pixels are transparent, return the original image
-            if (minX >= image.width || minY >= image.height) {
-                resolve(imageBuffer);
+            // If all pixels are transparent or image is essentially blank (< 1% opaque pixels)
+            const totalPixels = image.width * image.height;
+            const opaquePercentage = (opaquePixelCount / totalPixels) * 100;
+            
+            if (minX >= image.width || minY >= image.height || opaquePercentage < 1) {
+                // Image is blank/transparent, throw error to trigger fallback
+                reject(new Error(`Image is blank or mostly transparent (${opaquePercentage.toFixed(2)}% opaque)`));
                 return;
             }
             

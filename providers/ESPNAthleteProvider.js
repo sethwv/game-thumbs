@@ -1,10 +1,27 @@
 // ------------------------------------------------------------------------------
 // ESPNAthleteProvider.js
-// ESPN athlete-based sports provider (MMA, UFC, Wrestling, Boxing, etc.)
+// ESPN athlete-based sports provider (MMA, UFC, Wrestling, Boxing, Tennis, etc.)
 // Treats individual fighters/athletes as "teams" for thumbnail generation
+//
+// Configuration:
+// - espnSport: The sport identifier (e.g., "mma", "tennis", "boxing")
+// - espnSlug: (Optional) The league identifier (e.g., "ufc", "atp", "wta")
+//
+// To check which leagues exist for a sport:
+// curl "https://sports.core.api.espn.com/v2/sports/{espnSport}/leagues"
+//
+// Examples:
+// - Tennis leagues: curl "https://sports.core.api.espn.com/v2/sports/tennis/leagues"
+// - MMA leagues: curl "https://sports.core.api.espn.com/v2/sports/mma/leagues"
+//
+// API Endpoints:
+// - With league: /v2/sports/{sport}/leagues/{league}/athletes
+// - Without league: /v2/sports/{sport}/athletes (may not work for all sports)
 // ------------------------------------------------------------------------------
 
 const axios = require('axios');
+const fs = require('fs').promises;
+const path = require('path');
 const BaseProvider = require('./BaseProvider');
 const { getTeamMatchScoreWithOverrides } = require('../helpers/teamUtils');
 const logger = require('../helpers/logger');
@@ -30,22 +47,35 @@ class ESPNAthleteProvider extends BaseProvider {
         this.CACHE_DURATION = 72 * 60 * 60 * 1000; // 72 hours
         this.REQUEST_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '10000', 10); // 10 seconds
         this.refreshIntervals = new Map(); // Track refresh intervals per league
+        this.pendingFetches = new Map(); // Track in-progress fetches to prevent duplicates
+        this.CACHE_DIR = path.join(process.cwd(), '.cache', 'providers');
         
-        // Predefined very dark blue color palette for athletes
-        this.colorPalette = [
-            '#1A2A3A', '#1F3545', '#0F2535', '#1A3040', '#0F1F30',
-            '#1F3040', '#1A2535', '#0F2030', '#1A2F3F', '#152535',
-            '#1A3545', '#0F2540', '#152A3A', '#1A2F40', '#1F3545',
-            '#0F1A2A', '#1A2A40', '#152F45', '#1A3040', '#0F2535'
-        ];
+        // Sport-specific color palettes
+        this.colorPalettes = {
+            // Tennis: Grass green, clay red, hard court blue, tennis ball yellow-green
+            tennis: [
+                '#2D5016', '#1B4D1E', '#1A5C2E', '#0D4A1F', '#1E6B34', // Grass court greens
+                '#8B4513', '#A0522D', '#CD853F', '#B8860B', '#C46210', // Clay court browns/oranges
+                '#1E3A5F', '#2C5F8D', '#1A4D7C', '#0F3B63', '#16537A', // Hard court blues
+                '#9ACD32', '#B8D62E', '#A4C639', '#8FBC3F', '#7CB342'  // Tennis ball yellow-greens
+            ],
+            // Default: Combat sports dark blues
+            default: [
+                '#1A2A3A', '#1F3545', '#0F2535', '#1A3040', '#0F1F30',
+                '#1F3040', '#1A2535', '#0F2030', '#1A2F3F', '#152535',
+                '#1A3545', '#0F2540', '#152A3A', '#1A2F40', '#1F3545',
+                '#0F1A2A', '#1A2A40', '#152F45', '#1A3040', '#0F2535'
+            ]
+        };
     }
 
     getProviderId() {
         return 'espnAthlete';
     }
 
-    generateRandomColor() {
-        return this.colorPalette[Math.floor(Math.random() * this.colorPalette.length)];
+    generateRandomColor(sport = 'default') {
+        const palette = this.colorPalettes[sport] || this.colorPalettes.default;
+        return palette[Math.floor(Math.random() * palette.length)];
     }
 
     getLeagueConfig(league) {
@@ -59,18 +89,60 @@ class ESPNAthleteProvider extends BaseProvider {
         return null;
     }
 
+    // Get all ESPN Athlete provider configs for a league (supports multiple providers)
+    getAllLeagueConfigs(league) {
+        const configs = [];
+        if (league.providers && Array.isArray(league.providers)) {
+            for (const providerConfig of league.providers) {
+                if (typeof providerConfig === 'object' && providerConfig.espnAthlete) {
+                    configs.push(providerConfig.espnAthlete);
+                }
+            }
+        }
+        return configs;
+    }
+
     async resolveTeam(league, athleteIdentifier) {
         if (!league || !athleteIdentifier) {
             throw new Error('Both league and athlete identifier are required');
         }
 
-        const espnConfig = this.getLeagueConfig(league);
-        if (!espnConfig) {
+        const espnConfigs = this.getAllLeagueConfigs(league);
+        if (espnConfigs.length === 0) {
             throw new Error(`League ${league.shortName} is missing ESPN Athlete configuration`);
         }
 
+        // Check if this is a doubles team (contains "+")
+        if (athleteIdentifier.includes('+')) {
+            const playerNames = athleteIdentifier.split('+').map(name => name.trim());
+            const resolvedAthletes = [];
+            
+            // Resolve each player individually
+            for (const playerName of playerNames) {
+                const athlete = await this.resolveSingleAthlete(league, playerName, espnConfigs);
+                resolvedAthletes.push(athlete);
+            }
+            
+            // Merge athletes into a composite team
+            const { mergeAthletesIntoTeam } = require('../helpers/athleteComposite');
+            const espnSport = espnConfigs[0].espnSport;
+            return await mergeAthletesIntoTeam(resolvedAthletes, espnSport);
+        }
+        
+        // Single athlete - resolve normally
+        return await this.resolveSingleAthlete(league, athleteIdentifier, espnConfigs);
+    }
+
+    async resolveSingleAthlete(league, athleteIdentifier, espnConfigs) {
+
         try {
-            const athletes = await this.fetchAthleteData(league);
+            // Fetch athletes from all configured providers (e.g., ATP and WTA for tennis)
+            const allAthletes = [];
+            for (const espnConfig of espnConfigs) {
+                const athletes = await this.fetchAthleteData(league, espnConfig);
+                allAthletes.push(...athletes);
+            }
+            const athletes = allAthletes;
             
             // Find best matching athlete using weighted scoring
             let bestMatch = null;
@@ -111,18 +183,25 @@ class ESPNAthleteProvider extends BaseProvider {
                 throw new AthleteNotFoundError(athleteIdentifier, league, athleteList);
             }
 
-            // Get full-body stance image as the "logo"
-            // ESPN provides stance images showing fighters in fighting position
-            // Direct URL format: /i/headshots/mma/players/stance/left/{id}.png
-            const stanceUrl = `https://a.espncdn.com/i/headshots/mma/players/stance/left/${bestMatch.id}.png`;
-            const headshotUrl = bestMatch.headshot?.href;
+            // Get athlete headshot from API or construct sport-specific URL
+            let headshotUrl = bestMatch.headshot?.href;
+            let flagUrl = bestMatch.flag?.href;
             
-            // Generate random vibrant colors instead of extracting from headshot
-            // This avoids skin tone becoming the dominant color
-            const primaryColor = this.generateRandomColor();
-            const alternateColor = this.generateRandomColor();
+            // Use the first config to get espnSport (all configs for same league have same sport)
+            const { espnSport } = espnConfigs[0];
+            
+            // If no headshot URL from API, construct one based on sport
+            if (!headshotUrl) {
+                headshotUrl = `https://a.espncdn.com/i/headshots/${espnSport}/players/full/${bestMatch.id}.png`;
+            }
+            
+            // Generate random colors based on sport
+            // Use sport-specific palette (e.g., tennis greens/clays/blues, combat sports dark blues)
+            const primaryColor = this.generateRandomColor(espnSport);
+            const alternateColor = this.generateRandomColor(espnSport);
 
             // Return athlete data in a "team-like" format
+            // Use headshot as primary logo, flag as alternate (fallback if headshot fails)
             const athleteData = {
                 id: bestMatch.id,
                 slug: bestMatch.slug,
@@ -132,8 +211,8 @@ class ESPNAthleteProvider extends BaseProvider {
                 abbreviation: (bestMatch.firstName?.[0] || '') + (bestMatch.lastName?.[0] || ''),
                 conference: null,
                 division: null,
-                logo: headshotUrl, // Full body stance image
-                // logoAlt: undefined, // No alternate logo for athletes
+                logo: headshotUrl,
+                logoAlt: flagUrl, // Use country flag as fallback if headshot doesn't exist
                 color: primaryColor,
                 alternateColor: alternateColor
             };
@@ -150,6 +229,7 @@ class ESPNAthleteProvider extends BaseProvider {
     }
 
     async getLeagueLogoUrl(league, darkLogoPreferred = true) {
+        // For leagues with multiple providers (e.g., tennis), use the first one for logo
         const espnConfig = this.getLeagueConfig(league);
         if (!espnConfig) {
             throw new Error(`League ${league.shortName} is missing ESPN Athlete configuration`);
@@ -193,6 +273,47 @@ class ESPNAthleteProvider extends BaseProvider {
         this.athleteCache.clear();
     }
 
+    // Get cache file path for a given cache key
+    getCacheFilePath(cacheKey) {
+        return path.join(this.CACHE_DIR, `espnAthlete-${cacheKey}.json`);
+    }
+
+    // Read cache from file
+    async readCacheFile(cacheKey) {
+        try {
+            const filePath = this.getCacheFilePath(cacheKey);
+            const data = await fs.readFile(filePath, 'utf8');
+            const parsed = JSON.parse(data);
+            
+            // Check if cache is still valid
+            const isExpired = Date.now() - parsed.timestamp >= this.CACHE_DURATION;
+            return {
+                ...parsed,
+                isExpired
+            };
+        } catch (error) {
+            // File doesn't exist or is invalid
+            return null;
+        }
+    }
+
+    // Write cache to file
+    async writeCacheFile(cacheKey, data, timestamp) {
+        try {
+            // Ensure cache directory exists
+            await fs.mkdir(this.CACHE_DIR, { recursive: true });
+            
+            const filePath = this.getCacheFilePath(cacheKey);
+            const cacheData = { data, timestamp };
+            await fs.writeFile(filePath, JSON.stringify(cacheData), 'utf8');
+        } catch (error) {
+            logger.warn('Failed to write cache file', { 
+                cacheKey, 
+                error: error.message 
+            });
+        }
+    }
+
     // Initialize cache for all configured leagues using this provider
     async initializeCache() {
         const supportedLeagues = this.getSupportedLeagues();
@@ -210,12 +331,17 @@ class ESPNAthleteProvider extends BaseProvider {
         // Process leagues sequentially to avoid overwhelming the ESPN API
         for (const leagueKey of supportedLeagues) {
             const league = leagues[leagueKey];
-            try {
-                await this.fetchAthleteData(league);
-                this.scheduleRefresh(league);
-                successCount++;
-            } catch (error) {
-                failCount++;
+            const espnConfigs = this.getAllLeagueConfigs(league);
+            
+            // Process each provider config (e.g., tennis has both ATP and WTA)
+            for (const espnConfig of espnConfigs) {
+                try {
+                    await this.fetchAthleteData(league, espnConfig);
+                    this.scheduleRefresh(league, espnConfig);
+                    successCount++;
+                } catch (error) {
+                    failCount++;
+                }
             }
         }
 
@@ -230,8 +356,14 @@ class ESPNAthleteProvider extends BaseProvider {
     }
 
     // Schedule automatic cache refresh for a league
-    scheduleRefresh(league) {
-        const cacheKey = `${league.shortName}_athletes`;
+    scheduleRefresh(league, espnConfig = null) {
+        if (!espnConfig) {
+            espnConfig = this.getLeagueConfig(league);
+        }
+        const espnSlug = espnConfig?.espnSlug;
+        const cacheKey = espnSlug 
+            ? `${league.shortName}_${espnSlug}_athletes`
+            : `${league.shortName}_athletes`;
         
         // Clear any existing interval
         if (this.refreshIntervals.has(cacheKey)) {
@@ -242,10 +374,11 @@ class ESPNAthleteProvider extends BaseProvider {
         const refreshInterval = this.CACHE_DURATION * 0.95;
         
         const intervalId = setInterval(async () => {
-            logger.info(`Auto-refreshing athlete cache for ${league.shortName}`);
+            const displayName = espnSlug ? `${league.shortName}/${espnSlug}` : league.shortName;
+            logger.info(`Auto-refreshing athlete cache for ${displayName}`);
             try {
                 const startTime = Date.now();
-                await this.fetchAthleteData(league, true); // Force refresh
+                await this.fetchAthleteData(league, espnConfig, true); // Force refresh
                 const duration = Date.now() - startTime;
                 logger.info(`Auto-refresh complete for ${league.shortName}`, {
                     count: this.athleteCache.get(cacheKey)?.data?.length || 0,
@@ -273,23 +406,129 @@ class ESPNAthleteProvider extends BaseProvider {
         this.refreshIntervals.clear();
     }
 
+    // Retry a request with exponential backoff for rate limiting
+    async retryWithBackoff(fn, maxRetries = 10, initialDelay = 45000) {
+        let lastError;
+        for (let attempt = 0; attempt < maxRetries; attempt++) {
+            try {
+                return await fn();
+            } catch (error) {
+                lastError = error;
+                const isRateLimit = error.response?.status === 403 || error.response?.status === 429;
+                
+                if (!isRateLimit || attempt === maxRetries - 1) {
+                    throw error;
+                }
+                
+                const delay = initialDelay * Math.pow(2, attempt);
+                logger.warn('Rate limited, retrying after delay', { 
+                    attempt: attempt + 1, 
+                    maxRetries,
+                    delay: `${delay}ms` 
+                });
+                
+                await new Promise(resolve => setTimeout(resolve, delay));
+            }
+        }
+        throw lastError;
+    }
+
     // ------------------------------------------------------------------------------
     // Private helper methods
     // ------------------------------------------------------------------------------
 
-    async fetchAthleteData(league, forceRefresh = false) {
-        const cacheKey = `${league.shortName}_athletes`;
-        const cached = this.athleteCache.get(cacheKey);
-
-        if (!forceRefresh && cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
-            return cached.data;
+    async fetchAthleteData(league, espnConfig = null, forceRefresh = false) {
+        // Use provided config or get first one
+        if (!espnConfig) {
+            espnConfig = this.getLeagueConfig(league);
         }
-
-        const espnConfig = this.getLeagueConfig(league);
         if (!espnConfig) {
             throw new Error(`League ${league.shortName} is missing ESPN Athlete configuration`);
         }
 
+        const { espnSport, espnSlug } = espnConfig;
+        
+        // Include espnSlug in cache key to differentiate between ATP/WTA, etc.
+        const cacheKey = espnSlug 
+            ? `${league.shortName}_${espnSlug}_athletes`
+            : `${league.shortName}_athletes`;
+        
+        // Check memory cache first
+        const cached = this.athleteCache.get(cacheKey);
+        const isCacheFresh = cached && Date.now() - cached.timestamp < this.CACHE_DURATION;
+        
+        if (!forceRefresh && isCacheFresh) {
+            return cached.data;
+        }
+
+        // Check file cache if not in memory
+        let staleData = null;
+        if (!forceRefresh) {
+            const fileCache = await this.readCacheFile(cacheKey);
+            if (fileCache && !fileCache.isExpired) {
+                // Load fresh file cache into memory
+                this.athleteCache.set(cacheKey, { data: fileCache.data, timestamp: fileCache.timestamp });
+                // Only log in development or on first server start
+                if (process.env.NODE_ENV === 'development' || this.athleteCache.size <= 5) {
+                    logger.info('Loaded athlete cache from file', { 
+                        cacheKey, 
+                        count: fileCache.data.length 
+                    });
+                }
+                return fileCache.data;
+            } else if (fileCache && fileCache.isExpired) {
+                // Cache is expired but we can use it while fetching fresh data
+                staleData = fileCache.data;
+            }
+        }
+
+        // If a background fetch is already in progress, return stale data or wait
+        if (this.pendingFetches.has(cacheKey)) {
+            if (staleData) {
+                logger.info('Background refresh in progress, returning stale data', { 
+                    cacheKey,
+                    count: staleData.length 
+                });
+                return staleData;
+            }
+            // No stale data available, must wait for the fetch
+            logger.info('Fetch already in progress, waiting for result', { cacheKey });
+            return await this.pendingFetches.get(cacheKey);
+        }
+
+        // If we have stale data and not forcing refresh, return it and fetch in background
+        if (staleData && !forceRefresh) {
+            logger.info('Using stale cache while fetching fresh data', { 
+                cacheKey, 
+                count: staleData.length
+            });
+            // Trigger background refresh
+            setImmediate(() => {
+                this.fetchAthleteData(league, espnConfig, true).catch(error => {
+                    logger.error('Background cache refresh failed', {
+                        cacheKey,
+                        error: error.message
+                    });
+                });
+            });
+            return staleData;
+        }
+        
+        // Create a fetch promise and track it
+        const fetchPromise = this.performFetch(league, espnConfig, cacheKey);
+        this.pendingFetches.set(cacheKey, fetchPromise);
+        
+        try {
+            const result = await fetchPromise;
+            return result;
+        } finally {
+            // Clean up the pending fetch tracking
+            this.pendingFetches.delete(cacheKey);
+        }
+    }
+
+    // Perform the actual fetch operation
+    async performFetch(league, espnConfig, cacheKey) {
         const { espnSport, espnSlug } = espnConfig;
         
         // Fetch athletes from the ESPN Sports Core API
@@ -305,15 +544,17 @@ class ESPNAthleteProvider extends BaseProvider {
                 
                 // logger.info('Fetching athletes', { league: league.shortName, page: pageIndex, limit: pageSize });
                 
-                const response = await axios.get(athleteApiUrl, {
-                    timeout: this.REQUEST_TIMEOUT * 2, // Double timeout for large athlete lists
-                    headers: { 'User-Agent': 'Mozilla/5.0' }
+                const response = await this.retryWithBackoff(async () => {
+                    return await axios.get(athleteApiUrl, {
+                        timeout: this.REQUEST_TIMEOUT * 2,
+                        headers: { 'User-Agent': 'Mozilla/5.0' }
+                    });
                 });
                 
                 const items = response.data.items || [];
                 
                 // Fetch full athlete details in batches to avoid overwhelming the API
-                const BATCH_SIZE = 50; // Process 50 athletes at a time
+                const BATCH_SIZE = 25; // Process 25 athletes at a time (balanced for speed and rate limits)
                 const athletes = [];
                 
                 for (let i = 0; i < items.length; i += BATCH_SIZE) {
@@ -321,11 +562,13 @@ class ESPNAthleteProvider extends BaseProvider {
                     const batchPromises = batch.map(async (item) => {
                         try {
                             const athleteUrl = item.$ref;
-                            const athleteResponse = await axios.get(athleteUrl, {
-                                timeout: this.REQUEST_TIMEOUT,
-                                headers: { 'User-Agent': 'Mozilla/5.0' }
+                            return await this.retryWithBackoff(async () => {
+                                const athleteResponse = await axios.get(athleteUrl, {
+                                    timeout: this.REQUEST_TIMEOUT,
+                                    headers: { 'User-Agent': 'Mozilla/5.0' }
+                                });
+                                return athleteResponse.data;
                             });
-                            return athleteResponse.data;
                         } catch (error) {
                             if (process.env.NODE_ENV !== 'production') logger.warn('Failed to fetch athlete details', { error: error.message });
                             return null;
@@ -334,6 +577,11 @@ class ESPNAthleteProvider extends BaseProvider {
                     
                     const batchResults = (await Promise.all(batchPromises)).filter(a => a !== null);
                     athletes.push(...batchResults);
+                    
+                    // Add small delay between batches to avoid rate limiting (200ms)
+                    if (i + BATCH_SIZE < items.length) {
+                        await new Promise(resolve => setTimeout(resolve, 200));
+                    }
                     
                     // Log progress for large datasets in development only
                     // if (items.length > 100 && process.env.NODE_ENV !== 'production') {
@@ -353,20 +601,34 @@ class ESPNAthleteProvider extends BaseProvider {
                 hasMorePages = pageIndex < pageCount;
                 pageIndex++;
                 
-                // Safety limit to prevent infinite loops (should only need 2-3 pages with limit=1000)
-                if (pageIndex > 10) {
-                    logger.warn('Reached max page limit', { league: league.shortName });
+                // Add delay between pages to avoid rate limiting (500ms - reduced from 1s)
+                if (hasMorePages) {
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+                
+                // Safety limit to prevent infinite loops
+                // Tennis ATP has 16K+ athletes (17 pages), so set limit higher
+                if (pageIndex > 25) {
+                    logger.warn('Reached max page limit', { 
+                        league: league.shortName, 
+                        slug: espnSlug,
+                        athleteCount: allAthletes.length 
+                    });
                     break;
                 }
             }
             
             // logger.info('Fetched athletes', { league: league.shortName, count: allAthletes.length });
             
-            // Cache the data
+            // Cache the data in memory
+            const timestamp = Date.now();
             this.athleteCache.set(cacheKey, {
                 data: allAthletes,
-                timestamp: Date.now()
+                timestamp
             });
+            
+            // Write to file cache (async, don't wait)
+            this.writeCacheFile(cacheKey, allAthletes, timestamp);
             
             return allAthletes;
         } catch (error) {

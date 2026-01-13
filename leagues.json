@@ -164,6 +164,39 @@
       }
     ]
   },
+  "__OTHER_MISC_SPORTS__": "===========================================",
+  "tennis": {
+    "name": "Tennis",
+    "providers": [],
+    "feederLeagues": [
+      "atp",
+      "wta"
+    ]
+  },
+  "atp": {
+    "name": "ATP Tour",
+    "logoUrl": "https://r2.thesportsdb.com/images/media/league/badge/x16ihc1546113079.png",
+    "providers": [
+      {
+        "espnAthlete": {
+          "espnSlug": "atp",
+          "espnSport": "tennis"
+        }
+      }
+    ]
+  },
+  "wta": {
+    "name": "WTA Tour",
+    "logoUrl": "https://www.thesportsdb.com/images/media/league/badge/bddhun1768230678.png",
+    "providers": [
+      {
+        "espnAthlete": {
+          "espnSlug": "wta",
+          "espnSport": "tennis"
+        }
+      }
+    ]
+  },
   "__OTHER_FOOTBALL_LEAGUES__": "===========================================",
   "ufl": {
     "name": "United Football League",

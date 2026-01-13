@@ -163,6 +163,23 @@ docker run -p 3000:3000 \
   ghcr.io/sethwv/game-thumbs:latest
 ```
 
+### Provider Cache Directory
+
+{: .important }
+> **Recommended for Tennis:** Mount the `.cache` directory to persist athlete data across container restarts. Tennis has 33,800+ athletes and takes 5-30 minutes to cache initially. Persisting the cache makes restarts instant.
+
+```bash
+docker run -p 3000:3000 \
+  -v /path/to/cache:/app/.cache \
+  ghcr.io/sethwv/game-thumbs:latest
+```
+
+**Benefits:**
+- Instant restarts - no need to re-fetch 33,800+ tennis athletes
+- Preserves MMA fighter rosters (UFC, PFL, Bellator)
+- Reduces load on ESPN APIs
+- Container updates don't lose cached data
+
 ---
 
 ## Example Configurations
@@ -181,6 +198,7 @@ docker run -d \
   -e LOG_TO_FILE=true \
   -v /path/to/custom-teams:/app/json/teams:ro \
   -v /path/to/logs:/app/logs \
+  -v /path/to/cache:/app/.cache \
   ghcr.io/sethwv/game-thumbs:latest
 ```
 
@@ -216,6 +234,7 @@ services:
       - ./custom-teams:/app/json/teams:ro
       - ./custom-leagues:/app/json/leagues:ro
       - ./logs:/app/logs
+      - ./cache:/app/.cache  # Persist athlete/provider cache (recommended for Tennis)
     restart: unless-stopped
 ```
 
