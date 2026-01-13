@@ -125,6 +125,39 @@ docker run -p 3000:3000 \
 - When disabled, API requests to these leagues will return a "league not found" error
 - Athlete caches are not created when the league is disabled
 
+### ESPN Athlete Provider Rate Limiting
+
+Control the rate of requests to ESPN's athlete API to avoid rate limiting during cache initialization.
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `ESPN_ATHLETE_REQUEST_DELAY` | Minimum delay between ESPN athlete API requests (in milliseconds). | `250` |
+| `ESPN_ATHLETE_MAX_CONCURRENT` | Maximum concurrent requests to ESPN athlete API. | `3` |
+
+**Example - Faster cache initialization (may hit rate limits):**
+```bash
+docker run -p 3000:3000 \
+  -e LEAGUES_ENABLE_TENNIS=true \
+  -e ESPN_ATHLETE_REQUEST_DELAY=100 \
+  -e ESPN_ATHLETE_MAX_CONCURRENT=5 \
+  ghcr.io/sethwv/game-thumbs:latest
+```
+
+**Example - Conservative rate limiting (slower but safer):**
+```bash
+docker run -p 3000:3000 \
+  -e LEAGUES_ENABLE_TENNIS=true \
+  -e ESPN_ATHLETE_REQUEST_DELAY=500 \
+  -e ESPN_ATHLETE_MAX_CONCURRENT=2 \
+  ghcr.io/sethwv/game-thumbs:latest
+```
+
+**Notes:**
+- Default settings (250ms delay, 3 concurrent) balance speed and reliability
+- ESPN doesn't publish rate limits, but testing shows ~200-300 requests/min is safe
+- If you encounter 403/429 errors, increase delay or decrease concurrency
+- Request queue automatically handles pacing - no need for manual delays
+
 ---
 
 ## Volume Mounts

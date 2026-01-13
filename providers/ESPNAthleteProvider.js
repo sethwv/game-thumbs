@@ -25,6 +25,7 @@ const path = require('path');
 const BaseProvider = require('./BaseProvider');
 const { getTeamMatchScoreWithOverrides } = require('../helpers/teamUtils');
 const logger = require('../helpers/logger');
+const RequestQueue = require('../helpers/RequestQueue');
 
 class AthleteNotFoundError extends Error {
     constructor(athleteIdentifier, league, athleteList) {
@@ -49,6 +50,18 @@ class ESPNAthleteProvider extends BaseProvider {
         this.refreshIntervals = new Map(); // Track refresh intervals per league
         this.pendingFetches = new Map(); // Track in-progress fetches to prevent duplicates
         this.CACHE_DIR = path.join(process.cwd(), '.cache', 'providers');
+        
+        // Request queue for rate limiting ESPN API calls
+        // Start aggressive, adaptive rate limiting will slow down if needed
+        const requestDelay = parseInt(process.env.ESPN_ATHLETE_REQUEST_DELAY || '100', 10);
+        const maxConcurrent = parseInt(process.env.ESPN_ATHLETE_MAX_CONCURRENT || '50', 10);
+        this.requestQueue = new RequestQueue({
+            minDelay: requestDelay,
+            maxConcurrent: maxConcurrent,
+            name: 'ESPN-Athlete'
+        });
+        
+        logger.info(`ESPN Athlete queue: ${maxConcurrent} concurrent, ${requestDelay}ms delay`);
         
         // Sport-specific color palettes
         this.colorPalettes = {
@@ -305,7 +318,7 @@ class ESPNAthleteProvider extends BaseProvider {
             
             const filePath = this.getCacheFilePath(cacheKey);
             const cacheData = { data, timestamp };
-            await fs.writeFile(filePath, JSON.stringify(cacheData), 'utf8');
+            await fs.writeFile(filePath, JSON.stringify(cacheData, null, 2), 'utf8');
         } catch (error) {
             logger.warn('Failed to write cache file', { 
                 cacheKey, 
@@ -325,34 +338,77 @@ class ESPNAthleteProvider extends BaseProvider {
         logger.info(`Initializing ESPN Athlete cache for ${supportedLeagues.length} league(s)`);
 
         const { leagues } = require('../leagues');
-        let successCount = 0;
-        let failCount = 0;
         
-        // Process leagues sequentially to avoid overwhelming the ESPN API
+        // Build list of all league configs
+        const leagueConfigs = [];
         for (const leagueKey of supportedLeagues) {
             const league = leagues[leagueKey];
             const espnConfigs = this.getAllLeagueConfigs(league);
             
-            // Process each provider config (e.g., tennis has both ATP and WTA)
             for (const espnConfig of espnConfigs) {
-                try {
-                    await this.fetchAthleteData(league, espnConfig);
-                    this.scheduleRefresh(league, espnConfig);
-                    successCount++;
-                } catch (error) {
-                    failCount++;
-                }
+                leagueConfigs.push({ league, espnConfig });
             }
         }
-
-        // Log completion asynchronously so it doesn't block
-        setImmediate(() => {
-            if (failCount > 0) {
-                logger.warn(`ESPN Athlete cache initialized: ${successCount} succeeded, ${failCount} failed`);
-            } else {
-                logger.info(`ESPN Athlete cache initialized: ${successCount} leagues`);
+        
+        // Phase 1: Load ALL cached data from disk in parallel (fast)
+        const diskLoadPromises = leagueConfigs.map(async ({ league, espnConfig }) => {
+            const { espnSlug } = espnConfig;
+            const cacheKey = espnSlug 
+                ? `${league.shortName}_${espnSlug}_athletes`
+                : `${league.shortName}_athletes`;
+            
+            const fileCache = await this.readCacheFile(cacheKey);
+            
+            if (fileCache) {
+                // Load into memory (even if expired)
+                this.athleteCache.set(cacheKey, { 
+                    data: fileCache.data, 
+                    timestamp: fileCache.timestamp 
+                });
+                
+                // Schedule refresh for this league
+                this.scheduleRefresh(league, espnConfig);
+                
+                // If expired, trigger background refresh
+                if (fileCache.isExpired) {
+                    logger.info(`Cache expired for ${cacheKey}, refreshing in background`);
+                    setImmediate(() => {
+                        this.fetchAthleteData(league, espnConfig, true).catch(error => {
+                            logger.error(`Background refresh failed for ${cacheKey}`, {
+                                error: error.message
+                            });
+                        });
+                    });
+                }
+                
+                return { cacheKey, loaded: true };
             }
+            
+            return { cacheKey, loaded: false, league, espnConfig };
         });
+        
+        const diskResults = await Promise.all(diskLoadPromises);
+        const loadedFromDisk = diskResults.filter(r => r.loaded).length;
+        const needsFetch = diskResults.filter(r => !r.loaded);
+        
+        logger.info(`ESPN Athlete cache: ${loadedFromDisk} loaded from disk, ${needsFetch.length} need fetching`);
+        
+        // Phase 2: Fetch missing data sequentially to avoid overwhelming API
+        for (const { cacheKey, league, espnConfig } of needsFetch) {
+            logger.info(`Fetching ${cacheKey} from API`);
+            try {
+                await this.fetchAthleteData(league, espnConfig);
+                this.scheduleRefresh(league, espnConfig);
+            } catch (error) {
+                logger.error(`Failed to fetch initial cache for ${cacheKey}`, {
+                    error: error.message
+                });
+            }
+        }
+        
+        if (needsFetch.length > 0) {
+            logger.info(`ESPN Athlete cache initialized: all ${needsFetch.length} missing caches fetched`);
+        }
     }
 
     // Schedule automatic cache refresh for a league
@@ -407,7 +463,8 @@ class ESPNAthleteProvider extends BaseProvider {
     }
 
     // Retry a request with exponential backoff for rate limiting
-    async retryWithBackoff(fn, maxRetries = 10, initialDelay = 45000) {
+    // Note: Queue handles normal pacing, this only activates on actual errors
+    async retryWithBackoff(fn, maxRetries = 5, initialDelay = 10000) {
         let lastError;
         for (let attempt = 0; attempt < maxRetries; attempt++) {
             try {
@@ -420,11 +477,13 @@ class ESPNAthleteProvider extends BaseProvider {
                     throw error;
                 }
                 
+                // If we hit rate limit despite queue, back off significantly
                 const delay = initialDelay * Math.pow(2, attempt);
-                logger.warn('Rate limited, retrying after delay', { 
+                logger.warn('Rate limited despite queue - backing off', { 
                     attempt: attempt + 1, 
                     maxRetries,
-                    delay: `${delay}ms` 
+                    delay: `${delay}ms`,
+                    queueStats: this.requestQueue.getStats()
                 });
                 
                 await new Promise(resolve => setTimeout(resolve, delay));
@@ -544,12 +603,15 @@ class ESPNAthleteProvider extends BaseProvider {
                 
                 // logger.info('Fetching athletes', { league: league.shortName, page: pageIndex, limit: pageSize });
                 
-                const response = await this.retryWithBackoff(async () => {
-                    return await axios.get(athleteApiUrl, {
-                        timeout: this.REQUEST_TIMEOUT * 2,
-                        headers: { 'User-Agent': 'Mozilla/5.0' }
-                    });
-                });
+                const response = await this.requestQueue.enqueue(
+                    () => this.retryWithBackoff(async () => {
+                        return await axios.get(athleteApiUrl, {
+                            timeout: this.REQUEST_TIMEOUT * 2,
+                            headers: { 'User-Agent': 'Mozilla/5.0' }
+                        });
+                    }),
+                    { metadata: { league: league.shortName, page: pageIndex, type: 'athlete-list' } }
+                );
                 
                 const items = response.data.items || [];
                 
@@ -562,13 +624,16 @@ class ESPNAthleteProvider extends BaseProvider {
                     const batchPromises = batch.map(async (item) => {
                         try {
                             const athleteUrl = item.$ref;
-                            return await this.retryWithBackoff(async () => {
-                                const athleteResponse = await axios.get(athleteUrl, {
-                                    timeout: this.REQUEST_TIMEOUT,
-                                    headers: { 'User-Agent': 'Mozilla/5.0' }
-                                });
-                                return athleteResponse.data;
-                            });
+                            return await this.requestQueue.enqueue(
+                                () => this.retryWithBackoff(async () => {
+                                    const athleteResponse = await axios.get(athleteUrl, {
+                                        timeout: this.REQUEST_TIMEOUT,
+                                        headers: { 'User-Agent': 'Mozilla/5.0' }
+                                    });
+                                    return athleteResponse.data;
+                                }),
+                                { metadata: { league: league.shortName, type: 'athlete-detail' } }
+                            );
                         } catch (error) {
                             if (process.env.NODE_ENV !== 'production') logger.warn('Failed to fetch athlete details', { error: error.message });
                             return null;
@@ -578,20 +643,7 @@ class ESPNAthleteProvider extends BaseProvider {
                     const batchResults = (await Promise.all(batchPromises)).filter(a => a !== null);
                     athletes.push(...batchResults);
                     
-                    // Add small delay between batches to avoid rate limiting (200ms)
-                    if (i + BATCH_SIZE < items.length) {
-                        await new Promise(resolve => setTimeout(resolve, 200));
-                    }
-                    
-                    // Log progress for large datasets in development only
-                    // if (items.length > 100 && process.env.NODE_ENV !== 'production') {
-                    //     logger.info('Progress', { 
-                    //         league: league.shortName, 
-                    //         page: pageIndex,
-                    //         fetched: athletes.length, 
-                    //         total: items.length 
-                    //     });
-                    // }
+                    // Queue handles request pacing and progress logging automatically
                 }
                 
                 allAthletes.push(...athletes);
@@ -601,10 +653,7 @@ class ESPNAthleteProvider extends BaseProvider {
                 hasMorePages = pageIndex < pageCount;
                 pageIndex++;
                 
-                // Add delay between pages to avoid rate limiting (500ms - reduced from 1s)
-                if (hasMorePages) {
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                }
+                // Queue handles request pacing - no manual delays needed
                 
                 // Safety limit to prevent infinite loops
                 // Tennis ATP has 16K+ athletes (17 pages), so set limit higher
@@ -618,7 +667,14 @@ class ESPNAthleteProvider extends BaseProvider {
                 }
             }
             
-            // logger.info('Fetched athletes', { league: league.shortName, count: allAthletes.length });
+            // Log completion with queue stats
+            const finalStats = this.requestQueue.getStats();
+            logger.info('Fetched athletes', { 
+                league: league.shortName, 
+                count: allAthletes.length,
+                requestsProcessed: finalStats.totalProcessed,
+                errorRate: finalStats.errorRate
+            });
             
             // Cache the data in memory
             const timestamp = Date.now();
