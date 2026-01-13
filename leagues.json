@@ -454,6 +454,21 @@
       }
     ]
   },
+  "copadelrey": {
+    "name": "Copa Del Rey",
+    "feederLeagues": [
+      "laliga",
+      "segunda"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "esp.copa_del_rey",
+          "espnSport": "soccer"
+        }
+      }
+    ]
+  },
   "bundesliga": {
     "name": "Bundesliga",
     "feederLeagues": [
