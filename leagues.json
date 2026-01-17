@@ -47,6 +47,7 @@
   "pwhl": {
     "name": "Professional Women's Hockey League",
     "logoUrl": "./assets/PWHL.png",
+    "logoUrlDark": "./assets/PWHL_Dark.png",
     "providers": [
       {
         "hockeyTech": {
