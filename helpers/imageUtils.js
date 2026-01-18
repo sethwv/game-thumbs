@@ -44,7 +44,7 @@ const VALID_BADGE_KEYWORDS = [
 
 // Helper function to validate badge keywords
 function isValidBadge(badge) {
-    return  (badge && lower(process.env.ALLOW_CUSTOM_BADGES.trim()) === 'true') ||
+    return  (badge && process.env.ALLOW_CUSTOM_BADGES && process.env.ALLOW_CUSTOM_BADGES.trim().toLowerCase() === 'true') ||
             (badge && VALID_BADGE_KEYWORDS.includes(badge.toUpperCase()));
 }
 
