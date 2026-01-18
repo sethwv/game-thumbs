@@ -29,12 +29,16 @@ nav_order: 4
 | National Hockey League | `nhl` | ESPN | |
 | National Lacrosse League | `nll` | ESPN | |
 | Professional Women's Hockey League | `pwhl` | HockeyTech | |
+| US Hockey League | `ushl` | HockeyTech | |
 | Canadian Football League | `cfl` | TheSportsDB | |
 | English Premier League | `epl` | TheSportsDB / ESPN | Championship, League One, League Two |
+| English FA Cup | `engfa` | ESPN | EPL, Championship, League One, League Two |
 | EFL Championship | `championship` | ESPN | |
 | EFL League One | `league-one` | ESPN | |
 | EFL League Two | `league-two` | ESPN | |
+| EFL Cup | `engleaguecup` | ESPN | EPL, Championship, League One, League Two |
 | La Liga (Spain) | `laliga` | ESPN | Segunda División |
+| Copa del Rey (Spain) | `copadelrey` | ESPN | La Liga, Segunda División |
 | Segunda División (Spain) | `segunda` | ESPN | |
 | Bundesliga (Germany) | `bundesliga` | ESPN | 2. Bundesliga |
 | 2. Bundesliga (Germany) | `2-bundesliga` | ESPN | |
@@ -42,6 +46,11 @@ nav_order: 4
 | Serie B (Italy) | `serieb` | ESPN | |
 | Ligue 1 (France) | `ligue1` | ESPN | Ligue 2 |
 | Ligue 2 (France) | `ligue2` | ESPN | |
+| Scottish Premiership | `spfl` | TheSportsDB / ESPN | |
+| Scottish Cup | `scup` | TheSportsDB / ESPN | SPFL, Championship, League One, League Two |
+| Scottish Championship | `sch` | TheSportsDB / ESPN | |
+| Scottish League One | `sl1` | TheSportsDB / ESPN | |
+| Scottish League Two | `sl2` | TheSportsDB / ESPN | |
 | Major League Soccer | `mls` | ESPN | |
 | UEFA Champions League | `uefa` | ESPN | |
 | UEFA Women's Champions League | `uefa.wchampions` | ESPN | |
@@ -73,6 +82,7 @@ nav_order: 4
 | Manitoba Junior Hockey League | `mjhl` | HockeyTech | |
 | Maritime Junior Hockey League | `mhl` | HockeyTech | |
 | Ontario Junior Hockey League | `ojhl` | HockeyTech | |
+| Canadian Sport School Hockey League | `csshl` | HockeyTech | |
 
 ---
 
@@ -133,6 +143,8 @@ GET /bellator/ryan-bader/corey-anderson/cover
 | League Name | Code | Provider | Athletes |
 |-------------|------|----------|----------|
 | Tennis (ATP & WTA) | `tennis` | ESPN Athlete | 33,800+ |
+| ATP Tour (Men's) | `atp` | ESPN Athlete | Feeder of Tennis |
+| WTA Tour (Women's) | `wta` | ESPN Athlete | Feeder of Tennis |
 
 {: .warning }
 > **Initial Cache:** Tennis has 33,800+ athletes across ATP and WTA. First-time cache population takes **5-30 minutes** depending on ESPN API rate limits. Subsequent server restarts load from cached files instantly. **Athlete caches are only created when the feature flag is enabled.**
