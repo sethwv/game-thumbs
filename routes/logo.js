@@ -103,14 +103,14 @@ module.exports = {
             // Case 3: Matchup logo (/:league/:team1/:team2/logo)
             else {
                 const styleValue = parseInt(style) || 1;
-                // Styles 5 and 6 require the league logo
-                const requiresLeagueLogo = styleValue === 5 || styleValue === 6;
+                // Styles 1, 5, and 6 have league logo enabled by default
+                const hasLeagueLogoByDefault = styleValue === 1 || styleValue === 5 || styleValue === 6;
                 
                 const logoOptions = {
                     width: 1024,
                     height: 1024,
                     style: styleValue,
-                    league: (logo === 'true' || requiresLeagueLogo) ? league : null,
+                    league: (logo === 'true' || (logo !== 'false' && hasLeagueLogoByDefault)) ? league : null,
                     useLight: useLight === 'true',
                     trim: trim !== 'false'
                 };
@@ -137,7 +137,7 @@ module.exports = {
                 let leagueInfo = null;
                 if (logoOptions.league) {
                     // For styles 5 and 6, fetch both default and dark logos for contrast checking
-                    if (requiresLeagueLogo) {
+                    if (styleValue === 5 || styleValue === 6) {
                         // For white background: default logo is primary (colored, for light bg), dark logo is alternate (light colored, for dark bg)
                         const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj, false); // default (primary - works on light backgrounds)
                         const leagueLogoUrlAlt = await providerManager.getLeagueLogoUrl(leagueObj, true); // dark (alternate - works on dark backgrounds)
