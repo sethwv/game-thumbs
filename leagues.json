@@ -131,6 +131,7 @@
   "__COMBAT_SPORTS__": "===========================================",
   "ufc": {
     "name": "Ultimate Fighting Championship",
+    "env_var": "LEAGUES_ENABLE_MMA",
     "aliases": [
       "mma"
     ],
@@ -145,6 +146,7 @@
   },
   "pfl": {
     "name": "Professional Fighters League",
+    "env_var": "LEAGUES_ENABLE_MMA",
     "providers": [
       {
         "espnAthlete": {
@@ -156,11 +158,48 @@
   },
   "bellator": {
     "name": "Bellator MMA",
+    "env_var": "LEAGUES_ENABLE_MMA",
     "providers": [
       {
         "espnAthlete": {
           "espnSlug": "bellator",
           "espnSport": "mma"
+        }
+      }
+    ]
+  },
+  "__OTHER_MISC_SPORTS__": "===========================================",
+  "tennis": {
+    "name": "Tennis",
+    "env_var": "LEAGUES_ENABLE_TENNIS",
+    "providers": [],
+    "feederLeagues": [
+      "atp",
+      "wta"
+    ]
+  },
+  "atp": {
+    "name": "ATP Tour",
+    "env_var": "LEAGUES_ENABLE_TENNIS",
+    "logoUrl": "https://r2.thesportsdb.com/images/media/league/badge/x16ihc1546113079.png",
+    "providers": [
+      {
+        "espnAthlete": {
+          "espnSlug": "atp",
+          "espnSport": "tennis"
+        }
+      }
+    ]
+  },
+  "wta": {
+    "name": "WTA Tour",
+    "env_var": "LEAGUES_ENABLE_TENNIS",
+    "logoUrl": "https://www.thesportsdb.com/images/media/league/badge/bddhun1768230678.png",
+    "providers": [
+      {
+        "espnAthlete": {
+          "espnSlug": "wta",
+          "espnSport": "tennis"
         }
       }
     ]

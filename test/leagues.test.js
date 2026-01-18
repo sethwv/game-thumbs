@@ -84,9 +84,14 @@ async function waitForServer(maxAttempts = 30, delayMs = 1000) {
 
 function getLeaguesList() {
     const leagueList = [];
+    const skipLeagues = ['tennis', 'ufc', 'atp', 'wta', 'pfl', 'bellator'];
+    
     for (const key in leagues) {
         // Skip comment keys
         if (key.startsWith('__')) continue;
+        
+        // Skip tennis and MMA leagues (expensive/slow cache)
+        if (skipLeagues.includes(key)) continue;
         
         const league = leagues[key];
         leagueList.push({

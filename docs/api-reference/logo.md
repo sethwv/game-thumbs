@@ -21,6 +21,8 @@ nav_order: 6
 
 - `league` - Sport league code (see [Supported Leagues](supported-leagues.html))
 - `team` / `team1` / `team2` - Team identifier (name, city, or abbreviation)
+  - **Athlete Sports (Tennis, MMA):** Use athlete names (e.g., `djokovic`, `serena-williams`)
+  - **Doubles/Teams:** Use `+` to combine multiple athletes (e.g., `djokovic+federer`)
 
 ---
 
@@ -74,6 +76,13 @@ GET /nfl/chiefs/49ers/logo?style=3
 GET /ncaaf/alabama/georgia/logo?size=2048
 GET /nhl/tor/mtl/logo?badge=4K
 GET /epl/arsenal/chelsea/logo?badge=ALT&style=2
+```
+
+### Athlete Sports
+```
+GET /tennis/djokovic/federer/logo
+GET /tennis/djokovic+federer/nadal+murray/logo?style=2
+GET /ufc/jon-jones/stipe-miocic/logo?style=3
 ```
 
 ---
