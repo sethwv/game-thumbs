@@ -47,6 +47,7 @@
   "pwhl": {
     "name": "Professional Women's Hockey League",
     "logoUrl": "./assets/PWHL.png",
+    "logoUrlDark": "./assets/PWHL_Dark.png",
     "providers": [
       {
         "hockeyTech": {
@@ -130,6 +131,7 @@
   "__COMBAT_SPORTS__": "===========================================",
   "ufc": {
     "name": "Ultimate Fighting Championship",
+    "env_var": "LEAGUES_ENABLE_MMA",
     "aliases": [
       "mma"
     ],
@@ -144,6 +146,7 @@
   },
   "pfl": {
     "name": "Professional Fighters League",
+    "env_var": "LEAGUES_ENABLE_MMA",
     "providers": [
       {
         "espnAthlete": {
@@ -155,11 +158,48 @@
   },
   "bellator": {
     "name": "Bellator MMA",
+    "env_var": "LEAGUES_ENABLE_MMA",
     "providers": [
       {
         "espnAthlete": {
           "espnSlug": "bellator",
           "espnSport": "mma"
+        }
+      }
+    ]
+  },
+  "__OTHER_MISC_SPORTS__": "===========================================",
+  "tennis": {
+    "name": "Tennis",
+    "env_var": "LEAGUES_ENABLE_TENNIS",
+    "providers": [],
+    "feederLeagues": [
+      "atp",
+      "wta"
+    ]
+  },
+  "atp": {
+    "name": "ATP Tour",
+    "env_var": "LEAGUES_ENABLE_TENNIS",
+    "logoUrl": "https://r2.thesportsdb.com/images/media/league/badge/x16ihc1546113079.png",
+    "providers": [
+      {
+        "espnAthlete": {
+          "espnSlug": "atp",
+          "espnSport": "tennis"
+        }
+      }
+    ]
+  },
+  "wta": {
+    "name": "WTA Tour",
+    "env_var": "LEAGUES_ENABLE_TENNIS",
+    "logoUrl": "https://www.thesportsdb.com/images/media/league/badge/bddhun1768230678.png",
+    "providers": [
+      {
+        "espnAthlete": {
+          "espnSlug": "wta",
+          "espnSport": "tennis"
         }
       }
     ]
@@ -439,6 +479,29 @@
       }
     ]
   },
+  "engleaguecup": {
+    "name": "English Carabao Cup",
+    "aliases": [
+      "english league cup",
+      "english football league cup",
+      "carabao cup",
+      "eng.carabao_cup"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4570",
+          "leagueName": "EFL Cup"
+        }
+      },
+      {
+        "espn": {
+          "espnSlug": "eng.league_cup",
+          "espnSport": "soccer"
+        }
+      }
+    ]
+  },
   "laliga": {
     "name": "La Liga",
     "feederLeagues": [
@@ -448,6 +511,21 @@
       {
         "espn": {
           "espnSlug": "esp.1",
+          "espnSport": "soccer"
+        }
+      }
+    ]
+  },
+  "copadelrey": {
+    "name": "Copa Del Rey",
+    "feederLeagues": [
+      "laliga",
+      "segunda"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "esp.copa_del_rey",
           "espnSport": "soccer"
         }
       }
@@ -624,6 +702,121 @@
         "espn": {
           "espnSlug": "fra.2",
           "espnSport": "soccer"
+        }
+      }
+    ]
+  },
+  "scup": {
+    "name": "Scottish Cup",
+    "aliases": [
+      "scottish fa cup",
+      "scottish cup",
+      "sfa cup",
+      "sfa.cup",
+      "sco.tennents"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4723",
+          "leagueName": "Scottish FA Cup"
+        }
+      },
+      {
+        "espn": {
+          "espnSport": "soccer",
+          "espnSlug": "sco.tennents"
+        }
+      }
+    ],
+    "feederLeagues": [
+      "spfl",
+      "sch",
+      "sl1",
+      "sl2"
+    ]
+  },
+  "spfl": {
+    "name": "Scottish Premiership",
+    "aliases": [
+      "scottish premiership",
+      "scottish premier league",
+      "sco.1"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4330",
+          "leagueName": "Scottish Premiership"
+        }
+      },
+      {
+        "espn": {
+          "espnSport": "soccer",
+          "espnSlug": "sco.1"
+        }
+      }
+    ]
+  },
+  "sch": {
+    "name": "Scottish Championship",
+    "aliases": [
+      "scottish championship",
+      "sco.2"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4396",
+          "leagueName": "Scottish Championship"
+        }
+      },
+      {
+        "espn": {
+          "espnSport": "soccer",
+          "espnSlug": "sco.2"
+        }
+      }
+    ]
+  },
+  "sl1": {
+    "name": "Scottish League One",
+    "aliases": [
+      "scottish league one",
+      "sco.3"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4669",
+          "leagueName": "Scottish League 1"
+        }
+      },
+      {
+        "espn": {
+          "espnSport": "soccer",
+          "espnSlug": "sco.3"
+        }
+      }
+    ]
+  },
+  "sl2": {
+    "name": "Scottish League Two",
+    "aliases": [
+      "scottish league two",
+      "sco.4"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4670",
+          "leagueName": "Scottish League 2"
+        }
+      },
+      {
+        "espn": {
+          "espnSport": "soccer",
+          "espnSlug": "sco.4"
         }
       }
     ]

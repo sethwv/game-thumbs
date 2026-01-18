@@ -6,16 +6,32 @@
 // ------------------------------------------------------------------------------
 
 const { loadAndMergeJSON } = require('./helpers/jsonMerger');
+const logger = require('./helpers/logger');
 
 // Load base leagues.json + all files from json/leagues/ directory
 const leaguesRaw = loadAndMergeJSON('leagues.json', 'json/leagues', 'leagues');
 
-// Add shortName to each league from its key
+// Filter leagues based on environment variable flags
+// Leagues with an "env_var" property are only enabled if that environment variable is set to a truthy value
 const leagues = {};
 for (const key in leaguesRaw) {
+    const league = leaguesRaw[key];
+    
+    // Check if league requires an environment variable to be enabled
+    if (league.env_var) {
+        const envValue = process.env[league.env_var];
+        const isEnabled = envValue === 'true' || envValue === '1' || envValue === 'yes';
+        
+        if (!isEnabled) {
+            // Skip this league - it's disabled by env var
+            logger.info(`League ${key} disabled (${league.env_var} not set)`);
+            continue;
+        }
+    }
+    
     leagues[key] = {
-        ...leaguesRaw[key],
-        shortName: leaguesRaw[key].shortName || key.toUpperCase()
+        ...league,
+        shortName: league.shortName || key.toUpperCase()
     };
 }
 

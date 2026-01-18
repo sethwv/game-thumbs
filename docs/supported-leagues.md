@@ -29,12 +29,16 @@ nav_order: 4
 | National Hockey League | `nhl` | ESPN | |
 | National Lacrosse League | `nll` | ESPN | |
 | Professional Women's Hockey League | `pwhl` | HockeyTech | |
+| US Hockey League | `ushl` | HockeyTech | |
 | Canadian Football League | `cfl` | TheSportsDB | |
 | English Premier League | `epl` | TheSportsDB / ESPN | Championship, League One, League Two |
+| English FA Cup | `engfa` | ESPN | EPL, Championship, League One, League Two |
 | EFL Championship | `championship` | ESPN | |
 | EFL League One | `league-one` | ESPN | |
 | EFL League Two | `league-two` | ESPN | |
+| EFL Cup | `engleaguecup` | ESPN | EPL, Championship, League One, League Two |
 | La Liga (Spain) | `laliga` | ESPN | Segunda División |
+| Copa del Rey (Spain) | `copadelrey` | ESPN | La Liga, Segunda División |
 | Segunda División (Spain) | `segunda` | ESPN | |
 | Bundesliga (Germany) | `bundesliga` | ESPN | 2. Bundesliga |
 | 2. Bundesliga (Germany) | `2-bundesliga` | ESPN | |
@@ -42,6 +46,11 @@ nav_order: 4
 | Serie B (Italy) | `serieb` | ESPN | |
 | Ligue 1 (France) | `ligue1` | ESPN | Ligue 2 |
 | Ligue 2 (France) | `ligue2` | ESPN | |
+| Scottish Premiership | `spfl` | TheSportsDB / ESPN | |
+| Scottish Cup | `scup` | TheSportsDB / ESPN | SPFL, Championship, League One, League Two |
+| Scottish Championship | `sch` | TheSportsDB / ESPN | |
+| Scottish League One | `sl1` | TheSportsDB / ESPN | |
+| Scottish League Two | `sl2` | TheSportsDB / ESPN | |
 | Major League Soccer | `mls` | ESPN | |
 | UEFA Champions League | `uefa` | ESPN | |
 | UEFA Women's Champions League | `uefa.wchampions` | ESPN | |
@@ -73,6 +82,7 @@ nav_order: 4
 | Manitoba Junior Hockey League | `mjhl` | HockeyTech | |
 | Maritime Junior Hockey League | `mhl` | HockeyTech | |
 | Ontario Junior Hockey League | `ojhl` | HockeyTech | |
+| Canadian Sport School Hockey League | `csshl` | HockeyTech | |
 
 ---
 
@@ -105,13 +115,18 @@ GET /iihf/canada/usa/thumb
 
 ## Combat Sports
 
-Game Thumbs supports **athlete-based** combat sports leagues where individual fighters are treated as "teams" for matchup generation.
+Game Thumbs supports **athlete-based** combat sports and individual sports where athletes are treated as "teams" for matchup generation.
+
+{: .important }
+> **Feature Flag Required:** Combat sports leagues require the `LEAGUES_ENABLE_MMA=true` environment variable to be enabled. See [Docker Setup - League Feature Flags](docker.html#league-feature-flags) for details.
+
+### Mixed Martial Arts (MMA)
 
 | League Name | Code | Provider | Athletes |
 |-------------|------|----------|----------|
-| Ultimate Fighting Championship | `ufc` | ESPN Athlete | 600+ |
-| Professional Fighters League | `pfl` | ESPN Athlete | 200+ |
-| Bellator MMA | `bellator` | ESPN Athlete | 300+ |
+| Ultimate Fighting Championship | `ufc` | ESPN Athlete | 1,800+ |
+| Professional Fighters League | `pfl` | ESPN Athlete | 500+ |
+| Bellator MMA | `bellator` | ESPN Athlete | 1,000+ |
 
 **Examples:**
 ```
@@ -120,12 +135,45 @@ GET /pfl/kayla-harrison/larissa-pacheco/logo
 GET /bellator/ryan-bader/corey-anderson/cover
 ```
 
+### Tennis
+
+{: .important }
+> **Feature Flag Required:** Tennis leagues require the `LEAGUES_ENABLE_TENNIS=true` environment variable to be enabled. See [Docker Setup - League Feature Flags](docker.html#league-feature-flags) for details.
+
+| League Name | Code | Provider | Athletes |
+|-------------|------|----------|----------|
+| Tennis (ATP & WTA) | `tennis` | ESPN Athlete | 33,800+ |
+| ATP Tour (Men's) | `atp` | ESPN Athlete | Feeder of Tennis |
+| WTA Tour (Women's) | `wta` | ESPN Athlete | Feeder of Tennis |
+
+{: .warning }
+> **Initial Cache:** Tennis has 33,800+ athletes across ATP and WTA. First-time cache population takes **5-30 minutes** depending on ESPN API rate limits. Subsequent server restarts load from cached files instantly. **Athlete caches are only created when the feature flag is enabled.**
+
+**Singles Examples:**
+```
+GET /tennis/djokovic/federer/thumb
+GET /tennis/serena-williams/osaka/cover
+GET /tennis/nadal/alcaraz/logo
+```
+
+**Doubles Examples:**
+Tennis supports doubles matches using the `+` separator to combine players:
+```
+GET /tennis/djokovic+federer/nadal+murray/thumb
+GET /tennis/serena-williams+venus-williams/osaka+azarenka/cover
+GET /tennis/ram+salisbury/koolhof+skupski/logo
+```
+
 **Features:**
 - Automatic athlete roster caching (72-hour duration)
 - Background cache refresh before expiration
 - Smart name matching (first name, last name, full name)
-- Randomly assigned dark color palettes for visual consistency
-- Headshot images used as fighter "logos"
+- **Tennis-specific color palettes** (grass court greens, clay court browns/oranges, hard court blues, tennis ball yellow-greens)
+- MMA sports use dark blue color palettes
+- Headshot images used as athlete "logos"
+- Country flags used as fallback when headshots are unavailable
+- **Doubles support**: Composite images with both players side-by-side
+- Searches both ATP (men's) and WTA (women's) rosters automatically
 
 ---
 
