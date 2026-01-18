@@ -533,6 +533,38 @@ async function resolveTeamsWithFallback(providerManager, leagueObj, team1Identif
                     provider: teamWithLogo.provider.getProviderId()
                 });
                 resolvedTeam1 = teamWithLogo.team;
+            } else if (leagueObj.feederLeagues && leagueObj.feederLeagues.length > 0) {
+                // Try feeder leagues to find team with logo
+                const { findLeague } = require('../leagues');
+                let foundInFeeder = false;
+                
+                for (const feederLeagueKey of leagueObj.feederLeagues) {
+                    const feederLeague = findLeague(feederLeagueKey);
+                    if (feederLeague) {
+                        try {
+                            const feederTeam = await providerManager.resolveTeam(feederLeague, team1Identifier, new Set());
+                            if (feederTeam && (feederTeam.logo || feederTeam.logoAlt)) {
+                                logger.info(`Using logo from feeder league`, {
+                                    team: team1Identifier,
+                                    feederLeague: feederLeagueKey
+                                });
+                                resolvedTeam1 = feederTeam;
+                                foundInFeeder = true;
+                                break;
+                            }
+                        } catch (err) {
+                            // Continue to next feeder league
+                        }
+                    }
+                }
+                
+                if (!foundInFeeder) {
+                    logger.warn(`No logo found from any provider or feeder league, using fallback`, { 
+                        team: team1Identifier, 
+                        league: leagueObj.shortName 
+                    });
+                    team1Failed = true;
+                }
             } else {
                 logger.warn(`No logo found from any provider, using fallback`, { 
                     team: team1Identifier, 
@@ -572,6 +604,38 @@ async function resolveTeamsWithFallback(providerManager, leagueObj, team1Identif
                     provider: teamWithLogo.provider.getProviderId()
                 });
                 resolvedTeam2 = teamWithLogo.team;
+            } else if (leagueObj.feederLeagues && leagueObj.feederLeagues.length > 0) {
+                // Try feeder leagues to find team with logo
+                const { findLeague } = require('../leagues');
+                let foundInFeeder = false;
+                
+                for (const feederLeagueKey of leagueObj.feederLeagues) {
+                    const feederLeague = findLeague(feederLeagueKey);
+                    if (feederLeague) {
+                        try {
+                            const feederTeam = await providerManager.resolveTeam(feederLeague, team2Identifier, new Set());
+                            if (feederTeam && (feederTeam.logo || feederTeam.logoAlt)) {
+                                logger.info(`Using logo from feeder league`, {
+                                    team: team2Identifier,
+                                    feederLeague: feederLeagueKey
+                                });
+                                resolvedTeam2 = feederTeam;
+                                foundInFeeder = true;
+                                break;
+                            }
+                        } catch (err) {
+                            // Continue to next feeder league
+                        }
+                    }
+                }
+                
+                if (!foundInFeeder) {
+                    logger.warn(`No logo found from any provider or feeder league, using fallback`, { 
+                        team: team2Identifier, 
+                        league: leagueObj.shortName 
+                    });
+                    team2Failed = true;
+                }
             } else {
                 logger.warn(`No logo found from any provider, using fallback`, { 
                     team: team2Identifier, 
