@@ -21,6 +21,8 @@ nav_order: 7
 
 - `league` - Sport league code (see [Supported Leagues](supported-leagues.html))
 - `team` / `team1` / `team2` - Team identifier (name, city, or abbreviation)
+  - **Athlete Sports (Tennis, MMA):** Use athlete names (e.g., `djokovic`, `serena-williams`)
+  - **Doubles/Teams:** Use `+` to combine multiple athletes (e.g., `djokovic+federer`)
 
 ---
 
@@ -73,6 +75,20 @@ GET /ncaaf/alabama/georgia/thumb?logo=false
 GET /nhl/tor/mtl/thumb?style=99
 GET /epl/arsenal/chelsea/thumb?badge=4K
 GET /nba/lakers/celtics/thumb?badge=HD&style=3
+```
+
+### Athlete Sports (Singles)
+```
+GET /tennis/djokovic/federer/thumb
+GET /tennis/serena-williams/osaka/thumb?style=2
+GET /ufc/jon-jones/stipe-miocic/thumb
+```
+
+### Tennis Doubles
+```
+GET /tennis/djokovic+federer/nadal+murray/thumb
+GET /tennis/serena-williams+venus-williams/osaka+azarenka/thumb?style=3
+GET /tennis/ram+salisbury/koolhof+skupski/thumb?logo=false
 ```
 
 ---

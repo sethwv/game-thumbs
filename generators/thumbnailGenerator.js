@@ -158,12 +158,13 @@ async function generateSplit(teamA, teamB, width, height, league, orientation) {
     }
     
     // Load and draw logos
-    try {
-        const logoMaxSize = orientation === 'landscape' 
-            ? Math.min(width * 0.325, height * 0.52)
-            : Math.min(width * 0.5, height * 0.32);
-        
-        if (teamA.logo) {
+    const logoMaxSize = orientation === 'landscape' 
+        ? Math.min(width * 0.325, height * 0.52)
+        : Math.min(width * 0.5, height * 0.32);
+    
+    // Load teamA logo independently
+    if (teamA.logo) {
+        try {
             const finalLogoImageA = await loadTrimmedLogo(teamA, colorA);
             
             const logoAX = orientation === 'landscape'
@@ -174,9 +175,17 @@ async function generateSplit(teamA, teamB, width, height, league, orientation) {
                 : (height * 0.2) - (logoMaxSize / 2);
             
             drawLogoWithShadow(ctx, finalLogoImageA, logoAX, logoAY, logoMaxSize);
+        } catch (error) {
+            logger.warn('Failed to load team A logo for split style', { 
+                team: teamA.name,
+                error: error.message 
+            });
         }
-        
-        if (teamB.logo) {
+    }
+    
+    // Load teamB logo independently
+    if (teamB.logo) {
+        try {
             const finalLogoImageB = await loadTrimmedLogo(teamB, colorB);
             
             const logoBX = orientation === 'landscape'
@@ -187,9 +196,12 @@ async function generateSplit(teamA, teamB, width, height, league, orientation) {
                 : (height * 0.8) - (logoMaxSize / 2);
             
             drawLogoWithShadow(ctx, finalLogoImageB, logoBX, logoBY, logoMaxSize);
+        } catch (error) {
+            logger.warn('Failed to load team B logo for split style', { 
+                team: teamB.name,
+                error: error.message 
+            });
         }
-    } catch (error) {
-        logger.warn('Failed to load team logos for split style', { error: error.message });
     }
     
     // Draw league logo in bottom right corner if league logo URL is provided

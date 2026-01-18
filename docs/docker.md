@@ -51,6 +51,7 @@ Configure the server behavior using environment variables:
 | `NODE_ENV` | Environment mode (`development` or `production`). In development, error stack traces are included in responses. | `production` |
 | `SERVER_TIMEOUT` | Timeout for HTTP connections (in milliseconds). | `30000` |
 | `REQUEST_TIMEOUT` | Timeout for external API calls and image downloads (in milliseconds). | `10000` |
+| `ALLOW_CUSTOM_BADGES` | Allow custom badge parameter entries on matchup generation endpoints. | `false` |
 
 ### Caching
 
@@ -93,6 +94,69 @@ Configure the server behavior using environment variables:
 |----------|-------------|---------|
 | `CORS_ORIGIN` | Allowed CORS origin(s). Set to `*` for all origins, or a specific domain like `https://example.com`. | `*` |
 | `CORS_MAX_AGE` | How long (in seconds) browsers should cache CORS preflight requests. | `86400` (24 hours) |
+
+### League Feature Flags
+
+Optional leagues can be enabled/disabled using environment variables. When disabled, these leagues will not initialize caches and will not be available via the API.
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `LEAGUES_ENABLE_TENNIS` | Enable tennis leagues (ATP, WTA). When enabled, initializes athlete cache (~33,800 athletes). | `false` |
+| `LEAGUES_ENABLE_MMA` | Enable MMA/combat sports leagues (UFC, PFL, Bellator). When enabled, initializes athlete caches. | `false` |
+
+**Example - Enable tennis:**
+```bash
+docker run -p 3000:3000 \
+  -e LEAGUES_ENABLE_TENNIS=true \
+  ghcr.io/sethwv/game-thumbs:latest
+```
+
+**Example - Enable both tennis and MMA:**
+```bash
+docker run -p 3000:3000 \
+  -e LEAGUES_ENABLE_TENNIS=true \
+  -e LEAGUES_ENABLE_MMA=true \
+  ghcr.io/sethwv/game-thumbs:latest
+```
+
+**Notes:**
+- These leagues are disabled by default to reduce startup time and memory usage
+- Tennis leagues have 33,800+ athletes and may take 5-30 minutes for initial cache population
+- When disabled, API requests to these leagues will return a "league not found" error
+- Athlete caches are not created when the league is disabled
+
+### ESPN Athlete Provider Rate Limiting
+
+Control the rate of requests to ESPN's athlete API to avoid rate limiting during cache initialization.
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `ESPN_ATHLETE_REQUEST_DELAY` | Minimum delay between ESPN athlete API requests (in milliseconds). | `250` |
+| `ESPN_ATHLETE_MAX_CONCURRENT` | Maximum concurrent requests to ESPN athlete API. | `3` |
+
+**Example - Faster cache initialization (may hit rate limits):**
+```bash
+docker run -p 3000:3000 \
+  -e LEAGUES_ENABLE_TENNIS=true \
+  -e ESPN_ATHLETE_REQUEST_DELAY=100 \
+  -e ESPN_ATHLETE_MAX_CONCURRENT=5 \
+  ghcr.io/sethwv/game-thumbs:latest
+```
+
+**Example - Conservative rate limiting (slower but safer):**
+```bash
+docker run -p 3000:3000 \
+  -e LEAGUES_ENABLE_TENNIS=true \
+  -e ESPN_ATHLETE_REQUEST_DELAY=500 \
+  -e ESPN_ATHLETE_MAX_CONCURRENT=2 \
+  ghcr.io/sethwv/game-thumbs:latest
+```
+
+**Notes:**
+- Default settings (250ms delay, 3 concurrent) balance speed and reliability
+- ESPN doesn't publish rate limits, but testing shows ~200-300 requests/min is safe
+- If you encounter 403/429 errors, increase delay or decrease concurrency
+- Request queue automatically handles pacing - no need for manual delays
 
 ---
 
@@ -162,6 +226,23 @@ docker run -p 3000:3000 \
   ghcr.io/sethwv/game-thumbs:latest
 ```
 
+### Provider Cache Directory
+
+{: .important }
+> **Recommended for Tennis:** Mount the `.cache` directory to persist athlete data across container restarts. Tennis has 33,800+ athletes and takes 5-30 minutes to cache initially. Persisting the cache makes restarts instant.
+
+```bash
+docker run -p 3000:3000 \
+  -v /path/to/cache:/app/.cache \
+  ghcr.io/sethwv/game-thumbs:latest
+```
+
+**Benefits:**
+- Instant restarts - no need to re-fetch 33,800+ tennis athletes
+- Preserves MMA fighter rosters (UFC, PFL, Bellator)
+- Reduces load on ESPN APIs
+- Container updates don't lose cached data
+
 ---
 
 ## Example Configurations
@@ -180,6 +261,7 @@ docker run -d \
   -e LOG_TO_FILE=true \
   -v /path/to/custom-teams:/app/json/teams:ro \
   -v /path/to/logs:/app/logs \
+  -v /path/to/cache:/app/.cache \
   ghcr.io/sethwv/game-thumbs:latest
 ```
 
@@ -215,6 +297,7 @@ services:
       - ./custom-teams:/app/json/teams:ro
       - ./custom-leagues:/app/json/leagues:ro
       - ./logs:/app/logs
+      - ./cache:/app/.cache  # Persist athlete/provider cache (recommended for Tennis)
     restart: unless-stopped
 ```
 

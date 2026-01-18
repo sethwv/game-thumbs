@@ -46,18 +46,34 @@ Game Thumbs uses a modular provider architecture to fetch team and athlete data 
 
 ### ESPN Athlete Provider
 
-**Leagues**: UFC, PFL, Bellator (combat sports)  
+**Leagues**: UFC, PFL, Bellator (MMA), Tennis (ATP/WTA)  
 **Type**: Athlete-based sports  
 **Features**:
 - Treats individual fighters/athletes as "teams" for matchup generation
-- Fetches complete athlete rosters from ESPN MMA APIs
+- Fetches complete athlete rosters from ESPN Sports Core API v2
 - 72-hour athlete data caching with automatic background refresh
+- Persistent file-based caching in `.cache/providers/` for data retention across server restarts
 - Smart athlete matching by first name, last name, or full name
-- Randomly assigned dark color palettes (avoids skin tone bias)
+- **Sport-specific color palettes**:
+  - Tennis: Grass greens, clay browns/oranges, hard court blues, tennis ball yellow-greens
+  - MMA: Dark blue palette
 - Headshot images used as athlete "logos"
-- Supports 600+ UFC fighters, 200+ PFL fighters, 300+ Bellator fighters
+- Country flags used as fallback when headshots are unavailable
+- **Doubles/Team Support**: Use `+` separator to create composite athlete teams (e.g., `djokovic+federer`)
+- Supports 1,800+ UFC fighters, 500+ PFL fighters, 1,000+ Bellator fighters, 33,800+ tennis players (ATP & WTA)
+- Exponential backoff retry with 15s initial delay for rate limit handling
+- Conservative request throttling (25 concurrent requests per batch, 200ms delays)
+
+{: .warning }
+> **Tennis Cache Time:** Initial cache population for tennis (33,800+ athletes) takes **5-30 minutes** due to ESPN API rate limiting. Cache persists to disk, so subsequent restarts are instant. The service is fully functional during cache population - it will search available data and complete the cache in the background.
 
 **Cache Auto-Refresh**: The ESPN Athlete provider automatically refreshes athlete rosters at 95% of cache duration (68.4 hours) to ensure data stays fresh without requiring manual intervention or server restarts.
+
+**Doubles/Team Composite Generation**: When multiple athletes are specified with `+`, the provider:
+1. Resolves each athlete individually
+2. Creates a composite image with athletes side-by-side (5px spacing)
+3. Merges names with `/` separator (e.g., "Djokovic / Federer")
+4. Returns composite as a single "team" object for thumbnail generation
 
 ### TheSportsDB Provider
 
