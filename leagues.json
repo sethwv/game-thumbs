@@ -440,6 +440,29 @@
       }
     ]
   },
+  "engleaguecup": {
+    "name": "English Carabao Cup",
+    "aliases": [
+      "english league cup",
+      "english football league cup",
+      "carabao cup",
+      "eng.carabao_cup"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4570",
+          "leagueName": "EFL Cup"
+        }
+      },
+      {
+        "espn": {
+          "espnSlug": "eng.league_cup",
+          "espnSport": "soccer"
+        }
+      }
+    ]
+  },
   "laliga": {
     "name": "La Liga",
     "feederLeagues": [
