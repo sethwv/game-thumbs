@@ -706,6 +706,121 @@
       }
     ]
   },
+  "scup": {
+    "name": "Scottish Cup",
+    "aliases": [
+      "scottish fa cup",
+      "scottish cup",
+      "sfa cup",
+      "sfa.cup",
+      "sco.tennents"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4723",
+          "leagueName": "Scottish FA Cup"
+        }
+      },
+      {
+        "espn": {
+          "espnSport": "soccer",
+          "espnSlug": "sco.tennents"
+        }
+      }
+    ],
+    "feederLeagues": [
+      "spfl",
+      "sch",
+      "sl1",
+      "sl2"
+    ]
+  },
+  "spfl": {
+    "name": "Scottish Premiership",
+    "aliases": [
+      "scottish premiership",
+      "scottish premier league",
+      "sco.1"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4330",
+          "leagueName": "Scottish Premiership"
+        }
+      },
+      {
+        "espn": {
+          "espnSport": "soccer",
+          "espnSlug": "sco.1"
+        }
+      }
+    ]
+  },
+  "sch": {
+    "name": "Scottish Championship",
+    "aliases": [
+      "scottish championship",
+      "sco.2"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4396",
+          "leagueName": "Scottish Championship"
+        }
+      },
+      {
+        "espn": {
+          "espnSport": "soccer",
+          "espnSlug": "sco.2"
+        }
+      }
+    ]
+  },
+  "sl1": {
+    "name": "Scottish League One",
+    "aliases": [
+      "scottish league one",
+      "sco.3"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4669",
+          "leagueName": "Scottish League 1"
+        }
+      },
+      {
+        "espn": {
+          "espnSport": "soccer",
+          "espnSlug": "sco.3"
+        }
+      }
+    ]
+  },
+  "sl2": {
+    "name": "Scottish League Two",
+    "aliases": [
+      "scottish league two",
+      "sco.4"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4670",
+          "leagueName": "Scottish League 2"
+        }
+      },
+      {
+        "espn": {
+          "espnSport": "soccer",
+          "espnSlug": "sco.4"
+        }
+      }
+    ]
+  },
   "__NCAA_SPORTS__": "===========================================",
   "ncaaf": {
     "name": "NCAA Football",
