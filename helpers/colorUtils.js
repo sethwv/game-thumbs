@@ -155,12 +155,15 @@ async function extractDominantColors(imageUrl, numColors = 2) {
         // Convert to hex colors
         const hexColors = distinctColors.map(([r, g, b]) => rgbToHex(r, g, b));
         
+        // Darken colors by 10% for better contrast
+        const darkenedColors = hexColors.map(color => darkenColor(color, 10));
+        
         // Ensure we always return the requested number of colors
-        while (hexColors.length < numColors) {
-            hexColors.push(hexColors.length === 0 ? '#000000' : '#ffffff');
+        while (darkenedColors.length < numColors) {
+            darkenedColors.push(darkenedColors.length === 0 ? '#000000' : '#ffffff');
         }
         
-        return hexColors.slice(0, numColors);
+        return darkenedColors.slice(0, numColors);
         
     } catch (error) {
         // Return default colors on error
@@ -338,6 +341,26 @@ function adjustVibrancy(hexColor, factor) {
     }).join('');
 }
 
+/**
+ * Darken a color by a percentage
+ * @param {string} hexColor - Hex color string
+ * @param {number} percent - Percentage to darken (0-100)
+ * @returns {string} Darkened hex color
+ */
+function darkenColor(hexColor, percent) {
+    const hex = hexColor.replace('#', '');
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    
+    const factor = 1 - (percent / 100);
+    const newR = Math.round(r * factor);
+    const newG = Math.round(g * factor);
+    const newB = Math.round(b * factor);
+    
+    return rgbToHex(newR, newG, newB);
+}
+
 module.exports = {
     extractDominantColors,
     rgbToHex,
@@ -347,5 +370,6 @@ module.exports = {
     blendColorsWeighted,
     calculateColorDistance,
     analyzeColor,
-    adjustVibrancy
+    adjustVibrancy,
+    darkenColor
 };
