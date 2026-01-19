@@ -8,6 +8,7 @@ const axios = require('axios');
 const BaseProvider = require('./BaseProvider');
 const { getTeamMatchScoreWithOverrides, findTeamByAlias, applyTeamOverrides } = require('../helpers/teamUtils');
 const { extractDominantColors } = require('../helpers/colorUtils');
+const { normalizeCompact } = require('../helpers/teamUtils');
 const logger = require('../helpers/logger');
 
 // Custom error class for team not found errors
@@ -60,6 +61,8 @@ class ESPNProvider extends BaseProvider {
             throw new Error('Both league and team identifier are required');
         }
 
+        const compactInput = normalizeCompact(teamIdentifier);
+
         const espnConfig = this.getLeagueConfig(league);
         if (!espnConfig) {
             throw new Error(`League ${league.shortName} is missing ESPN configuration`);
@@ -95,6 +98,48 @@ class ESPNProvider extends BaseProvider {
                         teamSlug = teamSlug.split('.')[1];
                     }
                     teamSlug = teamSlug?.replace(/_/g, '-');
+
+                    // Fast-path: compare compact input to slug variants (handles missing "state/st")
+                    if (teamSlug) {
+                        const compactSlug = teamSlug.replace(/[^a-z0-9]/g, '');
+                        const slugWithoutState = teamSlug
+                            .replace(/-?state\b/gi, '')
+                            .replace(/-?st\.?\b/gi, '')
+                            .replace(/--+/g, '-')
+                            .replace(/^-|-$/g, '');
+                        const compactSlugNoState = slugWithoutState.replace(/[^a-z0-9]/g, '');
+
+                        if (
+                            compactInput === compactSlug ||
+                            compactInput === compactSlugNoState ||
+                            compactInput.startsWith(compactSlug) ||
+                            compactInput.startsWith(compactSlugNoState)
+                        ) {
+                            bestMatch = team;
+                            bestScore = 1000;
+                            continue;
+                        }
+                    }
+
+                    // Secondary fast-path: compact city + nickname with state removed (e.g., "ferrisbulldogs")
+                    const compactCity = normalizeCompact(teamObj.location || '');
+                    const compactNick = normalizeCompact(teamObj.nickname || '');
+                    const cityNoState = compactCity
+                        .replace(/state$/g, '')
+                        .replace(/st$/g, '')
+                        .replace(/st\.$/g, '');
+                    const compactCityNick = compactCity + compactNick;
+                    const compactCityNickNoState = cityNoState + compactNick;
+                    if (
+                        compactInput === compactCityNick ||
+                        compactInput === compactCityNickNoState ||
+                        compactInput.startsWith(compactCityNick) ||
+                        compactInput.startsWith(compactCityNickNoState)
+                    ) {
+                        bestMatch = team;
+                        bestScore = 1000;
+                        continue;
+                    }
                     
                     const standardizedTeam = {
                         fullName: teamObj.displayName,

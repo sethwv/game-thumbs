@@ -226,6 +226,16 @@ function isCityVariation(prefix, teamCity) {
     
     // Direct match
     if (compactPrefix === compactCity) return true;
+
+    // Handle city names that include trailing "state"/"st" but input omits it
+    const strippedVariants = [
+        compactCity.replace(/state$/, ''),
+        compactCity.replace(/st$/, ''),
+        compactCity.replace(/st\.$/, '')
+    ].filter(v => v && v.length >= 3);
+    if (strippedVariants.some(v => compactPrefix === v || compactPrefix.startsWith(v))) {
+        return true;
+    }
     
     // Check if team city is an abbreviation or expansion that matches the prefix
     for (const [abbrev, expansions] of Object.entries(LOCATION_ABBREVIATIONS)) {

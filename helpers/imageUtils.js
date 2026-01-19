@@ -596,6 +596,7 @@ async function resolveSingleTeamWithFallback(providerManager, leagueObj, teamIde
         return { team: resolvedTeam, failed: false };
     } catch (error) {
         if (enableFallback && error.name === 'TeamNotFoundError') {
+            logger.teamNotFound(teamIdentifier, leagueObj.shortName.toUpperCase());
             return { team: null, failed: true };
         }
         throw error;
