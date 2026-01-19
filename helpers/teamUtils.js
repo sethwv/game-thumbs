@@ -338,11 +338,11 @@ function checkPartialMatches(expandedInput, compactInput, normalized) {
         // Check if input contains field
         if (field && field.length >= MIN_LENGTH && expandedInput.includes(field)) {
             if (checkTrailingText) {
-                // Don't match if short field is followed by substantial text (likely a different team)
+                // Don't match if field is followed by substantial text (likely a different team)
                 const fieldIndex = expandedInput.indexOf(field);
                 const textAfterField = expandedInput.substring(fieldIndex + field.length);
-                // If field is short (<=6 chars) and followed by 4+ more chars, skip it
-                if (field.length <= 6 && textAfterField.length >= 4) {
+                // Skip if field is followed by 4+ more chars (prevents "Missouri St" from matching "MissouriSTMiners")
+                if (textAfterField.length >= 4) {
                     s = 0;
                 } else {
                     s = Math.max(s, containsScore);
@@ -356,7 +356,8 @@ function checkPartialMatches(expandedInput, compactInput, normalized) {
             if (checkTrailingText) {
                 const fieldIndex = compactInput.indexOf(compactField);
                 const textAfterField = compactInput.substring(fieldIndex + compactField.length);
-                if (compactField.length <= 6 && textAfterField.length >= 4) {
+                // Skip if field is followed by 4+ more chars
+                if (textAfterField.length >= 4) {
                     s = 0;
                 } else {
                     s = Math.max(s, containsScore);
