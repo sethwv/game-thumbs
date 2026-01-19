@@ -473,27 +473,118 @@ async function generateFallbackPlaceholder(leagueLogoUrl, options = {}) {
  * @returns {Promise<Object>} Team object compatible with generators
  */
 async function generateFallbackTeamObject(leagueLogoUrl, teamName = 'Unknown Team') {
-    // Download and process the league logo to greyscale
-    const logoBuffer = await downloadImage(leagueLogoUrl);
-    const trimmedLogoBuffer = await trimImage(logoBuffer, leagueLogoUrl);
-    const logo = await loadImage(trimmedLogoBuffer);
-    
-    // Convert to greyscale (we'll store as buffer for reuse)
-    const greyscaleLogo = await convertToGreyscale(logo, 0.35);
-    const greyscaleBuffer = greyscaleLogo.toBuffer('image/png');
-    
-    // Create a temporary file path or data URL for the greyscale logo
-    // For simplicity, we'll use a base64 data URL
-    const base64Logo = `data:image/png;base64,${greyscaleBuffer.toString('base64')}`;
-    
-    return {
-        name: teamName,
-        logo: base64Logo,
-        logoAlt: base64Logo,
-        color: '#d3d3d3',  // Light grey
-        alternateColor: '#b8b8b8',  // Slightly darker grey
-        isFallback: true  // Mark this as a fallback team
-    };
+    try {
+        // Download and process the league logo to greyscale
+        const logoBuffer = await downloadImage(leagueLogoUrl);
+        
+        // Validate the buffer before processing
+        if (!logoBuffer || !Buffer.isBuffer(logoBuffer) || logoBuffer.length === 0) {
+            throw new Error('Invalid or empty image buffer received');
+        }
+        
+        const trimmedLogoBuffer = await trimImage(logoBuffer, leagueLogoUrl);
+        const logo = await loadImage(trimmedLogoBuffer);
+        
+        // Convert to greyscale (we'll store as buffer for reuse)
+        const greyscaleLogo = await convertToGreyscale(logo, 0.35);
+        const greyscaleBuffer = greyscaleLogo.toBuffer('image/png');
+        
+        // Create a temporary file path or data URL for the greyscale logo
+        // For simplicity, we'll use a base64 data URL
+        const base64Logo = `data:image/png;base64,${greyscaleBuffer.toString('base64')}`;
+        
+        return {
+            name: teamName,
+            logo: base64Logo,
+            logoAlt: base64Logo,
+            color: '#d3d3d3',  // Light grey
+            alternateColor: '#b8b8b8',  // Slightly darker grey
+            isFallback: true  // Mark this as a fallback team
+        };
+    } catch (error) {
+        // If league logo processing fails, log and rethrow
+        // The calling code will handle the final fallback
+        logger.warn('Failed to generate fallback with league logo', {
+            teamName,
+            leagueLogoUrl,
+            error: error.message
+        });
+        throw error;
+    }
+}
+
+/**
+ * Helper to resolve a single team with all fallback options
+ */
+async function resolveSingleTeamWithFallback(providerManager, leagueObj, teamIdentifier, enableFallback) {
+    try {
+        let resolvedTeam = await providerManager.resolveTeam(leagueObj, teamIdentifier);
+        
+        // Check if team was found but has no logo - try other providers in parallel
+        if (!resolvedTeam.logo && !resolvedTeam.logoAlt) {
+            const providers = providerManager.getProvidersForLeague(leagueObj);
+            const providerPromises = providers.map(provider => 
+                provider.resolveTeam(leagueObj, teamIdentifier)
+                    .then(team => ({ provider, team }))
+                    .catch(() => null)
+            );
+            
+            const results = await Promise.all(providerPromises);
+            const teamWithLogo = results.find(result => 
+                result && result.team && (result.team.logo || result.team.logoAlt)
+            );
+            
+            if (teamWithLogo) {
+                logger.info(`Using logo from alternate provider`, {
+                    team: teamIdentifier,
+                    provider: teamWithLogo.provider.getProviderId()
+                });
+                return { team: teamWithLogo.team, failed: false };
+            }
+            
+            // Try feeder leagues in parallel
+            if (leagueObj.feederLeagues && leagueObj.feederLeagues.length > 0) {
+                const { findLeague } = require('../leagues');
+                const feederPromises = leagueObj.feederLeagues.map(async (feederLeagueKey) => {
+                    const feederLeague = findLeague(feederLeagueKey);
+                    if (!feederLeague) return null;
+                    try {
+                        const feederTeam = await providerManager.resolveTeam(feederLeague, teamIdentifier, new Set());
+                        if (feederTeam && (feederTeam.logo || feederTeam.logoAlt)) {
+                            return { team: feederTeam, league: feederLeagueKey };
+                        }
+                    } catch (err) {
+                        return null;
+                    }
+                    return null;
+                });
+                
+                const feederResults = await Promise.all(feederPromises);
+                const feederMatch = feederResults.find(result => result !== null);
+                
+                if (feederMatch) {
+                    logger.info(`Using logo from feeder league`, {
+                        team: teamIdentifier,
+                        feederLeague: feederMatch.league
+                    });
+                    return { team: feederMatch.team, failed: false };
+                }
+            }
+            
+            logger.warn(`No logo found from any provider, using fallback`, { 
+                team: teamIdentifier, 
+                league: leagueObj.shortName 
+            });
+            return { team: null, failed: true };
+        }
+        
+        return { team: resolvedTeam, failed: false };
+    } catch (error) {
+        if (enableFallback && error.name === 'TeamNotFoundError') {
+            return { team: null, failed: true };
+        }
+        throw error;
+    }
 }
 
 /**
@@ -507,157 +598,68 @@ async function generateFallbackTeamObject(leagueLogoUrl, teamName = 'Unknown Tea
  * @returns {Promise<{team1: Object, team2: Object}>}
  */
 async function resolveTeamsWithFallback(providerManager, leagueObj, team1Identifier, team2Identifier, enableFallback, leagueLogoUrl) {
-    let resolvedTeam1, resolvedTeam2;
-    let team1Failed = false, team2Failed = false;
+    // Resolve both teams in parallel
+    const [result1, result2] = await Promise.all([
+        resolveSingleTeamWithFallback(providerManager, leagueObj, team1Identifier, enableFallback),
+        resolveSingleTeamWithFallback(providerManager, leagueObj, team2Identifier, enableFallback)
+    ]);
     
-    try {
-        resolvedTeam1 = await providerManager.resolveTeam(leagueObj, team1Identifier);
-        // Check if team was found but has no logo - try other providers in parallel
-        if (!resolvedTeam1.logo && !resolvedTeam1.logoAlt) {
-            // Try all providers in parallel
-            const providers = providerManager.getProvidersForLeague(leagueObj);
-            const providerPromises = providers.map(provider => 
-                provider.resolveTeam(leagueObj, team1Identifier)
-                    .then(team => ({ provider, team }))
-                    .catch(() => null)
-            );
-            
-            const results = await Promise.all(providerPromises);
-            const teamWithLogo = results.find(result => 
-                result && result.team && (result.team.logo || result.team.logoAlt)
-            );
-            
-            if (teamWithLogo) {
-                logger.info(`Using logo from alternate provider`, {
-                    team: team1Identifier,
-                    provider: teamWithLogo.provider.getProviderId()
-                });
-                resolvedTeam1 = teamWithLogo.team;
-            } else if (leagueObj.feederLeagues && leagueObj.feederLeagues.length > 0) {
-                // Try feeder leagues to find team with logo
-                const { findLeague } = require('../leagues');
-                let foundInFeeder = false;
-                
-                for (const feederLeagueKey of leagueObj.feederLeagues) {
-                    const feederLeague = findLeague(feederLeagueKey);
-                    if (feederLeague) {
-                        try {
-                            const feederTeam = await providerManager.resolveTeam(feederLeague, team1Identifier, new Set());
-                            if (feederTeam && (feederTeam.logo || feederTeam.logoAlt)) {
-                                logger.info(`Using logo from feeder league`, {
-                                    team: team1Identifier,
-                                    feederLeague: feederLeagueKey
-                                });
-                                resolvedTeam1 = feederTeam;
-                                foundInFeeder = true;
-                                break;
-                            }
-                        } catch (err) {
-                            // Continue to next feeder league
-                        }
-                    }
-                }
-                
-                if (!foundInFeeder) {
-                    logger.warn(`No logo found from any provider or feeder league, using fallback`, { 
-                        team: team1Identifier, 
-                        league: leagueObj.shortName 
-                    });
-                    team1Failed = true;
-                }
-            } else {
-                logger.warn(`No logo found from any provider, using fallback`, { 
-                    team: team1Identifier, 
-                    league: leagueObj.shortName 
-                });
-                team1Failed = true;
+    let resolvedTeam1 = result1.team;
+    let resolvedTeam2 = result2.team;
+    
+    // If both teams failed and need the same league logo, download and process it once
+    if (result1.failed && result2.failed) {
+        try {
+            // Download and process the league logo once
+            const logoBuffer = await downloadImage(leagueLogoUrl);
+            if (!logoBuffer || !Buffer.isBuffer(logoBuffer) || logoBuffer.length === 0) {
+                throw new Error('Invalid or empty image buffer received');
             }
-        }
-    } catch (team1Error) {
-        if (enableFallback && team1Error.name === 'TeamNotFoundError') {
-            team1Failed = true;
-        } else {
-            throw team1Error;
-        }
-    }
-    
-    try {
-        resolvedTeam2 = await providerManager.resolveTeam(leagueObj, team2Identifier);
-        // Check if team was found but has no logo - try other providers in parallel
-        if (!resolvedTeam2.logo && !resolvedTeam2.logoAlt) {
-            // Try all providers in parallel
-            const providers = providerManager.getProvidersForLeague(leagueObj);
-            const providerPromises = providers.map(provider => 
-                provider.resolveTeam(leagueObj, team2Identifier)
-                    .then(team => ({ provider, team }))
-                    .catch(() => null)
-            );
             
-            const results = await Promise.all(providerPromises);
-            const teamWithLogo = results.find(result => 
-                result && result.team && (result.team.logo || result.team.logoAlt)
-            );
+            const trimmedLogoBuffer = await trimImage(logoBuffer, leagueLogoUrl);
+            const logo = await loadImage(trimmedLogoBuffer);
+            const greyscaleLogo = await convertToGreyscale(logo, 0.35);
+            const greyscaleBuffer = greyscaleLogo.toBuffer('image/png');
+            const base64Logo = `data:image/png;base64,${greyscaleBuffer.toString('base64')}`;
             
-            if (teamWithLogo) {
-                logger.info(`Using logo from alternate provider`, {
-                    team: team2Identifier,
-                    provider: teamWithLogo.provider.getProviderId()
-                });
-                resolvedTeam2 = teamWithLogo.team;
-            } else if (leagueObj.feederLeagues && leagueObj.feederLeagues.length > 0) {
-                // Try feeder leagues to find team with logo
-                const { findLeague } = require('../leagues');
-                let foundInFeeder = false;
-                
-                for (const feederLeagueKey of leagueObj.feederLeagues) {
-                    const feederLeague = findLeague(feederLeagueKey);
-                    if (feederLeague) {
-                        try {
-                            const feederTeam = await providerManager.resolveTeam(feederLeague, team2Identifier, new Set());
-                            if (feederTeam && (feederTeam.logo || feederTeam.logoAlt)) {
-                                logger.info(`Using logo from feeder league`, {
-                                    team: team2Identifier,
-                                    feederLeague: feederLeagueKey
-                                });
-                                resolvedTeam2 = feederTeam;
-                                foundInFeeder = true;
-                                break;
-                            }
-                        } catch (err) {
-                            // Continue to next feeder league
-                        }
-                    }
-                }
-                
-                if (!foundInFeeder) {
-                    logger.warn(`No logo found from any provider or feeder league, using fallback`, { 
-                        team: team2Identifier, 
-                        league: leagueObj.shortName 
-                    });
-                    team2Failed = true;
-                }
-            } else {
-                logger.warn(`No logo found from any provider, using fallback`, { 
-                    team: team2Identifier, 
-                    league: leagueObj.shortName 
-                });
-                team2Failed = true;
-            }
+            // Reuse the processed logo for both teams
+            resolvedTeam1 = {
+                name: team1Identifier,
+                logo: base64Logo,
+                logoAlt: base64Logo,
+                color: '#d3d3d3',
+                alternateColor: '#b8b8b8',
+                isFallback: true
+            };
+            resolvedTeam2 = {
+                name: team2Identifier,
+                logo: base64Logo,
+                logoAlt: base64Logo,
+                color: '#d3d3d3',
+                alternateColor: '#b8b8b8',
+                isFallback: true
+            };
+        } catch (error) {
+            logger.warn('Failed to generate fallback with league logo', {
+                leagueLogoUrl,
+                error: error.message
+            });
+            throw error;
         }
-    } catch (team2Error) {
-        if (enableFallback && team2Error.name === 'TeamNotFoundError') {
-            team2Failed = true;
+    } else if (result1.failed || result2.failed) {
+        // Generate fallbacks individually for any failed teams
+        const fallbackPromises = [];
+        if (result1.failed) {
+            fallbackPromises.push(generateFallbackTeamObject(leagueLogoUrl, team1Identifier));
         } else {
-            throw team2Error;
+            fallbackPromises.push(Promise.resolve(resolvedTeam1));
         }
-    }
-    
-    // Generate fallback team objects for failed teams or teams without logos
-    if (team1Failed) {
-        resolvedTeam1 = await generateFallbackTeamObject(leagueLogoUrl, team1Identifier);
-    }
-    if (team2Failed) {
-        resolvedTeam2 = await generateFallbackTeamObject(leagueLogoUrl, team2Identifier);
+        if (result2.failed) {
+            fallbackPromises.push(generateFallbackTeamObject(leagueLogoUrl, team2Identifier));
+        } else {
+            fallbackPromises.push(Promise.resolve(resolvedTeam2));
+        }
+        [resolvedTeam1, resolvedTeam2] = await Promise.all(fallbackPromises);
     }
     
     return {
@@ -691,13 +693,41 @@ async function downloadImage(urlOrPath) {
             maxRedirects: 5,
             headers: { 
                 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+                'Accept': 'image/png,image/jpeg,image/jpg,image/gif,image/webp,image/*,*/*;q=0.8',
                 'Accept-Encoding': 'gzip, deflate, br',
                 'Referer': 'https://www.espn.com/'
             }
         });
         
-        return Buffer.from(response.data);
+        const buffer = Buffer.from(response.data);
+        
+        // Validate image format by checking magic bytes
+        if (buffer.length < 4) {
+            throw new Error('Image buffer too small to be valid');
+        }
+        
+        // Check for common image formats (PNG, JPEG, GIF, WebP)
+        const isPNG = buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47;
+        const isJPEG = buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF;
+        const isGIF = buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46;
+        const isWebP = buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50;
+        const isSVG = buffer.toString('utf8', 0, Math.min(1000, buffer.length)).includes('<svg');
+        
+        if (!isPNG && !isJPEG && !isGIF && !isWebP && !isSVG) {
+            // Check if it looks like HTML (404 page, etc.)
+            const preview = buffer.toString('utf8', 0, Math.min(200, buffer.length));
+            if (preview.includes('<!DOCTYPE') || preview.includes('<html')) {
+                throw new Error(`URL returned HTML instead of image: ${urlOrPath}`);
+            }
+            throw new Error(`Unsupported image format for URL: ${urlOrPath}`);
+        }
+        
+        // SVG is not supported by node-canvas, reject it
+        if (isSVG) {
+            throw new Error(`SVG format not supported by canvas: ${urlOrPath}`);
+        }
+        
+        return buffer;
     } catch (error) {
         if (error.code === 'ECONNABORTED') {
             throw new Error(`Request timeout after ${REQUEST_TIMEOUT}ms: ${urlOrPath}`);
