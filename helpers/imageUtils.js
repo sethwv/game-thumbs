@@ -97,9 +97,9 @@ module.exports = {
     trimImage,
     loadTrimmedLogo,
     convertToGreyscale,
-    generateFallbackPlaceholder,
     generateFallbackTeamObject,
     resolveTeamsWithFallback,
+    handleTeamNotFoundError,
     addBadgeOverlay,
     isValidBadge,
 
@@ -408,60 +408,17 @@ async function convertToGreyscale(logoImageOrBuffer, opacity = 0.35) {
 }
 
 /**
- * Generate a fallback placeholder image with grey background and greyscale logo
- * @param {string} leagueLogoUrl - URL of the league logo to use
- * @param {Object} options - Options for the placeholder
- * @param {number} options.width - Width of the placeholder
- * @param {number} options.height - Height of the placeholder
- * @param {string} options.backgroundColor - Background color (default: #d3d3d3 - light grey)
- * @param {number} options.logoOpacity - Logo opacity (default: 0.35)
- * @param {number} options.logoSizePercent - Logo size as percentage of smaller dimension (default: 0.6)
- * @returns {Promise<Buffer>} PNG buffer of the placeholder
+ * Handle TeamNotFoundError with optional fallback behavior
+ * @param {Error} error - The error thrown during team resolution
+ * @param {boolean} enableFallback - Whether fallback is enabled
+ * @param {Function} fallbackFn - Function to call if fallback is enabled
+ * @returns {Promise<any>} Result from fallback function or rethrows error
  */
-async function generateFallbackPlaceholder(leagueLogoUrl, options = {}) {
-    const {
-        width = 1024,
-        height = 1024,
-        backgroundColor = '#d3d3d3',
-        logoOpacity = 0.35,
-        logoSizePercent = 0.6
-    } = options;
-
-    const canvas = createCanvas(width, height);
-    const ctx = canvas.getContext('2d');
-
-    // Fill with light grey background
-    ctx.fillStyle = backgroundColor;
-    ctx.fillRect(0, 0, width, height);
-
-    // Download and load the league logo
-    const logoBuffer = await downloadImage(leagueLogoUrl);
-    const trimmedLogoBuffer = await trimImage(logoBuffer, leagueLogoUrl);
-    const logo = await loadImage(trimmedLogoBuffer);
-
-    // Convert to greyscale with reduced opacity
-    const greyscaleLogo = await convertToGreyscale(logo, logoOpacity);
-
-    // Calculate logo size and position (centered)
-    const logoSize = Math.min(width, height) * logoSizePercent;
-    const aspectRatio = greyscaleLogo.width / greyscaleLogo.height;
-    
-    let drawWidth, drawHeight;
-    if (aspectRatio > 1) {
-        drawWidth = logoSize;
-        drawHeight = logoSize / aspectRatio;
-    } else {
-        drawHeight = logoSize;
-        drawWidth = logoSize * aspectRatio;
+async function handleTeamNotFoundError(error, enableFallback, fallbackFn) {
+    if (enableFallback && error.name === 'TeamNotFoundError') {
+        return await fallbackFn();
     }
-
-    const logoX = (width - drawWidth) / 2;
-    const logoY = (height - drawHeight) / 2;
-
-    // Draw the greyscale logo
-    ctx.drawImage(greyscaleLogo, logoX, logoY, drawWidth, drawHeight);
-
-    return canvas.toBuffer('image/png');
+    throw error;
 }
 
 /**
@@ -502,14 +459,38 @@ async function generateFallbackTeamObject(leagueLogoUrl, teamName = 'Unknown Tea
             isFallback: true  // Mark this as a fallback team
         };
     } catch (error) {
-        // If league logo processing fails, log and rethrow
-        // The calling code will handle the final fallback
-        logger.warn('Failed to generate fallback with league logo', {
+        // If league logo processing fails, use minimal text-based ultimate fallback
+        logger.warn('Failed to generate fallback with league logo, using text fallback', {
             teamName,
             leagueLogoUrl,
             error: error.message
         });
-        throw error;
+        
+        // Generate minimal text-based logo: single bold letter on transparent background
+        const canvas = createCanvas(400, 400);
+        const ctx = canvas.getContext('2d');
+        
+        // Transparent background (no fill)
+        
+        // Draw single letter (first character of team name)
+        const letter = teamName.charAt(0).toUpperCase();
+        ctx.fillStyle = '#999999';
+        ctx.font = 'bold 280px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(letter, 200, 200);
+        
+        const fallbackBuffer = canvas.toBuffer('image/png');
+        const base64Logo = `data:image/png;base64,${fallbackBuffer.toString('base64')}`;
+        
+        return {
+            name: teamName,
+            logo: base64Logo,
+            logoAlt: base64Logo,
+            color: '#d3d3d3',
+            alternateColor: '#b8b8b8',
+            isFallback: true
+        };
     }
 }
 
@@ -518,7 +499,8 @@ async function generateFallbackTeamObject(leagueLogoUrl, teamName = 'Unknown Tea
  */
 async function resolveSingleTeamWithFallback(providerManager, leagueObj, teamIdentifier, enableFallback) {
     try {
-        let resolvedTeam = await providerManager.resolveTeam(leagueObj, teamIdentifier);
+        // Suppress logging on initial attempt - we'll log when we have a final usable team
+        let resolvedTeam = await providerManager.resolveTeam(leagueObj, teamIdentifier, new Set(), null, true);
         
         // Check if team was found but has no logo - try other providers in parallel
         if (!resolvedTeam.logo && !resolvedTeam.logoAlt) {
@@ -535,10 +517,11 @@ async function resolveSingleTeamWithFallback(providerManager, leagueObj, teamIde
             );
             
             if (teamWithLogo) {
-                logger.info(`Using logo from alternate provider`, {
-                    team: teamIdentifier,
-                    provider: teamWithLogo.provider.getProviderId()
-                });
+                logger.teamResolved(
+                    teamWithLogo.provider.getProviderId(),
+                    leagueObj.shortName,
+                    teamWithLogo.team.fullName || teamWithLogo.team.name
+                );
                 return { team: teamWithLogo.team, failed: false };
             }
             
@@ -549,9 +532,9 @@ async function resolveSingleTeamWithFallback(providerManager, leagueObj, teamIde
                     const feederLeague = findLeague(feederLeagueKey);
                     if (!feederLeague) return null;
                     try {
-                        const feederTeam = await providerManager.resolveTeam(feederLeague, teamIdentifier, new Set());
+                        const feederTeam = await providerManager.resolveTeam(feederLeague, teamIdentifier, new Set(), null, true);
                         if (feederTeam && (feederTeam.logo || feederTeam.logoAlt)) {
-                            return { team: feederTeam, league: feederLeagueKey };
+                            return { team: feederTeam, league: feederLeagueKey, leagueObj: feederLeague };
                         }
                     } catch (err) {
                         return null;
@@ -563,21 +546,53 @@ async function resolveSingleTeamWithFallback(providerManager, leagueObj, teamIde
                 const feederMatch = feederResults.find(result => result !== null);
                 
                 if (feederMatch) {
-                    logger.info(`Using logo from feeder league`, {
-                        team: teamIdentifier,
-                        feederLeague: feederMatch.league
-                    });
+                    // Get the provider that was used
+                    const providers = providerManager.getProvidersForLeague(feederMatch.leagueObj);
+                    const providerId = providers[0]?.getProviderId() || 'unknown';
+                    logger.teamResolved(providerId, feederMatch.league, feederMatch.team.fullName || feederMatch.team.name);
                     return { team: feederMatch.team, failed: false };
                 }
             }
             
-            logger.warn(`No logo found from any provider, using fallback`, { 
-                team: teamIdentifier, 
-                league: leagueObj.shortName 
-            });
+            // Try fallback league (for NCAA sports that fall back to basketball roster)
+            if (leagueObj.fallbackLeague) {
+                const { findLeague } = require('../leagues');
+                const fallbackLeague = findLeague(leagueObj.fallbackLeague);
+                if (fallbackLeague) {
+                    try {
+                        // Get providers and try to resolve in fallback league
+                        const providers = providerManager.getProvidersForLeague(fallbackLeague);
+                        for (const provider of providers) {
+                            try {
+                                const fallbackTeam = await provider.resolveTeam(fallbackLeague, teamIdentifier);
+                                if (fallbackTeam && (fallbackTeam.logo || fallbackTeam.logoAlt)) {
+                                    // Log with fallback flag
+                                    logger.teamResolved(
+                                        provider.getProviderId(), 
+                                        fallbackLeague.shortName, 
+                                        fallbackTeam.fullName || fallbackTeam.name,
+                                        true // isFallback
+                                    );
+                                    return { team: fallbackTeam, failed: false };
+                                }
+                            } catch (err) {
+                                // Try next provider
+                            }
+                        }
+                    } catch (err) {
+                        // Fallback league also failed, continue to greyscale
+                    }
+                }
+            }
+            
+            logger.teamNotFound(teamIdentifier, leagueObj.shortName.toUpperCase());
             return { team: null, failed: true };
         }
         
+        // Team was found with logo in original league - log it
+        const providers = providerManager.getProvidersForLeague(leagueObj);
+        const providerId = providers[0]?.getProviderId() || 'unknown';
+        logger.teamResolved(providerId, leagueObj.shortName, resolvedTeam.fullName || resolvedTeam.name);
         return { team: resolvedTeam, failed: false };
     } catch (error) {
         if (enableFallback && error.name === 'TeamNotFoundError') {

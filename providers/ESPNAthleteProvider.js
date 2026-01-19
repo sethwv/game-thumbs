@@ -27,6 +27,9 @@ const { getTeamMatchScoreWithOverrides } = require('../helpers/teamUtils');
 const logger = require('../helpers/logger');
 const RequestQueue = require('../helpers/RequestQueue');
 
+// Track if we've logged queue initialization (prevent duplicate logs)
+let queueInitLogged = false;
+
 class AthleteNotFoundError extends Error {
     constructor(athleteIdentifier, league, athleteList) {
         const athleteNames = athleteList.map(a => a.displayName || a.fullName).slice(0, 20).join(', ');
@@ -61,7 +64,11 @@ class ESPNAthleteProvider extends BaseProvider {
             name: 'ESPN-Athlete'
         });
         
-        logger.info(`ESPN Athlete queue: ${maxConcurrent} concurrent, ${requestDelay}ms delay`);
+        // Only log once across all instances
+        if (!queueInitLogged) {
+            logger.info(`ESPN Athlete queue: ${maxConcurrent} concurrent, ${requestDelay}ms delay`);
+            queueInitLogged = true;
+        }
         
         // Sport-specific color palettes
         this.colorPalettes = {

@@ -13,7 +13,7 @@
 const { generateLogo } = require('../generators/logoGenerator');
 const { generateThumbnail, generateCover } = require('../generators/thumbnailGenerator');
 const { generateLeagueThumb, generateTeamThumb, generateLeagueCover, generateTeamCover } = require('../generators/genericImageGenerator');
-const { downloadImage, addBadgeOverlay, isValidBadge } = require('../helpers/imageUtils');
+const { downloadImage, handleTeamNotFoundError, addBadgeOverlay, isValidBadge } = require('../helpers/imageUtils');
 const logger = require('../helpers/logger');
 const { findLeague } = require('../leagues');
 const { addToCache } = require('../helpers/imageCache');
@@ -190,13 +190,11 @@ async function handleLogoEndpoint(req, leagueObj, team1, team2, options, res) {
                 trim: trim === 'true'
             });
         } catch (teamError) {
-            if (fallback === 'true' && teamError.name === 'TeamNotFoundError') {
+            await handleTeamNotFoundError(teamError, fallback === 'true', async () => {
                 const { leagueLogoUrl } = await getLeagueLogos(leagueObj, variant === 'dark');
-                if (!leagueLogoUrl) return res.status(404).json({ error: 'League logo not found' });
+                if (!leagueLogoUrl) throw new Error('League logo not found');
                 logoBuffer = await downloadImage(leagueLogoUrl, { width: parseInt(size) || 500, format: 'png' });
-            } else {
-                throw teamError;
-            }
+            });
         }
     }
     // Matchup logo
@@ -286,12 +284,11 @@ async function handleImageEndpoint(leagueObj, team1, team2, options, leagueGener
                 { width, height, teamLogoUrlAlt: resolvedTeam.logo }
             );
         } catch (teamError) {
-            if (fallback === 'true' && teamError.name === 'TeamNotFoundError') {
+            return await handleTeamNotFoundError(teamError, fallback === 'true', async () => {
                 const result = await handleFallbackToLeague(leagueObj, null, leagueGenerator, { width, height });
                 if (result.error) throw new Error(result.error);
                 return result;
-            }
-            throw teamError;
+            });
         }
     }
     

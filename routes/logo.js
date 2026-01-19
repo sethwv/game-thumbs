@@ -8,7 +8,7 @@
 
 const providerManager = require('../helpers/ProviderManager');
 const { generateLogo } = require('../generators/logoGenerator');
-const { downloadImage, generateFallbackPlaceholder, resolveTeamsWithFallback, addBadgeOverlay, isValidBadge } = require('../helpers/imageUtils');
+const { downloadImage, resolveTeamsWithFallback, handleTeamNotFoundError, addBadgeOverlay, isValidBadge } = require('../helpers/imageUtils');
 const { getCachedImage, addToCache } = require('../helpers/imageCache');
 const { findLeague } = require('../leagues');
 const logger = require('../helpers/logger');
@@ -89,15 +89,12 @@ module.exports = {
                     // Download and return the team logo
                     logoBuffer = await downloadImage(logoUrl);
                 } catch (teamError) {
-                    // If fallback is enabled and team lookup fails, return league logo instead
-                    if (fallback === 'true' && teamError.name === 'TeamNotFoundError') {
+                    await handleTeamNotFoundError(teamError, fallback === 'true', async () => {
                         const darkLogoPreferred = variant === 'dark';
                         const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj, darkLogoPreferred);
                         
                         logoBuffer = await downloadImage(leagueLogoUrl);
-                    } else {
-                        throw teamError;
-                    }
+                    });
                 }
             }
             // Case 3: Matchup logo (/:league/:team1/:team2/logo)

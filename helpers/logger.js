@@ -266,12 +266,26 @@ const logger = {
     api: (message, details) => log('api', message, details),
     
     // Team resolution logger
-    teamResolved: (providerName, leagueName, teamName) => {
-        console.log(`       ${colors.gray('│')} ${colors.dim('Provider')}: ${providerName} ${colors.dim('-')} ${leagueName} ${colors.dim('-')} ${teamName}`);
+    teamResolved: (providerName, leagueName, teamName, isFallback = false) => {
+        const label = isFallback 
+            ? `${colors.yellow('Team found in fallback')}` 
+            : `${colors.green('Team found')}`;
+        console.log(`       ${colors.gray('│')} ${label}: ${providerName} ${colors.dim('-')} ${leagueName} ${colors.dim('-')} ${teamName}`);
         
         // Write to file
         if (LOG_TO_FILE) {
-            writeToFile('[INFO]', `Provider: ${providerName} - ${leagueName} - ${teamName}`);
+            const fileLabel = isFallback ? 'Team found in fallback' : 'Team found';
+            writeToFile('[INFO]', `${fileLabel}: ${providerName} - ${leagueName} - ${teamName}`);
+        }
+    },
+    
+    // Team not found logger (greyscale placeholder)
+    teamNotFound: (teamIdentifier, leagueName) => {
+        console.log(`       ${colors.gray('│')} ${colors.yellow('Team not found')}: ${leagueName} ${colors.dim('-')} ${teamIdentifier}`);
+        
+        // Write to file
+        if (LOG_TO_FILE) {
+            writeToFile('[WARN]', `Team not found: ${leagueName} - ${teamIdentifier}`);
         }
     },
     

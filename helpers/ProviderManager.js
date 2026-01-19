@@ -298,9 +298,10 @@ class ProviderManager {
      * @param {string} teamIdentifier - Team name, abbreviation, or identifier
      * @param {Set} visitedLeagues - Set of league keys already visited (prevents infinite loops in circular references)
      * @param {Object} originalLeague - The original league that was requested (for error messaging)
+     * @param {boolean} suppressLogging - If true, don't log successful resolution (for fallback attempts)
      * @returns {Promise<Object>} Standardized team object
      */
-    async resolveTeam(league, teamIdentifier, visitedLeagues = new Set(), originalLeague = null) {
+    async resolveTeam(league, teamIdentifier, visitedLeagues = new Set(), originalLeague = null, suppressLogging = false) {
         // Track the original league for error messaging
         if (!originalLeague) {
             originalLeague = league;
@@ -320,7 +321,9 @@ class ProviderManager {
             const provider = providers[i];
             try {
                 const result = await provider.resolveTeam(league, teamIdentifier);
-                logger.teamResolved(provider.getProviderId(), league.shortName, result.fullName || result.name);
+                if (!suppressLogging) {
+                    logger.teamResolved(provider.getProviderId(), league.shortName, result.fullName || result.name);
+                }
                 return result;
             } catch (error) {
                 lastError = error;
@@ -342,7 +345,7 @@ class ProviderManager {
                     }
                     
                     try {
-                        return await this.resolveTeam(feederLeague, teamIdentifier, visitedLeagues, originalLeague);
+                        return await this.resolveTeam(feederLeague, teamIdentifier, visitedLeagues, originalLeague, suppressLogging);
                     } catch (feederError) {
                         // Continue to next feeder league
                     }
@@ -384,7 +387,7 @@ class ProviderManager {
             
             if (fallbackLeague) {
                 try {
-                    return await this.resolveTeam(fallbackLeague, teamIdentifier, visitedLeagues, originalLeague);
+                    return await this.resolveTeam(fallbackLeague, teamIdentifier, visitedLeagues, originalLeague, suppressLogging);
                 } catch (fallbackError) {
                     // If fallback also fails, enhance error with teams from ORIGINAL league only
                     if (lastError && lastError.name === 'TeamNotFoundError') {
