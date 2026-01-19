@@ -94,6 +94,9 @@ jobs:
             "server-behavior")
               RESULTS_FILE="test/output/server-behavior-results.json"
               ;;
+            "fallback")
+              RESULTS_FILE="test/output/fallback-test-results.json"
+              ;;
             *)
               # Fallback: try to find any results file
               RESULTS_FILE=$(find test/output -name "*-results.json" -o -name "test-results.json" 2>/dev/null | head -n 1)
