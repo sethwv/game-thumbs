@@ -360,6 +360,10 @@ class ProviderManager {
                         // Create a new error with the complete team list
                         const newError = new Error(`Team not found: '${teamIdentifier}' in ${originalLeague.shortName.toUpperCase()}. Available teams: ${allTeams.join(', ')}`);
                         newError.name = 'TeamNotFoundError';
+                        newError.availableTeams = allTeams;
+                        newError.teamCount = allTeams.length;
+                        newError.teamIdentifier = teamIdentifier;
+                        newError.league = originalLeague.shortName;
                         throw newError;
                     }
                 } catch (collectError) {
@@ -395,6 +399,10 @@ class ProviderManager {
                             const allTeams = await this.collectAllAvailableTeams(originalLeague, false); // false = don't include related
                             if (allTeams.length > 0) {
                                 lastError.message = `Team not found: '${teamIdentifier}' in ${originalLeague.shortName.toUpperCase()}. Available teams: ${allTeams.join(', ')}`;
+                                lastError.availableTeams = allTeams;
+                                lastError.teamCount = allTeams.length;
+                                lastError.teamIdentifier = teamIdentifier;
+                                lastError.league = originalLeague.shortName;
                             }
                         } catch (collectError) {
                             // If collecting teams fails, just use the original error
@@ -412,6 +420,10 @@ class ProviderManager {
                 const allTeams = await this.collectAllAvailableTeams(originalLeague, false);
                 if (allTeams.length > 0) {
                     lastError.message = `Team not found: '${teamIdentifier}' in ${originalLeague.shortName.toUpperCase()}. Available teams: ${allTeams.join(', ')}`;
+                    lastError.availableTeams = allTeams;
+                    lastError.teamCount = allTeams.length;
+                    lastError.teamIdentifier = teamIdentifier;
+                    lastError.league = originalLeague.shortName;
                 }
             } catch (collectError) {
                 // If collecting teams fails, just use the original error
