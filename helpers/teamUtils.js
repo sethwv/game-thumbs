@@ -62,8 +62,8 @@ function findTeamByAlias(input, leagueKey, teams) {
     
     // Check each team's aliases
     for (const team of teams) {
-        // Extract slug from espnId (e.g., 'eng.nottm_forest' -> 'nottm-forest')
-        let teamSlug = team.espnId || team.id;
+        // Extract slug from team object (try multiple properties)
+        let teamSlug = team.slug || team.espnId || team.id;
         if (teamSlug && teamSlug.includes('.')) {
             teamSlug = teamSlug.split('.')[1];
         }
