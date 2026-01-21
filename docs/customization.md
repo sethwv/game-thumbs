@@ -69,6 +69,18 @@ All `.json` files in the directory will be loaded and merged in alphabetical ord
 }
 ```
 
+#### Finding Team Slugs
+
+**Quick method:** Use the `/raw` endpoint to find a team's slug:
+
+```bash
+curl http://localhost:3000/laliga/celta/raw
+# Look for: "slug": "esp.celta_vigo"
+# Use in JSON: "celta-vigo" (remove prefix, convert _ to -)
+```
+
+See **[Team Matching → Team Slugs](team-matching.html#team-slugs)** for complete details on slug formats by provider.
+
 #### Example
 
 ```json
@@ -79,6 +91,12 @@ All `.json` files in the directory will be loaded and merged in alphabetical ord
       "override": {
         "abbreviation": "MUN"
       }
+    }
+  },
+  "laliga": {
+    "celta-vigo": {
+      "aliases": ["celtadevigo", "celta de vigo", "celtavigo"],
+      "override": {}
     }
   },
   "mls": {
