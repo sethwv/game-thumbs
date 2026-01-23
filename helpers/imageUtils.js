@@ -816,9 +816,24 @@ async function selectBestLogo(team, backgroundColor) {
         const altHex = rgbToHex(altAvgColor);
         const altDistance = colorDistance(altHex, backgroundColor);
 
-        // If primary logo is a bad fit, use logoAlt instead
-        if (primaryDistance < COLOR_SIMILARITY_THRESHOLD && altDistance > primaryDistance) {
-            return team.logoAlt;
+        // Check if background is dark (closer to black than white)
+        const bgRgb = hexToRgb(backgroundColor);
+        const bgBrightness = bgRgb ? (bgRgb.r + bgRgb.g + bgRgb.b) / 3 : 128;
+        const isDarkBackground = bgBrightness < 128;
+
+        // For dark backgrounds, prefer logoAlt (ESPN's alt logos are designed for dark backgrounds)
+        // unless primary logo has significantly better contrast
+        if (isDarkBackground) {
+            // Use logoAlt unless primary is MUCH better (50+ points better contrast)
+            if (altDistance > primaryDistance - 50) {
+                return team.logoAlt;
+            }
+        } else {
+            // For light backgrounds, use the original logic
+            // If primary logo is a bad fit, use logoAlt instead
+            if (primaryDistance < COLOR_SIMILARITY_THRESHOLD && altDistance > primaryDistance) {
+                return team.logoAlt;
+            }
         }
 
         // Otherwise use primary logo

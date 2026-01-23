@@ -381,13 +381,15 @@ async function generateGrid(teamA, teamB, width, height, league, orientation, us
     ctx.fillRect(0, 0, width, height);
     
     // Load and draw logos (same positioning as style 2)
+    // Use dark background color for logo selection to prioritize logos readable on dark backgrounds
+    const darkBackground = '#0a0a0a';
     try {
         const logoMaxSize = orientation === 'landscape'
             ? Math.min(width * 0.325, height * 0.52)
             : Math.min(width * 0.5, height * 0.32);
         
         if (teamA.logo) {
-            const finalLogoImageA = await loadTrimmedLogo(teamA, colorA);
+            const finalLogoImageA = await loadTrimmedLogo(teamA, darkBackground);
             
             const logoAX = orientation === 'landscape'
                 ? (width * 0.2) - (logoMaxSize / 2)
@@ -400,7 +402,7 @@ async function generateGrid(teamA, teamB, width, height, league, orientation, us
         }
         
         if (teamB.logo) {
-            const finalLogoImageB = await loadTrimmedLogo(teamB, colorB);
+            const finalLogoImageB = await loadTrimmedLogo(teamB, darkBackground);
             
             const logoBX = orientation === 'landscape'
                 ? (width * 0.8) - (logoMaxSize / 2)
