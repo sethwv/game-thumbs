@@ -5,6 +5,8 @@
 // ------------------------------------------------------------------------------
 
 const axios = require('axios');
+const fs = require('fs').promises;
+const path = require('path');
 const BaseProvider = require('./BaseProvider');
 const { getTeamMatchScoreWithOverrides, findTeamByAlias, applyTeamOverrides } = require('../helpers/teamUtils');
 const { extractDominantColors } = require('../helpers/colorUtils');
@@ -32,6 +34,12 @@ class ESPNProvider extends BaseProvider {
         this.CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
         this.REQUEST_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '10000', 10); // 10 seconds
         this.MAX_COLOR_CACHE_SIZE = 1000; // Prevent unbounded memory growth
+        
+        // Sport/League cache for unconfigured league fallback
+        this.sportLeagueMap = new Map(); // Map<sport, Set<leagueSlug>>
+        this.cacheInitialized = false;
+        this.CACHE_DIR = path.join(process.cwd(), '.cache', 'providers');
+        this.SPORT_LEAGUE_CACHE_FILE = path.join(this.CACHE_DIR, 'espn-sport-league.json');
     }
 
     getProviderId() {
@@ -319,6 +327,230 @@ class ESPNProvider extends BaseProvider {
     }
 
     // ------------------------------------------------------------------------------
+    // Sport/League cache for unconfigured league fallback
+    // ------------------------------------------------------------------------------
+
+    /**
+     * Initialize the sport/league cache by fetching all ESPN sports and their leagues
+     */
+    async initializeSportLeagueCache() {
+        if (this.cacheInitialized) {
+            logger.info('ESPN sport/league cache already initialized');
+            return;
+        }
+
+        // Try to load from cache file first
+        const cached = await this.loadSportLeagueCacheFromFile();
+        if (cached) {
+            this.sportLeagueMap = cached.sportLeagueMap;
+            this.cacheInitialized = true;
+            const totalLeagues = Array.from(this.sportLeagueMap.values()).reduce((sum, set) => sum + set.size, 0);
+            logger.info(`ESPN sport/league cache loaded from file: ${this.sportLeagueMap.size} sports, ${totalLeagues} leagues`);
+            return;
+        }
+
+        logger.info('Initializing ESPN sport/league cache...');
+        
+        // Fetch all available sports from ESPN Core API
+        const sports = await this.fetchAllSports();
+        
+        if (sports.length === 0) {
+            logger.warn('No sports discovered from ESPN API');
+            this.cacheInitialized = true;
+            return;
+        }
+
+        let totalLeagues = 0;
+
+        for (const sport of sports) {
+            try {
+                const leagues = await this.fetchLeaguesForSport(sport);
+                if (leagues.size > 0) {
+                    this.sportLeagueMap.set(sport, leagues);
+                    totalLeagues += leagues.size;
+                }
+            } catch (error) {
+                logger.warn(`Failed to fetch leagues for sport: ${sport}`, { error: error.message });
+            }
+        }
+
+        this.cacheInitialized = true;
+        
+        // Save to cache file
+        await this.saveSportLeagueCacheToFile();
+        
+        logger.info(`ESPN sport/league cache initialized: ${sports.length} sports, ${totalLeagues} leagues`);
+    }
+
+    /**
+     * Load sport/league cache from file
+     * @returns {Promise<Object|null>} Cached data or null if not available
+     */
+    async loadSportLeagueCacheFromFile() {
+        try {
+            const data = await fs.readFile(this.SPORT_LEAGUE_CACHE_FILE, 'utf8');
+            const parsed = JSON.parse(data);
+            
+            // Convert arrays back to Sets
+            const sportLeagueMap = new Map();
+            for (const [sport, leagues] of Object.entries(parsed.sportLeagueMap)) {
+                sportLeagueMap.set(sport, new Set(leagues));
+            }
+            
+            return { sportLeagueMap };
+        } catch (error) {
+            // File doesn't exist or is invalid
+            return null;
+        }
+    }
+
+    /**
+     * Save sport/league cache to file
+     */
+    async saveSportLeagueCacheToFile() {
+        try {
+            await fs.mkdir(this.CACHE_DIR, { recursive: true });
+            
+            // Convert Sets to arrays for JSON serialization
+            const sportLeagueObj = {};
+            for (const [sport, leagues] of this.sportLeagueMap.entries()) {
+                sportLeagueObj[sport] = Array.from(leagues);
+            }
+            
+            const cacheData = {
+                sportLeagueMap: sportLeagueObj,
+                timestamp: Date.now()
+            };
+            
+            await fs.writeFile(this.SPORT_LEAGUE_CACHE_FILE, JSON.stringify(cacheData, null, 2), 'utf8');
+        } catch (error) {
+            logger.warn('Failed to write sport/league cache file', { error: error.message });
+        }
+    }
+
+    /**
+     * Fetch all available sports from ESPN Core API
+     * @returns {Promise<string[]>} Array of sport slugs
+     */
+    async fetchAllSports() {
+        const sports = [];
+
+        try {
+            const url = 'https://sports.core.api.espn.com/v2/sports?limit=1000';
+            const response = await axios.get(url, {
+                timeout: 15000,
+                headers: {
+                    'User-Agent': 'game-thumbs-api/1.0'
+                }
+            });
+
+            // ESPN Core API returns sports in items array with $ref URLs
+            // Format: http://sports.core.api.espn.com/v2/sports/baseball?lang=en&region=us
+            if (response.data?.items) {
+                for (const item of response.data.items) {
+                    const sportUrl = item.$ref;
+                    if (sportUrl) {
+                        // Extract slug between /sports/ and ?
+                        const match = sportUrl.match(/\/sports\/([^?]+)/);
+                        if (match && match[1]) {
+                            sports.push(match[1]);
+                        }
+                    }
+                }
+            }
+
+        } catch (error) {
+            logger.error('Failed to fetch sports from ESPN Core API', { error: error.message });
+        }
+
+        return sports;
+    }
+
+    /**
+     * Fetch all leagues for a specific sport from ESPN API
+     * @param {string} sport - ESPN sport slug
+     * @returns {Set<string>} Set of league slugs
+     */
+    async fetchLeaguesForSport(sport) {
+        const leagues = new Set();
+
+        try {
+            // Use ESPN Core API with high limit to get all leagues
+            const url = `https://sports.core.api.espn.com/v2/sports/${sport}/leagues?limit=1000`;
+            const response = await axios.get(url, {
+                timeout: 15000,
+                headers: {
+                    'User-Agent': 'game-thumbs-api/1.0'
+                }
+            });
+
+            // ESPN Core API returns leagues in items array with $ref URLs
+            // Format: http://sports.core.api.espn.com/v2/sports/football/leagues/nfl?lang=en&region=us
+            if (response.data?.items) {
+                for (const item of response.data.items) {
+                    const leagueUrl = item.$ref;
+                    if (leagueUrl) {
+                        // Extract slug between /leagues/ and ?
+                        const match = leagueUrl.match(/\/leagues\/([^?]+)/);
+                        if (match && match[1]) {
+                            leagues.add(match[1]);
+                        }
+                    }
+                }
+            }
+
+        } catch (error) {
+            logger.warn(`Failed to fetch leagues for sport: ${sport}`, { error: error.message });
+        }
+
+        return leagues;
+    }
+
+    /**
+     * Check if this provider can handle an unconfigured league
+     * @param {string} leagueSlug - League slug to check
+     * @returns {{ canHandle: boolean, sport?: string }} Object indicating if provider can handle the league
+     */
+    canHandleUnconfiguredLeague(leagueSlug) {
+        if (!this.cacheInitialized) {
+            logger.warn('ESPN cache not initialized yet, cannot check unconfigured league', { league: leagueSlug });
+            return { canHandle: false };
+        }
+
+        // Search for the league in the sport/league cache
+        for (const [sport, leagues] of this.sportLeagueMap.entries()) {
+            if (leagues.has(leagueSlug)) {
+                return { canHandle: true, sport };
+            }
+        }
+
+        return { canHandle: false };
+    }
+
+    /**
+     * Get configuration for an unconfigured league
+     * @param {string} leagueSlug - League slug
+     * @param {string} sport - ESPN sport slug
+     * @returns {object} Temporary league configuration object
+     */
+    getUnconfiguredLeagueConfig(leagueSlug, sport) {
+        return {
+            shortName: leagueSlug.toUpperCase(),
+            name: leagueSlug.toUpperCase(),
+            providerId: 'espn',
+            providers: [
+                {
+                    espn: {
+                        espnSport: sport,
+                        espnSlug: leagueSlug
+                    }
+                }
+            ],
+            _isESPNFallback: true
+        };
+    }
+
+    // ------------------------------------------------------------------------------
     // Private helper methods
     // ------------------------------------------------------------------------------
 
@@ -395,6 +627,11 @@ class ESPNProvider extends BaseProvider {
 
 }
 
-module.exports = ESPNProvider;
+// Export singleton instance for use across the app (e.g., leagues.js)
+// and the class for ProviderManager to instantiate
+const sharedInstance = new ESPNProvider();
+module.exports = sharedInstance;
+module.exports.ESPNProvider = ESPNProvider;
+module.exports.default = sharedInstance;
 
 // ------------------------------------------------------------------------------
