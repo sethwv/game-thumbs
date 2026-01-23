@@ -42,40 +42,78 @@ nav_order: 7
 
 **Applies to:** `/:league/:team1/:team2/thumb` only
 
-- **Style 1:** Diagonal split with team colors
-- **Style 2:** Gradient blend between team colors
-- **Style 3:** Minimalist badge with team circles and VS text (light background)
-- **Style 4:** Minimalist badge with team circles and VS text (dark background)
-- **Style 99:** 3D embossed with textured backgrounds, reflections, and metallic VS badge _(credit: @shelf on Dispatcharr Discord)_
+{: .note }
+> Examples below include `logo=true` to display the league logo in the center.
+
+| Style | Description | Preview |
+|-------|-------------|--------|
+| **1: Diagonal Split** | Diagonal split with team colors separated by a white line. | [![Style 1](https://game-thumbs.swvn.io/nhl/leafs/canadiens/thumb?style=1&logo=true)](https://game-thumbs.swvn.io/nhl/leafs/canadiens/thumb?style=1&logo=true) |
+| **2: Gradient Blend** | Smooth gradient blend between team colors. | [![Style 2](https://game-thumbs.swvn.io/nba/raptors/celtics/thumb?style=2&logo=true)](https://game-thumbs.swvn.io/nba/raptors/celtics/thumb?style=2&logo=true) |
+| **3: Minimalist Badge (Light)** | Minimalist design with team circles, VS text, and light background. | [![Style 3](https://game-thumbs.swvn.io/mlb/bluejays/yankees/thumb?style=3&logo=true)](https://game-thumbs.swvn.io/mlb/bluejays/yankees/thumb?style=3&logo=true) |
+| **4: Minimalist Badge (Dark)** | Minimalist design with team circles, VS text, and dark background. | [![Style 4](https://game-thumbs.swvn.io/nhl/oilers/flames/thumb?style=4&logo=true)](https://game-thumbs.swvn.io/nhl/oilers/flames/thumb?style=4&logo=true) |
+| **5: Grid Background** | Dark background with grey diagonal grid lines and fade to black effect. | [![Style 5](https://game-thumbs.swvn.io/mls/toronto-fc/montreal/thumb?style=5&logo=true)](https://game-thumbs.swvn.io/mls/toronto-fc/montreal/thumb?style=5&logo=true) |
+| **6: Grid with Team Colors** | Dark background with team color gradient grid lines and fade to black effect. | [![Style 6](https://game-thumbs.swvn.io/nhl/canucks/senators/thumb?style=6&logo=true)](https://game-thumbs.swvn.io/nhl/canucks/senators/thumb?style=6&logo=true) |
+| **99: 3D Embossed** | 3D embossed design with textured backgrounds, reflections, and metallic VS badge.<br/>_Credit: @shelf on Dispatcharr Discord_ | [![Style 99](https://game-thumbs.swvn.io/nhl/leafs/bruins/thumb?style=99&logo=true)](https://game-thumbs.swvn.io/nhl/leafs/bruins/thumb?style=99&logo=true) |
 
 ---
 
 ## Examples
 
 ### League Thumbnails
-```
-GET /nba/thumb
-GET /nfl/thumb.png
-GET /ncaaf/thumb?aspect=16-9
-GET /nba/thumb?aspect=1-1
-```
+
+Dark gradient background with centered league logo.
+
+| League | Preview | URL |
+|--------|---------|-----|
+| **NHL** | [![NHL Thumb](https://game-thumbs.swvn.io/nhl/thumb)](https://game-thumbs.swvn.io/nhl/thumb) | `/nhl/thumb` |
+| **NBA** | [![NBA Thumb](https://game-thumbs.swvn.io/nba/thumb)](https://game-thumbs.swvn.io/nba/thumb) | `/nba/thumb` |
+| **MLB** | [![MLB Thumb](https://game-thumbs.swvn.io/mlb/thumb)](https://game-thumbs.swvn.io/mlb/thumb) | `/mlb/thumb` |
+| **MLS (1:1)** | [![MLS Thumb](https://game-thumbs.swvn.io/mls/thumb?aspect=1-1)](https://game-thumbs.swvn.io/mls/thumb?aspect=1-1) | `/mls/thumb?aspect=1-1` |
 
 ### Team Thumbnails
-```
-GET /nba/lakers/thumb
-GET /nfl/chiefs/thumb.png
-GET /mls/lafc/thumb
-```
+
+Team color gradient background with centered team logo.
+
+| Team | Preview | URL |
+|------|---------|-----|
+| **Leafs** | [![Leafs Thumb](https://game-thumbs.swvn.io/nhl/leafs/thumb)](https://game-thumbs.swvn.io/nhl/leafs/thumb) | `/nhl/leafs/thumb` |
+| **Raptors** | [![Raptors Thumb](https://game-thumbs.swvn.io/nba/raptors/thumb)](https://game-thumbs.swvn.io/nba/raptors/thumb) | `/nba/raptors/thumb` |
+| **Blue Jays** | [![Blue Jays Thumb](https://game-thumbs.swvn.io/mlb/bluejays/thumb)](https://game-thumbs.swvn.io/mlb/bluejays/thumb) | `/mlb/bluejays/thumb` |
 
 ### Matchup Thumbnails
+
+**Basic:**
 ```
-GET /nba/lakers/celtics/thumb
-GET /nfl/chiefs/49ers/thumb?style=2
-GET /ncaaf/alabama/georgia/thumb?logo=false
-GET /nhl/tor/mtl/thumb?style=99
-GET /epl/arsenal/chelsea/thumb?badge=4K
-GET /nba/lakers/celtics/thumb?badge=HD&style=3
+GET /nhl/leafs/canadiens/thumb
+GET /nba/raptors/lakers/thumb?style=2
+GET /mlb/bluejays/yankees/thumb?logo=false
+GET /nhl/oilers/flames/thumb?style=99
+GET /mls/toronto-fc/lafc/thumb?badge=4K
+GET /nhl/canucks/bruins/thumb?badge=HD&style=3
+GET /nhl/jets/blackhawks/thumb?style=5
+GET /nhl/senators/rangers/thumb?style=6
 ```
+
+### Fallback Behavior
+
+When `fallback=true` is set, the API gracefully handles missing teams instead of returning errors.
+
+#### Single Team Fallback
+
+If a team is not found, returns the league thumbnail instead.
+
+| Request | Preview | Behavior |
+|---------|---------|----------|
+| `/nba/invalidteam/thumb?fallback=true` | [![Single Team Fallback](https://game-thumbs.swvn.io/nba/invalidteam/thumb?fallback=true)](https://game-thumbs.swvn.io/nba/invalidteam/thumb?fallback=true) | Returns NBA league thumbnail |
+
+#### Matchup Fallback
+
+If one or both teams are not found, uses greyscale league logo for missing teams.
+
+| Request | Preview | Behavior |
+|---------|---------|----------|
+| `/nhl/leafs/invalidteam/thumb?fallback=true&logo=true` | [![Matchup Fallback](https://game-thumbs.swvn.io/nhl/leafs/invalidteam/thumb?fallback=true&logo=true)](https://game-thumbs.swvn.io/nhl/leafs/invalidteam/thumb?fallback=true&logo=true) | Valid team + greyscale NHL logo |
+| `/nba/invalidteam1/invalidteam2/thumb?fallback=true&logo=true` | [![Both Teams Fallback](https://game-thumbs.swvn.io/nba/invalidteam1/invalidteam2/thumb?fallback=true&logo=true)](https://game-thumbs.swvn.io/nba/invalidteam1/invalidteam2/thumb?fallback=true&logo=true) | Both sides use greyscale NBA logo |
 
 ### Athlete Sports (Singles)
 ```

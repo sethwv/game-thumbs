@@ -44,39 +44,73 @@ nav_order: 6
 
 **Applies to:** `/:league/:team1/:team2/logo` only
 
-- **Style 1:** Compact diagonal split (thumbnail style 1 in logo footprint, transparent background)
-- **Style 2:** Side by side
-- **Style 3:** Circle badges with team colors (league logo overlays bottom)
-- **Style 4:** Square badges with team colors (league logo overlays bottom)
-- **Style 5:** Circle badges with league logo on left (white background, league logo required)
-- **Style 6:** Square badges with league logo on left (white background, league logo required)
+{: .note }
+> Styles 3-6 include `logo=true` to display the league logo. Styles 1-2 have transparent backgrounds.
+
+| Style | Description | Preview |
+|-------|-------------|--------|
+| **1: Compact Diagonal Split** | Thumbnail style 1 compressed into logo footprint with transparent background. | [![Style 1](https://game-thumbs.swvn.io/nhl/leafs/canadiens/logo?style=1)](https://game-thumbs.swvn.io/nhl/leafs/canadiens/logo?style=1) |
+| **2: Side by Side** | Team logos placed side by side with transparent background. | [![Style 2](https://game-thumbs.swvn.io/nba/raptors/bucks/logo?style=2)](https://game-thumbs.swvn.io/nba/raptors/bucks/logo?style=2) |
+| **3: Circle Badges** | Circular badges with team colors, league logo overlays bottom. | [![Style 3](https://game-thumbs.swvn.io/mlb/bluejays/yankees/logo?style=3&logo=true)](https://game-thumbs.swvn.io/mlb/bluejays/yankees/logo?style=3&logo=true) |
+| **4: Square Badges** | Square badges with team colors, league logo overlays bottom. | [![Style 4](https://game-thumbs.swvn.io/nhl/oilers/flames/logo?style=4&logo=true)](https://game-thumbs.swvn.io/nhl/oilers/flames/logo?style=4&logo=true) |
+| **5: Circle with League Logo Left** | Circular badges with league logo on left side (white background, requires league logo). | [![Style 5](https://game-thumbs.swvn.io/nhl/canucks/jets/logo?style=5&logo=true)](https://game-thumbs.swvn.io/nhl/canucks/jets/logo?style=5&logo=true) |
+| **6: Square with League Logo Left** | Square badges with league logo on left side (white background, requires league logo). | [![Style 6](https://game-thumbs.swvn.io/mls/toronto-fc/montreal/logo?style=6&logo=true)](https://game-thumbs.swvn.io/mls/toronto-fc/montreal/logo?style=6&logo=true) |
 
 ---
 
 ## Examples
 
 ### League Logos
-```
-GET /nba/logo
-GET /nfl/logo.png
-GET /epl/logo?variant=dark
-```
+
+Raw league logo from provider.
+
+| League | Preview | URL |
+|--------|---------|-----|
+| **NHL** | [![NHL Logo](https://game-thumbs.swvn.io/nhl/logo)](https://game-thumbs.swvn.io/nhl/logo) | `/nhl/logo` |
+| **NBA** | [![NBA Logo](https://game-thumbs.swvn.io/nba/logo)](https://game-thumbs.swvn.io/nba/logo) | `/nba/logo` |
+| **MLB (Dark)** | [![MLB Logo](https://game-thumbs.swvn.io/mlb/logo?variant=dark)](https://game-thumbs.swvn.io/mlb/logo?variant=dark) | `/mlb/logo?variant=dark` |
 
 ### Team Logos
-```
-GET /nba/lakers/logo
-GET /nfl/chiefs/logo.png
-GET /nhl/toronto/logo?variant=dark
-```
+
+Raw team logo from provider.
+
+| Team | Preview | URL |
+|------|---------|-----|
+| **Leafs** | [![Leafs Logo](https://game-thumbs.swvn.io/nhl/leafs/logo)](https://game-thumbs.swvn.io/nhl/leafs/logo) | `/nhl/leafs/logo` |
+| **Raptors** | [![Raptors Logo](https://game-thumbs.swvn.io/nba/raptors/logo)](https://game-thumbs.swvn.io/nba/raptors/logo) | `/nba/raptors/logo` |
+| **Blue Jays** | [![Blue Jays Logo](https://game-thumbs.swvn.io/mlb/bluejays/logo)](https://game-thumbs.swvn.io/mlb/bluejays/logo) | `/mlb/bluejays/logo` |
 
 ### Matchup Logos
+
+**Basic:**
 ```
-GET /nba/lakers/celtics/logo
-GET /nfl/chiefs/49ers/logo?style=3
-GET /ncaaf/alabama/georgia/logo?size=2048
-GET /nhl/tor/mtl/logo?badge=4K
-GET /epl/arsenal/chelsea/logo?badge=ALT&style=2
+GET /nhl/leafs/canadiens/logo
+GET /nba/raptors/lakers/logo?style=3
+GET /mlb/bluejays/redsox/logo?size=2048
+GET /nhl/oilers/flames/logo?badge=4K
+GET /mls/toronto-fc/montreal/logo?badge=ALT&style=2
 ```
+
+### Fallback Behavior
+
+When `fallback=true` is set, the API gracefully handles missing teams instead of returning errors.
+
+#### Single Team Fallback
+
+If a team is not found, returns the league logo instead.
+
+| Request | Preview | Behavior |
+|---------|---------|----------|
+| `/nba/invalidteam/logo?fallback=true` | [![Single Team Fallback](https://game-thumbs.swvn.io/nba/invalidteam/logo?fallback=true)](https://game-thumbs.swvn.io/nba/invalidteam/logo?fallback=true) | Returns NBA league logo |
+
+#### Matchup Fallback
+
+If one or both teams are not found, uses greyscale league logo for missing teams.
+
+| Request | Preview | Behavior |
+|---------|---------|----------|
+| `/nhl/leafs/invalidteam/logo?fallback=true&style=2` | [![Matchup Fallback](https://game-thumbs.swvn.io/nhl/leafs/invalidteam/logo?fallback=true&style=2)](https://game-thumbs.swvn.io/nhl/leafs/invalidteam/logo?fallback=true&style=2) | Valid team + greyscale NHL logo |
+| `/mlb/invalidteam1/invalidteam2/logo?fallback=true&style=3` | [![Both Teams Fallback](https://game-thumbs.swvn.io/mlb/invalidteam1/invalidteam2/logo?fallback=true&style=3)](https://game-thumbs.swvn.io/mlb/invalidteam1/invalidteam2/logo?fallback=true&style=3) | Both sides use greyscale MLB logo |
 
 ### Athlete Sports
 ```
