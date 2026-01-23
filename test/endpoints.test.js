@@ -164,6 +164,46 @@ const testCases = [
         saveImage: true,
         filename: 'matchup-thumb-nba-16x9.png'
     },
+    {
+        name: 'Matchup Thumb Style 2 - NHL',
+        endpoint: '/nhl/blues/stars/thumb?style=2',
+        expectedStatus: 200,
+        expectedType: 'image/png',
+        saveImage: true,
+        filename: 'matchup-thumb-nhl-style2.png'
+    },
+    {
+        name: 'Matchup Thumb Style 3 - NBA',
+        endpoint: '/nba/lakers/celtics/thumb?style=3',
+        expectedStatus: 200,
+        expectedType: 'image/png',
+        saveImage: true,
+        filename: 'matchup-thumb-nba-style3.png'
+    },
+    {
+        name: 'Matchup Thumb Style 4 - NFL',
+        endpoint: '/nfl/chiefs/49ers/thumb?style=4',
+        expectedStatus: 200,
+        expectedType: 'image/png',
+        saveImage: true,
+        filename: 'matchup-thumb-nfl-style4.png'
+    },
+    {
+        name: 'Matchup Thumb Style 5 (Grid) - NHL',
+        endpoint: '/nhl/blues/stars/thumb?style=5',
+        expectedStatus: 200,
+        expectedType: 'image/png',
+        saveImage: true,
+        filename: 'matchup-thumb-nhl-style5.png'
+    },
+    {
+        name: 'Matchup Thumb Style 6 (Grid Team Colors) - NFL',
+        endpoint: '/nfl/chiefs/49ers/thumb?style=6',
+        expectedStatus: 200,
+        expectedType: 'image/png',
+        saveImage: true,
+        filename: 'matchup-thumb-nfl-style6.png'
+    },
     
     // Cover images
     {
@@ -189,6 +229,30 @@ const testCases = [
         expectedType: 'image/png',
         saveImage: true,
         filename: 'matchup-cover-nfl.png'
+    },
+    {
+        name: 'Matchup Cover Style 2 - NBA',
+        endpoint: '/nba/lakers/celtics/cover?style=2',
+        expectedStatus: 200,
+        expectedType: 'image/png',
+        saveImage: true,
+        filename: 'matchup-cover-nba-style2.png'
+    },
+    {
+        name: 'Matchup Cover Style 5 (Grid) - NHL',
+        endpoint: '/nhl/blues/stars/cover?style=5',
+        expectedStatus: 200,
+        expectedType: 'image/png',
+        saveImage: true,
+        filename: 'matchup-cover-nhl-style5.png'
+    },
+    {
+        name: 'Matchup Cover Style 6 (Grid Team Colors) - NFL',
+        endpoint: '/nfl/chiefs/49ers/cover?style=6',
+        expectedStatus: 200,
+        expectedType: 'image/png',
+        saveImage: true,
+        filename: 'matchup-cover-nfl-style6.png'
     },
     
     // Specific route tests
