@@ -239,6 +239,31 @@ When resolving a team, the system tries multiple approaches in parallel for opti
 5. **Greyscale League Logo**: If `fallback=true` parameter is set, uses greyscale league logo as placeholder
 6. **Ultimate Text Fallback**: If league logo fails, generates minimal single-letter placeholder on transparent background
 
+### Unsupported League Fallback (Provider Interface)
+
+When a league is not configured in `leagues.json`, providers can optionally support it through the unconfigured league interface:
+
+1. **Provider Implementation**: Providers implement `canHandleUnconfiguredLeague()` and `getUnconfiguredLeagueConfig()` methods
+2. **Automatic Lookup**: When `findLeague()` doesn't find a configured league, it queries `ProviderManager.findUnconfiguredLeague()`
+3. **Provider Check**: ProviderManager iterates through all registered providers to find one that can handle the league
+4. **Temporary League Object**: The supporting provider creates a temporary league configuration on-the-fly
+5. **Normal Processing**: The request continues through the normal flow using that provider
+
+**Example (ESPN Provider)**:
+- Request: `GET /eng.w.1/team1/team2/thumb`
+- `findLeague('eng.w.1')` checks configured leagues → not found
+- Calls `providerManager.findUnconfiguredLeague('eng.w.1')`
+- ProviderManager queries each provider's `canHandleUnconfiguredLeague()` method
+- ESPN provider's cache finds `eng.w.1` exists under sport `soccer`
+- Returns temporary league object with ESPN provider configuration
+- ESPN provider resolves teams and generates thumbnail normally
+- Result: Successfully generated matchup thumbnail
+
+This architecture allows any provider to support unconfigured leagues, not just ESPN. The fallback is completely automatic—no special query parameters needed.
+
+{: .note }
+> **ESPN Implementation**: The ESPN provider caches all available sports/leagues from ESPN's Core API on startup (200-400+ leagues across 17+ sports). The cache is self-contained within `ESPNProvider.js`, similar to how `ESPNAthleteProvider.js` manages its athlete cache. Initial discovery takes 1-2 minutes but runs asynchronously without blocking the server.
+
 ### Parallel Optimization
 
 **Team Pair Resolution**: Both teams in a matchup are resolved simultaneously, cutting resolution time in half.
