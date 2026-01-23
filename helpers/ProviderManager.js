@@ -30,8 +30,19 @@ class ProviderManager {
             files.forEach(file => {
                 if (file.endsWith('Provider.js') && file !== 'BaseProvider.js') {
                     try {
-                        const ProviderClass = require(path.join(providersDir, file));
-                        this.registerProvider(new ProviderClass());
+                        const providerModule = require(path.join(providersDir, file));
+                        
+                        // Check if module exports a singleton instance or a class
+                        if (providerModule && typeof providerModule === 'object' && typeof providerModule.getProviderId === 'function') {
+                            // It's a singleton instance - use it directly
+                            this.registerProvider(providerModule);
+                        } else {
+                            // It's a class - check for named exports or default
+                            const ProviderClass = providerModule.ESPNProvider || providerModule.HockeyTechProvider || providerModule;
+                            if (typeof ProviderClass === 'function') {
+                                this.registerProvider(new ProviderClass());
+                            }
+                        }
                     } catch (error) {
                         logger.warn(`Failed to load provider from ${file}`, { error: error.message });
                     }
@@ -176,6 +187,36 @@ class ProviderManager {
         }
 
         return providers;
+    }
+
+    /**
+     * Check if any provider can handle an unconfigured league
+     * Providers must implement canHandleUnconfiguredLeague() method
+     * @param {string} leagueIdentifier - League identifier to check
+     * @returns {Object|null} League config object if a provider can handle it, null otherwise
+     */
+    findUnconfiguredLeague(leagueIdentifier) {
+        this.initialize();
+
+        // Check each registered provider to see if it can handle this league
+        for (const provider of this.providers.values()) {
+            // Only check providers that implement the unconfigured league interface
+            if (typeof provider.canHandleUnconfiguredLeague === 'function') {
+                const { canHandle, sport } = provider.canHandleUnconfiguredLeague(leagueIdentifier);
+                
+                if (canHandle) {
+                    // Provider can handle this league
+                    logger.unconfiguredLeague(provider.getProviderId(), leagueIdentifier, sport);
+
+                    // Use provider's method to get the config
+                    if (typeof provider.getUnconfiguredLeagueConfig === 'function') {
+                        return provider.getUnconfiguredLeagueConfig(leagueIdentifier, sport);
+                    }
+                }
+            }
+        }
+
+        return null;
     }
 
     /**
