@@ -101,7 +101,7 @@ If a league is not configured but exists in ESPN's API, automatically uses ESPN 
 
 | Request | Behavior |
 |---------|----------|
-| `/eng.w.1/team1/team2/logo?fallback=true` | Detects league in ESPN cache → creates temporary config → uses ESPN provider directly |
+| `/eng.w.1/team1/team2/logo?fallback=true` | Detects unconfigured league → creates temporary config → resolves teams normally |
 
 {: .note }
 > This enables support for 100+ ESPN leagues (e.g., WSL, Brazilian Serie A, J-League, Liga MX lower divisions) without manual configuration.

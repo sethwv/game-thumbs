@@ -58,7 +58,6 @@ function getTeamAliases(leagueKey, teamIdentifier) {
 
 function findTeamByAlias(input, leagueKey, teams) {
     const normalizedInput = normalizeCompact(input);
-    const leagueOverrides = getLeagueOverrides(leagueKey);
     
     // Check each team's aliases
     for (const team of teams) {
@@ -70,13 +69,17 @@ function findTeamByAlias(input, leagueKey, teams) {
         // Normalize underscores to hyphens
         teamSlug = teamSlug?.replace(/_/g, '-');
         
-        const teamOverride = leagueOverrides[teamSlug];
-        
-        if (teamOverride?.aliases) {
-            for (const alias of teamOverride.aliases) {
-                // Use compact normalization to match with or without spaces
-                if (normalizeCompact(alias) === normalizedInput) {
-                    return team;
+        // Check aliases across ALL leagues (not just the current one)
+        // This ensures fallback leagues can still use aliases defined for the original league
+        for (const [league, leagueTeams] of Object.entries(teamOverrides)) {
+            const teamOverride = leagueTeams[teamSlug];
+            
+            if (teamOverride?.aliases) {
+                for (const alias of teamOverride.aliases) {
+                    // Use compact normalization to match with or without spaces
+                    if (normalizeCompact(alias) === normalizedInput) {
+                        return team;
+                    }
                 }
             }
         }

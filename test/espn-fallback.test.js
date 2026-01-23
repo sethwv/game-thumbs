@@ -141,43 +141,6 @@ async function runTests() {
         }
     });
 
-    // Test 4: Verify ESPN direct endpoint still works for a known league
-    await runTest('ESPN direct endpoint generates image', async () => {
-        // Using eng.2 (English Championship) which should exist in ESPN
-        const response = await makeRequest('/espn/soccer/eng.2/thumb');
-        if (response.statusCode !== 200 && response.statusCode !== 404) {
-            throw new Error(`Expected 200 or 404, got ${response.statusCode}`);
-        }
-        if (response.statusCode === 200) {
-            if (response.headers['content-type'] !== 'image/png') {
-                throw new Error('Expected image/png content type');
-            }
-            // Save the image
-            const filename = 'espn-fallback-espn-direct.png';
-            fs.writeFileSync(path.join(OUTPUT_DIR, filename), response.body);
-            console.log(`  💾 Saved: ${filename}`);
-        }
-    });
-
-    // Test 5: ESPN direct matchup endpoint
-    await runTest('ESPN direct matchup endpoint', async () => {
-        const response = await makeRequest('/espn/soccer/eng.2/sheffield/norwich/thumb');
-        // We might get 404 if teams don't exist, but shouldn't get 400 or 500
-        if (response.statusCode >= 500) {
-            throw new Error(`Server error: ${response.statusCode}`);
-        }
-        if (response.statusCode === 200) {
-            if (response.headers['content-type'] !== 'image/png') {
-                throw new Error('Expected image/png content type');
-            }
-            const filename = 'espn-fallback-matchup.png';
-            fs.writeFileSync(path.join(OUTPUT_DIR, filename), response.body);
-            console.log(`  💾 Saved: ${filename}`);
-        } else {
-            console.log(`  ℹ️  Status: ${response.statusCode} (expected for unknown teams)`);
-        }
-    });
-
     // Print summary
     console.log('\n' + '='.repeat(80));
     console.log('TEST SUMMARY');

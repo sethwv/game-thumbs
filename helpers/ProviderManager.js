@@ -377,7 +377,7 @@ class ProviderManager {
             const { findLeague } = require('../leagues');
             
             for (const feederLeagueKey of league.feederLeagues) {
-                const feederLeague = findLeague(feederLeagueKey);
+                const feederLeague = await findLeague(feederLeagueKey);
                 if (feederLeague) {
                     // Skip if we've already visited this feeder league (prevents circular loops)
                     const feederKey = feederLeague.shortName?.toLowerCase() || feederLeague.name?.toLowerCase();
@@ -428,7 +428,7 @@ class ProviderManager {
         // If feederLeagues failed/not configured, try fallbackLeague (for backward compatibility)
         if (league.fallbackLeague) {
             const { findLeague } = require('../leagues');
-            const fallbackLeague = findLeague(league.fallbackLeague);
+            const fallbackLeague = await findLeague(league.fallbackLeague);
             
             if (fallbackLeague) {
                 try {
