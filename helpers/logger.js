@@ -289,6 +289,16 @@ const logger = {
         }
     },
     
+    // Unconfigured league fallback logger
+    unconfiguredLeague: (providerName, leagueName, sport) => {
+        console.log(`       ${colors.gray('│')} ${colors.dim('Unconfigured league fallback')}: ${providerName} ${colors.dim('-')} ${leagueName} ${colors.dim('(')}${sport}${colors.dim(')')}`);
+        
+        // Write to file
+        if (LOG_TO_FILE) {
+            writeToFile('[INFO]', `Unconfigured league fallback: ${providerName} - ${leagueName} (${sport})`);
+        }
+    },
+    
     // Special request logger
     request: (req, cached = false) => {
         const method = colors.bold(req.method);
