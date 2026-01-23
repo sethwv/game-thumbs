@@ -709,7 +709,7 @@ async function downloadImage(urlOrPath) {
             maxRedirects: 5,
             headers: { 
                 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'image/png,image/jpeg,image/jpg,image/gif,image/webp,image/*,*/*;q=0.8',
+                'Accept': 'image/png,image/jpeg,image/jpg,*/*;q=0.8',
                 'Accept-Encoding': 'gzip, deflate, br',
                 'Referer': 'https://www.espn.com/'
             }
