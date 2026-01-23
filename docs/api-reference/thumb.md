@@ -96,7 +96,18 @@ GET /nhl/senators/rangers/thumb?style=6
 
 ### Fallback Behavior
 
-When `fallback=true` is set, the API gracefully handles missing teams instead of returning errors.
+When `fallback=true` is set, the API gracefully handles missing data instead of returning errors.
+
+#### Unsupported League Fallback
+
+If a league is not configured but exists in ESPN's API, automatically uses ESPN provider.
+
+| Request | Behavior |
+|---------|----------|
+| `/eng.w.1/team1/team2/thumb?fallback=true` | Detects league in ESPN cache → creates temporary config → uses ESPN provider directly |
+
+{: .note }
+> This enables support for 100+ ESPN leagues (e.g., WSL, Brazilian Serie A, J-League, Liga MX lower divisions) without manual configuration.
 
 #### Single Team Fallback
 

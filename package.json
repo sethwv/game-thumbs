@@ -36,6 +36,7 @@
     "test:providers": "node test/providers.test.js",
     "test:performance": "node test/performance.test.js",
     "test:server": "node test/server-behavior.test.js",
-    "test:fallback": "node test/fallback.test.js"
+    "test:fallback": "node test/fallback.test.js",
+    "test:espn-fallback": "node test/espn-fallback.test.js"
   }
 }

@@ -19,7 +19,7 @@ module.exports = {
         const { variant } = req.query;
 
         try {
-            const leagueObj = findLeague(league);
+            const leagueObj = await findLeague(league);
             if (!leagueObj) {
                 logger.warn('Unsupported league requested', {
                     League: league,

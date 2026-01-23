@@ -28,7 +28,7 @@ module.exports = {
         const { size, logo, style, useLight, trim, fallback, variant, badge } = req.query;
 
         try {
-            const leagueObj = findLeague(league);
+            const leagueObj = await findLeague(league);
             if (!leagueObj) {
                 logger.warn('Unsupported league requested', {
                     League: league,
