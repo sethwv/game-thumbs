@@ -18,8 +18,8 @@ const logger = require('../helpers/logger');
 const { findLeague } = require('../leagues');
 const { addToCache } = require('../helpers/imageCache');
 
-// Get or create ESPN provider instance
-const espnProvider = new (require('../providers/ESPNProvider'))();
+// Use shared ESPN provider singleton instance
+const espnProvider = require('../providers/ESPNProvider');
 
 module.exports = {
     priority: 10, // Load before generic routes
