@@ -37,7 +37,7 @@ for (const key in leaguesRaw) {
 
 // ------------------------------------------------------------------------------
 
-function findLeague(identifier) {
+async function findLeague(identifier) {
     if (!identifier) return null;
     
     const searchTerm = (identifier?.shortName ?? identifier)
@@ -84,6 +84,21 @@ function findLeague(identifier) {
         )) {
             return league;
         }
+    }
+    
+    // Not found in configured leagues - check if any provider can handle this as an unconfigured league
+    try {
+        const providerManager = require('./helpers/ProviderManager');
+        
+        const leagueConfig = providerManager.findUnconfiguredLeague(identifier);
+        if (leagueConfig) {
+            return leagueConfig;
+        }
+    } catch (error) {
+        logger.error('Error checking providers for unconfigured league', {
+            league: identifier,
+            error: error.message
+        });
     }
     
     return null;

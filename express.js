@@ -270,6 +270,14 @@ function init(port) {
                 } catch (error) {
                     logger.error('Failed to initialize HockeyTech config cache', { error: error.message });
                 }
+            })(),
+            (async () => {
+                try {
+                    const espnProvider = require('./providers/ESPNProvider');
+                    await espnProvider.initializeSportLeagueCache();
+                } catch (error) {
+                    logger.error('Failed to initialize ESPN sport/league cache', { error: error.message });
+                }
             })()
         ]).catch(err => {
             logger.error('Unexpected error during provider initialization', { error: err.message });

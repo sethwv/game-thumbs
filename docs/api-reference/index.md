@@ -26,16 +26,6 @@ Complete documentation for all API endpoints.
 | Logo | `/:league/logo[.png]` | Original | Raw league logo |
 | | `/:league/:team1/logo[.png]` | Original | Raw team logo |
 | | `/:league/:team1/:team2/logo[.png]` | 1024x1024 | Matchup logo (transparent) |
-| **ESPN Direct Lookup** | | | |
-| ESPN Logo | `/espn/:sport/:league/logo` | Original | Direct ESPN API access |
-| | `/espn/:sport/:league/:team/logo` | Original | Team logo via ESPN |
-| | `/espn/:sport/:league/:team1/:team2/logo` | 1024x1024 | Matchup logo via ESPN |
-| ESPN Thumb | `/espn/:sport/:league/thumb` | 1440x1080 | League thumb via ESPN |
-| | `/espn/:sport/:league/:team/thumb` | 1440x1080 | Team thumb via ESPN |
-| | `/espn/:sport/:league/:team1/:team2/thumb` | 1440x1080 | Matchup thumb via ESPN |
-| ESPN Cover | `/espn/:sport/:league/cover` | 1080x1440 | League cover via ESPN |
-| | `/espn/:sport/:league/:team/cover` | 1080x1440 | Team cover via ESPN |
-| | `/espn/:sport/:league/:team1/:team2/cover` | 1080x1440 | Matchup cover via ESPN |
 | **Other Endpoints** | | | |
 | Raw Data | `/:league/:team/raw` | JSON | Team data from provider |
 | Server Info | `/info` | JSON | Version and git info |
@@ -56,7 +46,6 @@ Browse detailed documentation for each endpoint:
 - [Logo Endpoint](/logo.html) - League, team, and matchup logos
 - [Thumbnail Endpoint](/thumb.html) - League, team, and matchup thumbnails
 - [Cover Endpoint](/cover.html) - League, team, and matchup covers
-- [ESPN Direct Lookup](/espn-direct.html) - Direct ESPN API access without league normalization
 - [NCAA Shorthand](/ncaa-route.html) - Convenience route for NCAA sports
 - [Raw Team Data](/raw-data.html) - JSON team data
 - [Server Info](/server-info.html) - Server version info

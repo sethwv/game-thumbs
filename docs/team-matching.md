@@ -112,19 +112,41 @@ The `teams.json` file is organized by league, with each team having optional ali
 
 #### Team Slugs
 
-- Use ESPN's team slug/identifier (without league prefix)
-- For most leagues, this is the team's slug from their ESPN URL
-- For soccer leagues, remove the country prefix (e.g., `usa.lafc` → `lafc`)
-- To find a team's slug, use the `/raw` endpoint: `/:league/:team/raw`
-- The slug is visible in the `slug` field of the response (with prefix removed)
+Team slugs vary by provider. To find the correct slug for a team:
+
+**Method 1: Use the `/raw` endpoint (Recommended)**
+```bash
+curl http://localhost:3000/laliga/celta/raw
+```
+
+Look at the `slug` field in the response. Remove the country prefix and convert underscores to hyphens:
+- ESPN format: `esp.celta_vigo` → Use `celta-vigo`
+- TheSportsDB: Uses kebab-case team name (e.g., `manchester-united`)
+- HockeyTech: Uses kebab-case team name (e.g., `belleville-senators`)
+
+**Method 2: Common patterns by provider**
+
+| Provider | Format | Example Input | Slug to Use |
+|----------|--------|---------------|-------------|
+| ESPN (Soccer) | Remove country prefix + underscores→hyphens | `esp.celta_vigo` | `celta-vigo` |
+| ESPN (US Sports) | Lowercase with hyphens | `golden-state-warriors` | `golden-state-warriors` |
+| TheSportsDB | Kebab-case team name | `Manchester United` | `manchester-united` |
+| HockeyTech | Kebab-case team name | `Belleville Senators` | `belleville-senators` |
+
+**Processing rules:**
+1. Team slug from provider is extracted (e.g., `esp.celta_vigo`)
+2. Country prefix after the dot is removed (e.g., `celta_vigo`)
+3. Underscores are converted to hyphens (e.g., `celta-vigo`)
+4. This final value must match your JSON key
 
 #### Aliases Array
 
 - List of alternative names/nicknames that should match this team
-- Checked **first** before ESPN's normal matching (highest priority)
-- Case-insensitive matching with flexible spacing
-- Can include common abbreviations, nicknames, or alternative spellings
-- Examples: `["man utd", "man u", "mufc"]`, `["losangelesfc", "los angeles fc"]`
+- Checked **first** before normal matching (highest priority)
+- **Case-insensitive** and **accent-insensitive** matching
+- Special characters (spaces, hyphens, etc.) are normalized during matching
+- `"atlético"` will match `"atletico"`, `"Atletico Madrid"`, `"atleticomadrid"`, etc.
+- Examples: `["man utd", "man u", "mufc"]`, `["celtadevigo", "celta de vigo"]`
 
 #### Override Object
 

@@ -82,10 +82,14 @@ async function generateImage(teamA, teamB, options) {
             return generateMinimalist(teamA, teamB, width, height, league, orientation, false);
         case 4:
             return generateMinimalist(teamA, teamB, width, height, league, orientation, true);
+        case 5:
+            return generateGrid(teamA, teamB, width, height, league, orientation, false);
+        case 6:
+            return generateGrid(teamA, teamB, width, height, league, orientation, true);
         case 99:
             return generate3DEmbossed(teamA, teamB, width, height, league, orientation);
         default:
-            throw new Error(`Unknown style: ${style}. Valid styles are 1 (split), 2 (gradient), 3 (minimalist badge), 4 (minimalist badge dark), 99 (3D embossed)`);
+            throw new Error(`Unknown style: ${style}. Valid styles are 1 (split), 2 (gradient), 3 (minimalist badge), 4 (minimalist badge dark), 5 (grid), 6 (grid team colors), 99 (3D embossed)`);
     }
 }
 
@@ -292,6 +296,139 @@ async function generateGradient(teamA, teamB, width, height, league, orientation
             drawLogoMaintainAspect(ctx, leagueLogo, leagueLogoX, leagueLogoY, leagueLogoSize);
         } catch (error) {
             logger.warn('Failed to load league logo for gradient style', { error: error.message });
+        }
+    }
+    
+    return canvas.toBuffer('image/png');
+}
+
+// ------------------------------------------------------------------------------
+// Style 5/6: Grid Background (grey or team colors)
+// ------------------------------------------------------------------------------
+
+async function generateGrid(teamA, teamB, width, height, league, orientation, useTeamColors = false) {
+    const { colorA, colorB } = adjustColors(teamA, teamB);
+    const canvas = createCanvas(width, height);
+    const ctx = canvas.getContext('2d');
+    
+    // Dark background
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(0, 0, width, height);
+    
+    // Draw grid pattern
+    const gridSize = Math.min(width, height) * 0.22; // Grid cell size
+    const lineWidth = 7;
+    
+    // Set grid color based on parameter
+    if (useTeamColors) {
+        // Create gradient for grid lines using team colors
+        const gridGradient = ctx.createLinearGradient(0, 0, width, 0);
+        gridGradient.addColorStop(0, colorA + '40'); // 25% opacity
+        gridGradient.addColorStop(0.5, blendColors(colorA, colorB) + '40');
+        gridGradient.addColorStop(1, colorB + '40');
+        ctx.strokeStyle = gridGradient;
+    } else {
+        // Use grey color
+        ctx.strokeStyle = 'rgba(120, 120, 120, 0.25)';
+    }
+    
+    ctx.lineWidth = lineWidth;
+    
+    // Rotate for diagonal grid effect
+    ctx.save();
+    ctx.translate(width / 2, height / 2);
+    ctx.rotate(Math.PI / 12); // 15 degree angle
+    ctx.translate(-width / 2, -height / 2);
+    
+    // Calculate extended bounds for rotated grid
+    const extendedSize = Math.sqrt(width * width + height * height);
+    const startX = (width - extendedSize) / 2;
+    const startY = (height - extendedSize) / 2 - (gridSize * 0.5); // Shift up by half a grid size
+    
+    // Use lighten blend mode to prevent overlapping darkness at intersections
+    ctx.globalCompositeOperation = 'lighten';
+    
+    // Draw all grid lines as one path to avoid overlapping
+    ctx.beginPath();
+    
+    // Draw vertical lines
+    for (let x = startX; x < startX + extendedSize; x += gridSize) {
+        ctx.moveTo(x, startY);
+        ctx.lineTo(x, startY + extendedSize);
+    }
+    
+    // Draw horizontal lines
+    for (let y = startY; y < startY + extendedSize; y += gridSize) {
+        ctx.moveTo(startX, y);
+        ctx.lineTo(startX + extendedSize, y);
+    }
+    
+    ctx.stroke();
+    
+    // Reset composite operation
+    ctx.globalCompositeOperation = 'source-over';
+    
+    ctx.restore();
+    
+    // Add fade to black gradient overlay towards the bottom
+    const fadeGradient = ctx.createLinearGradient(0, 0, 0, height);
+    fadeGradient.addColorStop(0, 'rgba(10, 10, 10, 0)');
+    fadeGradient.addColorStop(0.3, 'rgba(10, 10, 10, 0.3)');
+    fadeGradient.addColorStop(0.6, 'rgba(10, 10, 10, 0.7)');
+    fadeGradient.addColorStop(1, 'rgba(10, 10, 10, 0.95)');
+    
+    ctx.fillStyle = fadeGradient;
+    ctx.fillRect(0, 0, width, height);
+    
+    // Load and draw logos (same positioning as style 2)
+    // Use dark background color for logo selection to prioritize logos readable on dark backgrounds
+    const darkBackground = '#0a0a0a';
+    try {
+        const logoMaxSize = orientation === 'landscape'
+            ? Math.min(width * 0.325, height * 0.52)
+            : Math.min(width * 0.5, height * 0.32);
+        
+        if (teamA.logo) {
+            const finalLogoImageA = await loadTrimmedLogo(teamA, darkBackground);
+            
+            const logoAX = orientation === 'landscape'
+                ? (width * 0.2) - (logoMaxSize / 2)
+                : (width - logoMaxSize) / 2;
+            const logoAY = orientation === 'landscape'
+                ? (height / 2) - (logoMaxSize / 2)
+                : (height * 0.2) - (logoMaxSize / 2);
+            
+            drawLogoWithShadow(ctx, finalLogoImageA, logoAX, logoAY, logoMaxSize);
+        }
+        
+        if (teamB.logo) {
+            const finalLogoImageB = await loadTrimmedLogo(teamB, darkBackground);
+            
+            const logoBX = orientation === 'landscape'
+                ? (width * 0.8) - (logoMaxSize / 2)
+                : (width - logoMaxSize) / 2;
+            const logoBY = orientation === 'landscape'
+                ? (height / 2) - (logoMaxSize / 2)
+                : (height * 0.8) - (logoMaxSize / 2);
+            
+            drawLogoWithShadow(ctx, finalLogoImageB, logoBX, logoBY, logoMaxSize);
+        }
+    } catch (error) {
+        logger.warn('Failed to load team logos for grid style', { error: error.message });
+    }
+    
+    // Draw league logo in the center if league logo URL is provided
+    if (league && league.logoUrl) {
+        try {
+            let leagueLogoBuffer = await downloadImage(league.logoUrl);
+            leagueLogoBuffer = await trimImage(leagueLogoBuffer, league.logoUrl);
+            const leagueLogo = await loadImage(leagueLogoBuffer);
+            const leagueLogoSize = Math.min(width, height) * 0.25;
+            const leagueLogoX = (width - leagueLogoSize) / 2;
+            const leagueLogoY = (height - leagueLogoSize) / 2;
+            drawLogoMaintainAspect(ctx, leagueLogo, leagueLogoX, leagueLogoY, leagueLogoSize);
+        } catch (error) {
+            logger.warn('Failed to load league logo for grid style', { error: error.message });
         }
     }
     
