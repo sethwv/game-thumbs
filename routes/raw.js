@@ -16,7 +16,7 @@ module.exports = {
         const { league, team } = req.params;
 
         try {
-            const leagueObj = findLeague(league);
+            const leagueObj = await findLeague(league);
             if (!leagueObj) {
                 return res.status(400).json({ error: `Unsupported league: ${league}` });
             }

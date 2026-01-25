@@ -839,6 +839,9 @@
           "leagueId": "4479",
           "leagueName": "NCAA Division 1"
         }
+      },
+      {
+        "ncaa": {}
       }
     ]
   },
@@ -850,7 +853,6 @@
       "march madness",
       "ncaab"
     ],
-    "fallbackLeague": "ncaaf",
     "logoUrl": "https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/basketball.png",
     "providers": [
       {
@@ -858,6 +860,9 @@
           "espnSlug": "mens-college-basketball",
           "espnSport": "basketball"
         }
+      },
+      {
+        "ncaa": {}
       }
     ]
   },
@@ -875,6 +880,9 @@
           "espnSlug": "womens-college-basketball",
           "espnSport": "basketball"
         }
+      },
+      {
+        "ncaa": {}
       }
     ]
   },
@@ -884,7 +892,7 @@
       "college baseball",
       "mens college baseball"
     ],
-    "fallbackLeague": "ncaaf",
+    "fallbackLeague": "ncaam",
     "logoUrl": "https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/baseball.png",
     "providers": [
       {
@@ -892,6 +900,9 @@
           "espnSlug": "college-baseball",
           "espnSport": "baseball"
         }
+      },
+      {
+        "ncaa": {}
       }
     ]
   },
@@ -901,7 +912,7 @@
       "college softball",
       "womens college softball"
     ],
-    "fallbackLeague": "ncaaf",
+    "fallbackLeague": "ncaam",
     "logoUrl": "https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/softball.png",
     "providers": [
       {
@@ -909,6 +920,9 @@
           "espnSlug": "college-softball",
           "espnSport": "baseball"
         }
+      },
+      {
+        "ncaa": {}
       }
     ]
   },
@@ -918,7 +932,7 @@
       "college ice hockey",
       "mens college ice hockey"
     ],
-    "fallbackLeague": "ncaaf",
+    "fallbackLeague": "ncaam",
     "logoUrl": "https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/icehockey.png",
     "providers": [
       {
@@ -926,6 +940,9 @@
           "espnSlug": "mens-college-hockey",
           "espnSport": "hockey"
         }
+      },
+      {
+        "ncaa": {}
       }
     ]
   },
@@ -934,7 +951,7 @@
     "aliases": [
       "womens college ice hockey"
     ],
-    "fallbackLeague": "ncaah",
+    "fallbackLeague": "ncaam",
     "logoUrl": "https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/icehockey.png",
     "providers": [
       {
@@ -942,6 +959,9 @@
           "espnSlug": "womens-college-hockey",
           "espnSport": "hockey"
         }
+      },
+      {
+        "ncaa": {}
       }
     ]
   },
@@ -951,7 +971,7 @@
       "college soccer",
       "mens college soccer"
     ],
-    "fallbackLeague": "ncaaf",
+    "fallbackLeague": "ncaam",
     "logoUrl": "https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/soccer.png",
     "providers": [
       {
@@ -959,6 +979,9 @@
           "espnSlug": "usa.ncaa.m.1",
           "espnSport": "soccer"
         }
+      },
+      {
+        "ncaa": {}
       }
     ]
   },
@@ -967,7 +990,7 @@
     "aliases": [
       "womens college soccer"
     ],
-    "fallbackLeague": "ncaas",
+    "fallbackLeague": "ncaam",
     "logoUrl": "https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/soccer.png",
     "providers": [
       {
@@ -975,6 +998,9 @@
           "espnSlug": "usa.ncaa.w.1",
           "espnSport": "soccer"
         }
+      },
+      {
+        "ncaa": {}
       }
     ]
   },
@@ -985,7 +1011,7 @@
       "mens college lacrosse",
       "mens lacrosse"
     ],
-    "fallbackLeague": "ncaaf",
+    "fallbackLeague": "ncaam",
     "logoUrl": "https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/lacrosse.png",
     "providers": [
       {
@@ -993,6 +1019,9 @@
           "espnSlug": "mens-college-lacrosse",
           "espnSport": "lacrosse"
         }
+      },
+      {
+        "ncaa": {}
       }
     ]
   },
@@ -1002,7 +1031,7 @@
       "womens college lacrosse",
       "womens lacrosse"
     ],
-    "fallbackLeague": "ncaaf",
+    "fallbackLeague": "ncaam",
     "logoUrl": "https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/lacrosse.png",
     "providers": [
       {
@@ -1010,6 +1039,9 @@
           "espnSlug": "womens-college-lacrosse",
           "espnSport": "lacrosse"
         }
+      },
+      {
+        "ncaa": {}
       }
     ]
   },
@@ -1021,7 +1053,7 @@
       "mens volleyball",
       "ncaavbm"
     ],
-    "fallbackLeague": "ncaaf",
+    "fallbackLeague": "ncaam",
     "logoUrl": "https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/volleyball.png",
     "providers": [
       {
@@ -1029,6 +1061,9 @@
           "espnSlug": "mens-college-volleyball",
           "espnSport": "volleyball"
         }
+      },
+      {
+        "ncaa": {}
       }
     ]
   },
@@ -1039,7 +1074,7 @@
       "womens volleyball",
       "ncaavbw"
     ],
-    "fallbackLeague": "ncaaf",
+    "fallbackLeague": "ncaam",
     "logoUrl": "https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/volleyball.png",
     "providers": [
       {
@@ -1047,6 +1082,9 @@
           "espnSlug": "womens-college-volleyball",
           "espnSport": "volleyball"
         }
+      },
+      {
+        "ncaa": {}
       }
     ]
   },
@@ -1057,7 +1095,7 @@
       "mens college water polo",
       "mens water polo"
     ],
-    "fallbackLeague": "ncaaf",
+    "fallbackLeague": "ncaam",
     "logoUrl": "https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/waterpolo.png",
     "providers": [
       {
@@ -1065,6 +1103,9 @@
           "espnSlug": "mens-college-water-polo",
           "espnSport": "water-polo"
         }
+      },
+      {
+        "ncaa": {}
       }
     ]
   },
@@ -1074,7 +1115,7 @@
       "womens college water polo",
       "womens water polo"
     ],
-    "fallbackLeague": "ncaaf",
+    "fallbackLeague": "ncaam",
     "logoUrl": "https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/waterpolo.png",
     "providers": [
       {
@@ -1082,6 +1123,9 @@
           "espnSlug": "womens-college-water-polo",
           "espnSport": "water-polo"
         }
+      },
+      {
+        "ncaa": {}
       }
     ]
   },
@@ -1092,7 +1136,7 @@
       "womens field hockey",
       "field hockey"
     ],
-    "fallbackLeague": "ncaaf",
+    "fallbackLeague": "ncaam",
     "logoUrl": "https://www.ncaa.com/modules/custom/casablanca_core/img/sportbanners/fieldhockey.png",
     "providers": [
       {
@@ -1100,6 +1144,9 @@
           "espnSlug": "womens-college-field-hockey",
           "espnSport": "field-hockey"
         }
+      },
+      {
+        "ncaa": {}
       }
     ]
   },

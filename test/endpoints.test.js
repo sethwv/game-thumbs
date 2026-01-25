@@ -164,6 +164,46 @@ const testCases = [
         saveImage: true,
         filename: 'matchup-thumb-nba-16x9.png'
     },
+    {
+        name: 'Matchup Thumb Style 2 - NHL',
+        endpoint: '/nhl/blues/stars/thumb?style=2',
+        expectedStatus: 200,
+        expectedType: 'image/png',
+        saveImage: true,
+        filename: 'matchup-thumb-nhl-style2.png'
+    },
+    {
+        name: 'Matchup Thumb Style 3 - NBA',
+        endpoint: '/nba/lakers/celtics/thumb?style=3',
+        expectedStatus: 200,
+        expectedType: 'image/png',
+        saveImage: true,
+        filename: 'matchup-thumb-nba-style3.png'
+    },
+    {
+        name: 'Matchup Thumb Style 4 - NFL',
+        endpoint: '/nfl/chiefs/49ers/thumb?style=4',
+        expectedStatus: 200,
+        expectedType: 'image/png',
+        saveImage: true,
+        filename: 'matchup-thumb-nfl-style4.png'
+    },
+    {
+        name: 'Matchup Thumb Style 5 (Grid) - NHL',
+        endpoint: '/nhl/blues/stars/thumb?style=5',
+        expectedStatus: 200,
+        expectedType: 'image/png',
+        saveImage: true,
+        filename: 'matchup-thumb-nhl-style5.png'
+    },
+    {
+        name: 'Matchup Thumb Style 6 (Grid Team Colors) - NFL',
+        endpoint: '/nfl/chiefs/49ers/thumb?style=6',
+        expectedStatus: 200,
+        expectedType: 'image/png',
+        saveImage: true,
+        filename: 'matchup-thumb-nfl-style6.png'
+    },
     
     // Cover images
     {
@@ -189,6 +229,30 @@ const testCases = [
         expectedType: 'image/png',
         saveImage: true,
         filename: 'matchup-cover-nfl.png'
+    },
+    {
+        name: 'Matchup Cover Style 2 - NBA',
+        endpoint: '/nba/lakers/celtics/cover?style=2',
+        expectedStatus: 200,
+        expectedType: 'image/png',
+        saveImage: true,
+        filename: 'matchup-cover-nba-style2.png'
+    },
+    {
+        name: 'Matchup Cover Style 5 (Grid) - NHL',
+        endpoint: '/nhl/blues/stars/cover?style=5',
+        expectedStatus: 200,
+        expectedType: 'image/png',
+        saveImage: true,
+        filename: 'matchup-cover-nhl-style5.png'
+    },
+    {
+        name: 'Matchup Cover Style 6 (Grid Team Colors) - NFL',
+        endpoint: '/nfl/chiefs/49ers/cover?style=6',
+        expectedStatus: 200,
+        expectedType: 'image/png',
+        saveImage: true,
+        filename: 'matchup-cover-nfl-style6.png'
     },
     
     // Specific route tests
@@ -223,96 +287,6 @@ const testCases = [
         expectedType: 'image/png',
         saveImage: true,
         filename: 'leaguecover-nba.png'
-    },
-    
-    // ESPN Direct endpoints
-    {
-        name: 'ESPN Direct - League Logo',
-        endpoint: '/espn/basketball/nba/logo',
-        expectedStatus: 200,
-        expectedType: 'image/png',
-        saveImage: true,
-        filename: 'espn-league-logo-nba.png'
-    },
-    {
-        name: 'ESPN Direct - Team Logo',
-        endpoint: '/espn/football/nfl/chiefs/logo',
-        expectedStatus: 200,
-        expectedType: 'image/png',
-        saveImage: true,
-        filename: 'espn-team-logo-chiefs.png'
-    },
-    {
-        name: 'ESPN Direct - Matchup Logo',
-        endpoint: '/espn/basketball/nba/lakers/celtics/logo',
-        expectedStatus: 200,
-        expectedType: 'image/png',
-        saveImage: true,
-        filename: 'espn-matchup-logo-nba.png'
-    },
-    {
-        name: 'ESPN Direct - League Thumb',
-        endpoint: '/espn/football/nfl/thumb',
-        expectedStatus: 200,
-        expectedType: 'image/png',
-        saveImage: true,
-        filename: 'espn-league-thumb-nfl.png'
-    },
-    {
-        name: 'ESPN Direct - Team Thumb',
-        endpoint: '/espn/hockey/nhl/bruins/thumb',
-        expectedStatus: 200,
-        expectedType: 'image/png',
-        saveImage: true,
-        filename: 'espn-team-thumb-bruins.png'
-    },
-    {
-        name: 'ESPN Direct - Matchup Thumb',
-        endpoint: '/espn/basketball/nba/heat/bucks/thumb',
-        expectedStatus: 200,
-        expectedType: 'image/png',
-        saveImage: true,
-        filename: 'espn-matchup-thumb-nba.png'
-    },
-    {
-        name: 'ESPN Direct - League Cover',
-        endpoint: '/espn/baseball/mlb/cover',
-        expectedStatus: 200,
-        expectedType: 'image/png',
-        saveImage: true,
-        filename: 'espn-league-cover-mlb.png'
-    },
-    {
-        name: 'ESPN Direct - Team Cover',
-        endpoint: '/espn/soccer/eng.1/arsenal/cover',
-        expectedStatus: 200,
-        expectedType: 'image/png',
-        saveImage: true,
-        filename: 'espn-team-cover-arsenal.png'
-    },
-    {
-        name: 'ESPN Direct - Matchup Cover',
-        endpoint: '/espn/football/nfl/cowboys/eagles/cover',
-        expectedStatus: 200,
-        expectedType: 'image/png',
-        saveImage: true,
-        filename: 'espn-matchup-cover-nfl.png'
-    },
-    {
-        name: 'ESPN Direct - With Fallback',
-        endpoint: '/espn/basketball/nba/invalid-team/logo?fallback=true',
-        expectedStatus: 200,
-        expectedType: 'image/png',
-        saveImage: true,
-        filename: 'espn-fallback-logo.png'
-    },
-    {
-        name: 'ESPN Direct - International League',
-        endpoint: '/espn/soccer/esp.1/barcelona/logo',
-        expectedStatus: 200,
-        expectedType: 'image/png',
-        saveImage: true,
-        filename: 'espn-barcelona-logo.png'
     },
     
     // Error cases

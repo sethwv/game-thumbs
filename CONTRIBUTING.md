@@ -15,8 +15,20 @@ Before writing code, consider opening an issue:
 
 If a team isn't being recognized, add aliases to `teams.json`:
 
+**Quick start:**
+```bash
+# Find the team slug using /raw endpoint
+curl http://localhost:3000/laliga/celta/raw
+# Look for "slug": "esp.celta_vigo" → Use "celta-vigo"
+```
+
 ```json
 {
+  "laliga": {
+    "celta-vigo": {
+      "aliases": ["celtadevigo", "celta de vigo", "celtavigo"]
+    }
+  },
   "nfl": {
     "patriots": {
       "aliases": ["pats", "new england", "ne patriots"]
@@ -24,6 +36,10 @@ If a team isn't being recognized, add aliases to `teams.json`:
   }
 }
 ```
+
+**Notes:**
+- Aliases are case-insensitive and accent-insensitive
+- See **[Team Matching docs](https://game-thumbs-docs.swvn.io/team-matching.html#team-slugs)** for detailed slug format by provider
 
 ### Fixing Team Data
 

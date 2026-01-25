@@ -8,7 +8,7 @@
 
 const providerManager = require('../helpers/ProviderManager');
 const { generateLogo } = require('../generators/logoGenerator');
-const { downloadImage, generateFallbackPlaceholder, resolveTeamsWithFallback, addBadgeOverlay, isValidBadge } = require('../helpers/imageUtils');
+const { downloadImage, resolveTeamsWithFallback, handleTeamNotFoundError, addBadgeOverlay, isValidBadge } = require('../helpers/imageUtils');
 const { getCachedImage, addToCache } = require('../helpers/imageCache');
 const { findLeague } = require('../leagues');
 const logger = require('../helpers/logger');
@@ -28,7 +28,7 @@ module.exports = {
         const { size, logo, style, useLight, trim, fallback, variant, badge } = req.query;
 
         try {
-            const leagueObj = findLeague(league);
+            const leagueObj = await findLeague(league);
             if (!leagueObj) {
                 logger.warn('Unsupported league requested', {
                     League: league,
@@ -89,28 +89,25 @@ module.exports = {
                     // Download and return the team logo
                     logoBuffer = await downloadImage(logoUrl);
                 } catch (teamError) {
-                    // If fallback is enabled and team lookup fails, return league logo instead
-                    if (fallback === 'true' && teamError.name === 'TeamNotFoundError') {
+                    await handleTeamNotFoundError(teamError, fallback === 'true', async () => {
                         const darkLogoPreferred = variant === 'dark';
                         const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj, darkLogoPreferred);
                         
                         logoBuffer = await downloadImage(leagueLogoUrl);
-                    } else {
-                        throw teamError;
-                    }
+                    });
                 }
             }
             // Case 3: Matchup logo (/:league/:team1/:team2/logo)
             else {
                 const styleValue = parseInt(style) || 1;
-                // Styles 5 and 6 require the league logo
-                const requiresLeagueLogo = styleValue === 5 || styleValue === 6;
+                // Styles 1, 5, and 6 have league logo enabled by default
+                const hasLeagueLogoByDefault = styleValue === 1 || styleValue === 5 || styleValue === 6;
                 
                 const logoOptions = {
                     width: 1024,
                     height: 1024,
                     style: styleValue,
-                    league: (logo === 'true' || requiresLeagueLogo) ? league : null,
+                    league: (logo === 'true' || (logo !== 'false' && hasLeagueLogoByDefault)) ? league : null,
                     useLight: useLight === 'true',
                     trim: trim !== 'false'
                 };
@@ -137,7 +134,7 @@ module.exports = {
                 let leagueInfo = null;
                 if (logoOptions.league) {
                     // For styles 5 and 6, fetch both default and dark logos for contrast checking
-                    if (requiresLeagueLogo) {
+                    if (styleValue === 5 || styleValue === 6) {
                         // For white background: default logo is primary (colored, for light bg), dark logo is alternate (light colored, for dark bg)
                         const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj, false); // default (primary - works on light backgrounds)
                         const leagueLogoUrlAlt = await providerManager.getLeagueLogoUrl(leagueObj, true); // dark (alternate - works on dark backgrounds)

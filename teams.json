@@ -23,5 +23,15 @@
     "indianapolis-greyhounds": {
       "aliases": ["indianapolis", "uindy", "university of indianapolis"]
     }
+  },
+  "ncaam": {
+    "missouri-state-bears": {
+      "aliases": ["missouri state", "missouri state bears", "mo state", "most"]
+    }
+  },
+  "ncaavb": {
+    "missouri-state-bears": {
+      "aliases": ["missouri state", "missouri state bears", "mo state", "most"]
+    }
   }
 }

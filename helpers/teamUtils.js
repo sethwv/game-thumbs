@@ -58,25 +58,28 @@ function getTeamAliases(leagueKey, teamIdentifier) {
 
 function findTeamByAlias(input, leagueKey, teams) {
     const normalizedInput = normalizeCompact(input);
-    const leagueOverrides = getLeagueOverrides(leagueKey);
     
     // Check each team's aliases
     for (const team of teams) {
-        // Extract slug from espnId (e.g., 'eng.nottm_forest' -> 'nottm-forest')
-        let teamSlug = team.espnId || team.id;
+        // Extract slug from team object (try multiple properties)
+        let teamSlug = team.slug || team.espnId || team.id;
         if (teamSlug && teamSlug.includes('.')) {
             teamSlug = teamSlug.split('.')[1];
         }
         // Normalize underscores to hyphens
         teamSlug = teamSlug?.replace(/_/g, '-');
         
-        const teamOverride = leagueOverrides[teamSlug];
-        
-        if (teamOverride?.aliases) {
-            for (const alias of teamOverride.aliases) {
-                // Use compact normalization to match with or without spaces
-                if (normalizeCompact(alias) === normalizedInput) {
-                    return team;
+        // Check aliases across ALL leagues (not just the current one)
+        // This ensures fallback leagues can still use aliases defined for the original league
+        for (const [league, leagueTeams] of Object.entries(teamOverrides)) {
+            const teamOverride = leagueTeams[teamSlug];
+            
+            if (teamOverride?.aliases) {
+                for (const alias of teamOverride.aliases) {
+                    // Use compact normalization to match with or without spaces
+                    if (normalizeCompact(alias) === normalizedInput) {
+                        return team;
+                    }
                 }
             }
         }
@@ -226,6 +229,16 @@ function isCityVariation(prefix, teamCity) {
     
     // Direct match
     if (compactPrefix === compactCity) return true;
+
+    // Handle city names that include trailing "state"/"st" but input omits it
+    const strippedVariants = [
+        compactCity.replace(/state$/, ''),
+        compactCity.replace(/st$/, ''),
+        compactCity.replace(/st\.$/, '')
+    ].filter(v => v && v.length >= 3);
+    if (strippedVariants.some(v => compactPrefix === v || compactPrefix.startsWith(v))) {
+        return true;
+    }
     
     // Check if team city is an abbreviation or expansion that matches the prefix
     for (const [abbrev, expansions] of Object.entries(LOCATION_ABBREVIATIONS)) {
@@ -338,11 +351,11 @@ function checkPartialMatches(expandedInput, compactInput, normalized) {
         // Check if input contains field
         if (field && field.length >= MIN_LENGTH && expandedInput.includes(field)) {
             if (checkTrailingText) {
-                // Don't match if short field is followed by substantial text (likely a different team)
+                // Don't match if field is followed by substantial text (likely a different team)
                 const fieldIndex = expandedInput.indexOf(field);
                 const textAfterField = expandedInput.substring(fieldIndex + field.length);
-                // If field is short (<=6 chars) and followed by 4+ more chars, skip it
-                if (field.length <= 6 && textAfterField.length >= 4) {
+                // Skip if field is followed by 4+ more chars (prevents "Missouri St" from matching "MissouriSTMiners")
+                if (textAfterField.length >= 4) {
                     s = 0;
                 } else {
                     s = Math.max(s, containsScore);
@@ -356,7 +369,8 @@ function checkPartialMatches(expandedInput, compactInput, normalized) {
             if (checkTrailingText) {
                 const fieldIndex = compactInput.indexOf(compactField);
                 const textAfterField = compactInput.substring(fieldIndex + compactField.length);
-                if (compactField.length <= 6 && textAfterField.length >= 4) {
+                // Skip if field is followed by 4+ more chars
+                if (textAfterField.length >= 4) {
                     s = 0;
                 } else {
                     s = Math.max(s, containsScore);

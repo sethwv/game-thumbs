@@ -12,7 +12,8 @@
     "cors": "^2.8.5",
     "express": "^5.2.1",
     "express-rate-limit": "^8.2.1",
-    "helmet": "^8.1.0"
+    "helmet": "^8.1.0",
+    "sharp": "^0.33.4"
   },
   "scripts": {
     "start": "NODE_ENV=production SHOW_TIMESTAMP=false node index.js",
@@ -34,6 +35,8 @@
     "test:errors": "node test/error-handling.test.js",
     "test:providers": "node test/providers.test.js",
     "test:performance": "node test/performance.test.js",
-    "test:server": "node test/server-behavior.test.js"
+    "test:server": "node test/server-behavior.test.js",
+    "test:fallback": "node test/fallback.test.js",
+    "test:espn-fallback": "node test/espn-fallback.test.js"
   }
 }

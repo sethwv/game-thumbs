@@ -224,6 +224,99 @@ If color extraction fails or no vibrant colors are found:
 
 ---
 
+## Team Resolution & Fallback System
+
+Game Thumbs implements a sophisticated multi-layer fallback system to ensure requests succeed even when teams cannot be found in the primary data source.
+
+### Resolution Chain
+
+When resolving a team, the system tries multiple approaches in parallel for optimal performance:
+
+1. **Primary Provider**: Attempts to resolve team from the configured provider(s)
+2. **Alternate Providers** (parallel): If team found but has no logo, tries all other providers simultaneously
+3. **Feeder Leagues** (parallel): Searches all configured feeder leagues at once
+4. **Fallback League**: Falls back to a designated league (e.g., NCAA sports → Men's Basketball)
+5. **Greyscale League Logo**: If `fallback=true` parameter is set, uses greyscale league logo as placeholder
+6. **Ultimate Text Fallback**: If league logo fails, generates minimal single-letter placeholder on transparent background
+
+### Unsupported League Fallback (Provider Interface)
+
+When a league is not configured in `leagues.json`, providers can optionally support it through the unconfigured league interface:
+
+1. **Provider Implementation**: Providers implement `canHandleUnconfiguredLeague()` and `getUnconfiguredLeagueConfig()` methods
+2. **Automatic Lookup**: When `findLeague()` doesn't find a configured league, it queries `ProviderManager.findUnconfiguredLeague()`
+3. **Provider Check**: ProviderManager iterates through all registered providers to find one that can handle the league
+4. **Temporary League Object**: The supporting provider creates a temporary league configuration on-the-fly
+5. **Normal Processing**: The request continues through the normal flow using that provider
+
+**Example (ESPN Provider)**:
+- Request: `GET /eng.w.1/team1/team2/thumb`
+- `findLeague('eng.w.1')` checks configured leagues → not found
+- Calls `providerManager.findUnconfiguredLeague('eng.w.1')`
+- ProviderManager queries each provider's `canHandleUnconfiguredLeague()` method
+- ESPN provider's cache finds `eng.w.1` exists under sport `soccer`
+- Returns temporary league object with ESPN provider configuration
+- ESPN provider resolves teams and generates thumbnail normally
+- Result: Successfully generated matchup thumbnail
+
+This architecture allows any provider to support unconfigured leagues, not just ESPN. The fallback is completely automatic—no special query parameters needed.
+
+{: .note }
+> **ESPN Implementation**: The ESPN provider caches all available sports/leagues from ESPN's Core API on startup (200-400+ leagues across 17+ sports). The cache is self-contained within `ESPNProvider.js`, similar to how `ESPNAthleteProvider.js` manages its athlete cache. Initial discovery takes 1-2 minutes but runs asynchronously without blocking the server.
+
+### Parallel Optimization
+
+**Team Pair Resolution**: Both teams in a matchup are resolved simultaneously, cutting resolution time in half.
+
+**Provider Checks**: All providers for a league are queried in parallel using `Promise.all()`.
+
+**Feeder League Checks**: All feeder leagues are searched simultaneously rather than sequentially.
+
+**Shared League Logo Processing**: When both teams in a matchup fail, the league logo is downloaded and processed only once, then reused for both teams.
+
+### NCAA Fallback Configuration
+
+All NCAA sports use NCAA Men's Basketball (`ncaam`) as their fallback league, as it has the most comprehensive roster:
+
+```json
+{
+  "ncaavb": {
+    "name": "NCAA Men's Volleyball",
+    "fallbackLeague": "ncaam"
+  }
+}
+```
+
+This ensures that even obscure NCAA teams can be found if they participate in basketball.
+
+### Feeder Leagues
+
+Leagues can configure feeder leagues that are automatically searched:
+
+**Example - English Premier League**:
+```json
+{
+  "epl": {
+    "feederLeagues": ["championship", "league1", "league2"]
+  }
+}
+```
+
+This enables finding promoted/relegated teams without changing the league code.
+
+**Example - Tennis**:
+```json
+{
+  "tennis": {
+    "feederLeagues": ["atp", "wta"]
+  }
+}
+```
+
+Allows unified tennis endpoint while searching both ATP and WTA rosters.
+
+---
+
 ## Caching Strategy
 
 The application implements multi-layer caching to optimize performance and reduce API calls.
@@ -409,7 +502,7 @@ When a team is not found, the API returns:
 
 **Fallback Option:**
 
-Set `fallback=true` query parameter to handle missing teams gracefully:
+Set `fallback=true` query parameter to handle missing teams gracefully using the multi-layer fallback system:
 
 **Single Team Endpoints:**
 ```
@@ -423,10 +516,18 @@ GET /nba/lakers/invalidteam/thumb?style=1&fallback=true
 ```
 Generates the matchup using:
 - Lakers logo and colors for team 1
-- **Greyscale league logo (35% opacity) with light grey colors** (#d3d3d3) for the missing team
+- **Greyscale league logo (35% opacity) with light grey colors** (#d3d3d3, #b8b8b8) for the missing team
 - The selected style and options are preserved
 
+**Performance**: Both teams in a matchup are resolved in parallel. If both teams fail and need the greyscale league logo, it's downloaded and processed only once, then reused for both teams.
+
+**Ultimate Fallback**: If the league logo itself is invalid (SVG, HTML, etc.), the system generates a minimal single-letter placeholder on a transparent background as the final safety net.
+
 This allows matchup generation to continue even when one or both teams are not found, using a subtle placeholder that clearly indicates missing data while maintaining the overall design aesthetic.
+
+**How It Works Internally:**
+
+The system uses a shared `handleTeamNotFoundError()` utility across all route handlers to ensure consistent fallback behavior. The resolution process tries:
 
 ### Timeout Handling
 

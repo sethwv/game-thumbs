@@ -10,7 +10,7 @@
 const providerManager = require('../helpers/ProviderManager');
 const { generateThumbnail } = require('../generators/thumbnailGenerator');
 const { generateLeagueThumb, generateTeamThumb } = require('../generators/genericImageGenerator');
-const { generateFallbackPlaceholder, resolveTeamsWithFallback, addBadgeOverlay, isValidBadge } = require('../helpers/imageUtils');
+const { resolveTeamsWithFallback, handleTeamNotFoundError, addBadgeOverlay, isValidBadge } = require('../helpers/imageUtils');
 const { getCachedImage, addToCache } = require('../helpers/imageCache');
 const { findLeague } = require('../leagues');
 const logger = require('../helpers/logger');
@@ -43,7 +43,7 @@ module.exports = {
         }
 
         try {
-            const leagueObj = findLeague(league);
+            const leagueObj = await findLeague(league);
             if (!leagueObj) {
                 logger.warn('Unsupported league requested', {
                     League: league,
@@ -96,8 +96,7 @@ module.exports = {
                         }
                     );
                 } catch (teamError) {
-                    // If fallback is enabled and team lookup fails, generate league thumbnail instead
-                    if (fallback === 'true' && teamError.name === 'TeamNotFoundError') {
+                    await handleTeamNotFoundError(teamError, fallback === 'true', async () => {
                         const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj, false);
                         const leagueLogoUrlAlt = await providerManager.getLeagueLogoUrl(leagueObj, true);
                         
@@ -106,9 +105,7 @@ module.exports = {
                             height,
                             leagueLogoUrlAlt: leagueLogoUrlAlt
                         });
-                    } else {
-                        throw teamError;
-                    }
+                    });
                 }
             }
             // Case 3: Matchup thumbnail (/:league/:team1/:team2/thumb)
