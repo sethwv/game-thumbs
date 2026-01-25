@@ -44,8 +44,13 @@ const VALID_BADGE_KEYWORDS = [
 
 // Helper function to validate badge keywords
 function isValidBadge(badge) {
-    return  (badge && process.env.ALLOW_CUSTOM_BADGES && process.env.ALLOW_CUSTOM_BADGES.trim().toLowerCase() === 'true') ||
-            (badge && VALID_BADGE_KEYWORDS.includes(badge.toUpperCase()));
+    // Reject empty or whitespace-only strings
+    if (!badge || badge.trim() === '') {
+        return false;
+    }
+    
+    return  (process.env.ALLOW_CUSTOM_BADGES && process.env.ALLOW_CUSTOM_BADGES.trim().toLowerCase() === 'true') ||
+            VALID_BADGE_KEYWORDS.includes(badge.toUpperCase());
 }
 
 // ------------------------------------------------------------------------------
@@ -1080,6 +1085,9 @@ async function addBadgeOverlay(imageBuffer, badgeText, options = {}) {
         padding = 8, // Padding from edges
         badgeScale = 0.10, // Badge size as percentage of base dimension (default 10%)
     } = options;
+
+    // Clean badge text: trim whitespace and collapse multiple spaces
+    badgeText = badgeText.trim().replace(/\s+/g, ' ');
 
     // Load the image from buffer
     const image = await loadImage(imageBuffer);
