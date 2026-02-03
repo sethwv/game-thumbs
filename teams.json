@@ -1,37 +1,100 @@
 {
   "nhl": {
     "utah-mammoth": {
-      "override": { "abbreviation": "UTA" }
+      "override": {
+        "abbreviation": "UTA"
+      }
+    }
+  },
+  "nfl": {
+    "nfc": {
+      "custom": true,
+      "aliases": [
+        "national football conference",
+        "national conference"
+      ],
+      "override": {
+        "abbreviation": "NFC",
+        "name": "National Football Conference",
+        "logoUrl": "https://a.espncdn.com/i/teamlogos/nfl/500/scoreboard/nfc.png"
+      }
+    },
+    "afc": {
+      "custom": true,
+      "aliases": [
+        "american football conference",
+        "american conference"
+      ],
+      "override": {
+        "abbreviation": "AFC",
+        "name": "American Football Conference",
+        "logoUrl": "https://a.espncdn.com/i/teamlogos/nfl/500/scoreboard/afc.png"
+      }
     }
   },
   "epl": {
     "man-utd": {
-      "aliases": ["man utd", "man u", "manutd", "mufc", "manchester united"],
-      "override": { "abbreviation": "MUN" }
+      "aliases": [
+        "man utd",
+        "man u",
+        "manutd",
+        "mufc",
+        "manchester united"
+      ],
+      "override": {
+        "abbreviation": "MUN"
+      }
     },
     "tottenham": {
-      "aliases": ["spurs", "thfc", "tottenham hotspur"]
+      "aliases": [
+        "spurs",
+        "thfc",
+        "tottenham hotspur"
+      ]
     },
     "nottm-forest": {
-      "aliases": ["notts forest", "forest", "nffc", "nottingham forest"]
+      "aliases": [
+        "notts forest",
+        "forest",
+        "nffc",
+        "nottingham forest"
+      ]
     }
   },
   "ncaaf": {
     "app-state-mountaineers": {
-      "aliases": ["app state", "appalachian state", "appalachian st"]
+      "aliases": [
+        "app state",
+        "appalachian state",
+        "appalachian st"
+      ]
     },
     "indianapolis-greyhounds": {
-      "aliases": ["indianapolis", "uindy", "university of indianapolis"]
+      "aliases": [
+        "indianapolis",
+        "uindy",
+        "university of indianapolis"
+      ]
     }
   },
   "ncaam": {
     "missouri-state-bears": {
-      "aliases": ["missouri state", "missouri state bears", "mo state", "most"]
+      "aliases": [
+        "missouri state",
+        "missouri state bears",
+        "mo state",
+        "most"
+      ]
     }
   },
   "ncaavb": {
     "missouri-state-bears": {
-      "aliases": ["missouri state", "missouri state bears", "mo state", "most"]
+      "aliases": [
+        "missouri state",
+        "missouri state bears",
+        "mo state",
+        "most"
+      ]
     }
   }
 }

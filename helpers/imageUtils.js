@@ -595,8 +595,13 @@ async function resolveSingleTeamWithFallback(providerManager, leagueObj, teamIde
         }
         
         // Team was found with logo in original league - log it
+        const { isCustomTeam } = require('./teamUtils');
+        const leagueKey = leagueObj.shortName?.toLowerCase() || leagueObj.name?.toLowerCase();
+        const teamKey = teamIdentifier.toLowerCase();
+        const isCustom = isCustomTeam(leagueKey, teamKey);
+        
         const providers = providerManager.getProvidersForLeague(leagueObj);
-        const providerId = providers[0]?.getProviderId() || 'unknown';
+        const providerId = isCustom ? 'custom' : (providers[0]?.getProviderId() || 'unknown');
         logger.teamResolved(providerId, leagueObj.shortName, resolvedTeam.fullName || resolvedTeam.name);
         return { team: resolvedTeam, failed: false };
     } catch (error) {

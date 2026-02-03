@@ -56,6 +56,71 @@ function getTeamAliases(leagueKey, teamIdentifier) {
     return teamOverride?.aliases || [];
 }
 
+/**
+ * Check if a team identifier represents a custom team
+ * @param {string} leagueKey - League identifier
+ * @param {string} teamIdentifier - Team identifier to check
+ * @returns {boolean} True if this is a custom team
+ */
+function isCustomTeam(leagueKey, teamIdentifier) {
+    const leagueOverrides = getLeagueOverrides(leagueKey);
+    const teamOverride = leagueOverrides[teamIdentifier];
+    
+    return teamOverride?.custom === true;
+}
+
+/**
+ * Get custom team data for a team that doesn't exist in provider data
+ * @param {string} leagueKey - League identifier
+ * @param {string} teamIdentifier - Team identifier
+ * @returns {Object|null} Custom team object or null if not a custom team
+ */
+async function getCustomTeam(leagueKey, teamIdentifier) {
+    const leagueOverrides = getLeagueOverrides(leagueKey);
+    const teamOverride = leagueOverrides[teamIdentifier];
+    
+    if (!teamOverride || !teamOverride.custom || !teamOverride.override) {
+        return null;
+    }
+    
+    // Build a standardized team object from the override data
+    const override = teamOverride.override;
+    const customTeam = {
+        name: override.name || teamIdentifier,
+        abbreviation: override.abbreviation || teamIdentifier.toUpperCase().substring(0, 3),
+        color: override.color || null,
+        alternateColor: override.alternateColor || null,
+        logo: override.logoUrl || override.logo || null,
+        ...override // Include any additional fields
+    };
+    
+    // Ensure logo field is set correctly (in case override has logoUrl)
+    if (override.logoUrl && !customTeam.logo) {
+        customTeam.logo = override.logoUrl;
+    }
+    
+    // Extract colors from logo if not provided
+    if ((!customTeam.color || !customTeam.alternateColor) && customTeam.logo) {
+        try {
+            const { extractDominantColors } = require('./colorUtils');
+            const extractedColors = await extractDominantColors(customTeam.logo, 2);
+            if (!customTeam.color) customTeam.color = extractedColors[0] || '#000000';
+            if (!customTeam.alternateColor) customTeam.alternateColor = extractedColors[1] || '#FFFFFF';
+        } catch (error) {
+            logger.warn('Failed to extract colors for custom team', { team: customTeam.name, error: error.message });
+            // Fall back to defaults if extraction fails
+            if (!customTeam.color) customTeam.color = '#000000';
+            if (!customTeam.alternateColor) customTeam.alternateColor = '#FFFFFF';
+        }
+    } else if (!customTeam.color || !customTeam.alternateColor) {
+        // No logo to extract from, use defaults
+        if (!customTeam.color) customTeam.color = '#000000';
+        if (!customTeam.alternateColor) customTeam.alternateColor = '#FFFFFF';
+    }
+    
+    return customTeam;
+}
+
 function findTeamByAlias(input, leagueKey, teams) {
     const normalizedInput = normalizeCompact(input);
     
@@ -533,7 +598,11 @@ module.exports = {
     getLeagueOverrides,
     applyTeamOverrides,
     getTeamAliases,
-    findTeamByAlias
+    findTeamByAlias,
+    
+    // Custom teams
+    isCustomTeam,
+    getCustomTeam
 };
 
 // ------------------------------------------------------------------------------

@@ -347,8 +347,47 @@ class ProviderManager {
         if (!originalLeague) {
             originalLeague = league;
         }
-        // Skip if we've already tried this league (prevents infinite loops)
+        
+        // Check for custom team BEFORE trying providers
+        const { isCustomTeam, getCustomTeam, normalizeCompact } = require('./teamUtils');
         const leagueKey = league.shortName?.toLowerCase() || league.name?.toLowerCase();
+        const normalizedIdentifier = normalizeCompact(teamIdentifier);
+        const lowercaseIdentifier = teamIdentifier.toLowerCase();
+        
+        // Try lowercase match for custom team (most common case)
+        if (isCustomTeam(leagueKey, lowercaseIdentifier)) {
+            const customTeam = await getCustomTeam(leagueKey, lowercaseIdentifier);
+            if (customTeam) {
+                if (!suppressLogging) {
+                    logger.teamResolved('custom', league.shortName, customTeam.name);
+                }
+                return customTeam;
+            }
+        }
+        
+        // Try exact match for custom team
+        if (isCustomTeam(leagueKey, teamIdentifier)) {
+            const customTeam = await getCustomTeam(leagueKey, teamIdentifier);
+            if (customTeam) {
+                if (!suppressLogging) {
+                    logger.teamResolved('custom', league.shortName, customTeam.name);
+                }
+                return customTeam;
+            }
+        }
+        
+        // Try fully normalized match for custom team (e.g., "N F C" → "nfc")
+        if (normalizedIdentifier !== lowercaseIdentifier && isCustomTeam(leagueKey, normalizedIdentifier)) {
+            const customTeam = await getCustomTeam(leagueKey, normalizedIdentifier);
+            if (customTeam) {
+                if (!suppressLogging) {
+                    logger.teamResolved('custom', league.shortName, customTeam.name);
+                }
+                return customTeam;
+            }
+        }
+        
+        // Skip if we've already tried this league (prevents infinite loops)
         if (visitedLeagues.has(leagueKey)) {
             throw new Error(`Already searched league: ${leagueKey}`);
         }

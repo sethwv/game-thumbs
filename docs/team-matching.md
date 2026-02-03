@@ -238,7 +238,137 @@ GET /epl/manchester united/chelsea/thumb  ✓ Matches via alias
 }
 ```
 
-### Multiple Leagues
+---
+
+## Custom Teams (Teams Not in Provider Data)
+
+For teams that don't exist in provider data (like conference all-star teams, special events, etc.), you can define them as **custom teams** with the `custom: true` flag. Custom teams bypass provider lookups entirely and use only the data you provide.
+
+### Custom Team Structure
+
+```json
+{
+  "leagueKey": {
+    "team-slug": {
+      "custom": true,
+      "override": {
+        "name": "Team Display Name",
+        "abbreviation": "ABC",
+        "color": "#000000",
+        "alternateColor": "#ffffff",
+        "logoUrl": "https://example.com/logo.png"
+      }
+    }
+  }
+}
+```
+
+### Required Fields for Custom Teams
+
+When `custom: true` is set, the following fields are **required** in the `override` object:
+- `name` - Full team display name
+- `abbreviation` - Team abbreviation (2-4 letters)
+- `logoUrl` - URL to team logo image (PNG/JPEG/GIF/WebP)
+
+**Optional fields** (auto-extracted from logo if omitted):
+- `color` - Primary color (hex format) - will be auto-extracted from logo
+- `alternateColor` - Secondary color (hex format) - will be auto-extracted from logo
+
+### Example: NFL Conference Teams
+
+```json
+{
+  "nfl": {
+    "nfc": {
+      "custom": true,
+      "override": {
+        "abbreviation": "NFC",
+        "name": "National Football Conference",
+        "logoUrl": "https://a.espncdn.com/i/teamlogos/nfl/500/scoreboard/nfc.png",
+        "color": "#013369",
+        "alternateColor": "#D50A0A"
+      }
+    },
+    "afc": {
+      "custom": true,
+      "override": {
+        "abbreviation": "AFC",
+        "name": "American Football Conference",
+        "logoUrl": "https://a.espncdn.com/i/teamlogos/nfl/500/scoreboard/afc.png",
+        "color": "#D50A0A",
+        "alternateColor": "#013369"
+      }
+    }
+  }
+}
+```
+
+**Usage:**
+```
+GET
+
+### Example: Custom Team with Auto-Extracted Colors
+
+If you omit colors, they will be automatically extracted from the logo:
+
+```json
+{
+  "nfl": {
+    "probowl": {
+      "custom": true,
+      "override": {
+        "abbreviation": "PRO",
+        "name": "Pro Bowl",
+        "logoUrl": "https://example.com/probowl-logo.png"
+      }
+    }
+  }
+}
+```
+
+Colors will be extracted from the logo on first use and cached for subsequent requests. /nfl/nfc/afc/thumb             ✓ Custom teams
+GET /nfl/nfc/cowboys/thumb         ✓ Custom + real team
+```
+
+### When to Use Custom Teams
+
+Custom teams are ideal for:
+- **Conference/Division Teams** - NFC vs AFC, Eastern Conference vs Western Conference
+- **All-Star Teams** - Pro Bowl rosters, All-Star game participants
+- **Special Events** - Exhibition games, charity matches
+- **Historical Teams** - Defunct teams not in current data
+- **Fantasy/Custom Leagues** - User-created teams for fantasy leagues
+
+### How Custom Teams Work
+
+1. **No Provider Lookup**: Custom teams are resolved directly from `teams.json` without querying external providers
+2. **Fallback Support**: Custom teams work in the fallback chain (with `?fallback=true`)
+3. **Alias Support**: You can still add aliases to custom teams for easier matching
+4. **Priority**: Custom teams are checked **before** provider lookups, ensuring instant resolution
+
+### Custom Teams with Aliases
+
+```json
+{
+  "nfl": {
+    "nfc": {
+      "custom": true,
+      "aliases": ["national football conference", "national conference"],
+      "override": {
+        "abbreviation": "NFC",
+        "name": "National Football Conference",
+        "logoUrl": "https://a.espncdn.com/i/teamlogos/nfl/500/scoreboard/nfc.png",
+        "color": "#013369",
+        "alternateColor": "#D50A0A"
+      }
+    }
+  }
+}
+```
+
+---
+
+## Multiple Leagues
 
 ```json
 {
@@ -267,9 +397,10 @@ GET /epl/manchester united/chelsea/thumb  ✓ Matches via alias
 
 ## How It Works
 
-1. **Alias Matching** (highest priority): When resolving a team, the system first checks if the input matches any custom alias in `teams.json`
-2. **ESPN Matching**: If no alias matches, the system uses ESPN's team data with intelligent fuzzy matching
-3. **Override Application**: After finding a match, any properties in the `override` object are merged into the final team data
+1. **Custom Team Check** (highest priority): If a team is marked with `custom: true`, it's resolved immediately from `teams.json` without provider lookup
+2. **Alias Matching**: When resolving a team, the system checks if the input matches any custom alias in `teams.json`
+3. **ESPN Matching**: If no custom team or alias matches, the system uses ESPN's team data with intelligent fuzzy matching
+4. **Override Application**: After finding a match, any properties in the `override` object are merged into the final team data
 
 ---
 
