@@ -44,8 +44,13 @@ const VALID_BADGE_KEYWORDS = [
 
 // Helper function to validate badge keywords
 function isValidBadge(badge) {
-    return  (badge && process.env.ALLOW_CUSTOM_BADGES && process.env.ALLOW_CUSTOM_BADGES.trim().toLowerCase() === 'true') ||
-            (badge && VALID_BADGE_KEYWORDS.includes(badge.toUpperCase()));
+    // Reject empty or whitespace-only strings
+    if (!badge || badge.trim() === '') {
+        return false;
+    }
+    
+    return  (process.env.ALLOW_CUSTOM_BADGES && process.env.ALLOW_CUSTOM_BADGES.trim().toLowerCase() === 'true') ||
+            VALID_BADGE_KEYWORDS.includes(badge.toUpperCase());
 }
 
 // ------------------------------------------------------------------------------
@@ -590,8 +595,13 @@ async function resolveSingleTeamWithFallback(providerManager, leagueObj, teamIde
         }
         
         // Team was found with logo in original league - log it
+        const { isCustomTeam } = require('./teamUtils');
+        const leagueKey = leagueObj.shortName?.toLowerCase() || leagueObj.name?.toLowerCase();
+        const teamKey = teamIdentifier.toLowerCase();
+        const isCustom = isCustomTeam(leagueKey, teamKey);
+        
         const providers = providerManager.getProvidersForLeague(leagueObj);
-        const providerId = providers[0]?.getProviderId() || 'unknown';
+        const providerId = isCustom ? 'custom' : (providers[0]?.getProviderId() || 'unknown');
         logger.teamResolved(providerId, leagueObj.shortName, resolvedTeam.fullName || resolvedTeam.name);
         return { team: resolvedTeam, failed: false };
     } catch (error) {
@@ -611,7 +621,7 @@ async function resolveSingleTeamWithFallback(providerManager, leagueObj, teamIde
  * @param {string} team2Identifier - Second team identifier
  * @param {boolean} enableFallback - Whether to use fallback for missing teams
  * @param {string} leagueLogoUrl - League logo URL for fallback
- * @returns {Promise<{team1: Object, team2: Object}>}
+ * @returns {Promise<{team1: Object, team2: Object, useLeagueLogoOnly?: boolean}>}
  */
 async function resolveTeamsWithFallback(providerManager, leagueObj, team1Identifier, team2Identifier, enableFallback, leagueLogoUrl) {
     // Resolve both teams in parallel
@@ -622,6 +632,28 @@ async function resolveTeamsWithFallback(providerManager, leagueObj, team1Identif
     
     let resolvedTeam1 = result1.team;
     let resolvedTeam2 = result2.team;
+    
+    // Special handling for Olympics: if any team fails, create dummy teams with transparent logos
+    const isOlympics = leagueObj.shortName?.toLowerCase() === 'olympics';
+    if (isOlympics && (result1.failed || result2.failed)) {
+        // Use same moody gradient color for all slots (both teams, both color slots)
+        const moodColor = '#1a1d2e';
+        
+        const dummyTeam = {
+            name: '',
+            logo: null,
+            logoAlt: null,
+            color: moodColor,
+            alternateColor: moodColor,
+            isFallback: true,
+            skipLogos: true  // Flag to skip logo rendering
+        };
+        
+        return {
+            team1: dummyTeam,
+            team2: { ...dummyTeam }
+        };
+    }
     
     // If both teams failed and need the same league logo, download and process it once
     if (result1.failed && result2.failed) {
@@ -1080,6 +1112,9 @@ async function addBadgeOverlay(imageBuffer, badgeText, options = {}) {
         padding = 8, // Padding from edges
         badgeScale = 0.10, // Badge size as percentage of base dimension (default 10%)
     } = options;
+
+    // Clean badge text: trim whitespace and collapse multiple spaces
+    badgeText = badgeText.trim().replace(/\s+/g, ' ');
 
     // Load the image from buffer
     const image = await loadImage(imageBuffer);
