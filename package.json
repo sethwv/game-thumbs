@@ -7,7 +7,7 @@
   "license": "MIT",
   "dependencies": {
     "axios": "^1.13.4",
-    "canvas": "^3.2.0",
+    "canvas": "^3.2.1",
     "chalk": "^5.6.2",
     "cors": "^2.8.5",
     "express": "^5.2.1",
