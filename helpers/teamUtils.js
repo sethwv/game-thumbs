@@ -70,6 +70,34 @@ function isCustomTeam(leagueKey, teamIdentifier) {
 }
 
 /**
+ * Find a custom team by alias
+ * @param {string} leagueKey - League identifier
+ * @param {string} input - Team identifier or alias to search for
+ * @returns {string|null} Team slug if found by alias, null otherwise
+ */
+function findCustomTeamByAlias(leagueKey, input) {
+    const leagueOverrides = getLeagueOverrides(leagueKey);
+    const normalizedInput = normalizeCompact(input);
+    
+    // Check each team in the league
+    for (const [teamSlug, teamOverride] of Object.entries(leagueOverrides)) {
+        // Only check custom teams
+        if (!teamOverride?.custom) continue;
+        
+        // Check if input matches any alias
+        if (teamOverride.aliases) {
+            for (const alias of teamOverride.aliases) {
+                if (normalizeCompact(alias) === normalizedInput) {
+                    return teamSlug;
+                }
+            }
+        }
+    }
+    
+    return null;
+}
+
+/**
  * Get custom team data for a team that doesn't exist in provider data
  * @param {string} leagueKey - League identifier
  * @param {string} teamIdentifier - Team identifier
@@ -602,7 +630,8 @@ module.exports = {
     
     // Custom teams
     isCustomTeam,
-    getCustomTeam
+    getCustomTeam,
+    findCustomTeamByAlias
 };
 
 // ------------------------------------------------------------------------------

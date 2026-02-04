@@ -349,10 +349,22 @@ class ProviderManager {
         }
         
         // Check for custom team BEFORE trying providers
-        const { isCustomTeam, getCustomTeam, normalizeCompact } = require('./teamUtils');
+        const { isCustomTeam, getCustomTeam, findCustomTeamByAlias, normalizeCompact } = require('./teamUtils');
         const leagueKey = league.shortName?.toLowerCase() || league.name?.toLowerCase();
         const normalizedIdentifier = normalizeCompact(teamIdentifier);
         const lowercaseIdentifier = teamIdentifier.toLowerCase();
+        
+        // Check if input matches a custom team alias first
+        const customTeamSlug = findCustomTeamByAlias(leagueKey, teamIdentifier);
+        if (customTeamSlug) {
+            const customTeam = await getCustomTeam(leagueKey, customTeamSlug);
+            if (customTeam) {
+                if (!suppressLogging) {
+                    logger.teamResolved('custom', league.shortName, customTeam.name);
+                }
+                return customTeam;
+            }
+        }
         
         // Try lowercase match for custom team (most common case)
         if (isCustomTeam(leagueKey, lowercaseIdentifier)) {
