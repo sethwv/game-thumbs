@@ -93,18 +93,21 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league, useLig
     const thumbX = centerX - (thumbWidth / 2);
     const thumbY = centerY - (thumbHeight / 2);
     
-    // Draw with shadow
+    // Draw shadow for entire rectangle first
     ctx.save();
     ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
     ctx.shadowBlur = 15;
     ctx.shadowOffsetX = 3;
     ctx.shadowOffsetY = 3;
+    ctx.fillStyle = 'rgba(0, 0, 0, 0)'; // Transparent fill just for shadow
+    ctx.fillRect(thumbX, thumbY, thumbWidth, thumbHeight);
+    ctx.restore();
     
     // Diagonal split points (50% less horizontal than thumbnail style 1)
     const topDiagonalX = thumbX + (thumbWidth * 0.5825);
     const bottomDiagonalX = thumbX + (thumbWidth * 0.4175);
     
-    // Left side (teamA)
+    // Left side (teamA) - no shadow
     ctx.fillStyle = colorA;
     ctx.beginPath();
     ctx.moveTo(thumbX, thumbY);
@@ -114,7 +117,7 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league, useLig
     ctx.closePath();
     ctx.fill();
     
-    // Right side (teamB)
+    // Right side (teamB) - no shadow
     ctx.fillStyle = colorB;
     ctx.beginPath();
     ctx.moveTo(topDiagonalX, thumbY);
@@ -124,8 +127,6 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league, useLig
     ctx.closePath();
     ctx.fill();
     
-    ctx.restore();
-    
     // Draw white diagonal line with clipping to rectangle bounds
     ctx.save();
     // Clip to rectangle
@@ -133,7 +134,7 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league, useLig
     ctx.rect(thumbX, thumbY, thumbWidth, thumbHeight);
     ctx.clip();
     
-    ctx.strokeStyle = 'white';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0)'; // Transparent (hidden but can be restored)
     ctx.lineWidth = Math.max(2, thumbHeight * 0.015);
     ctx.lineCap = 'butt';
     ctx.lineJoin = 'miter';

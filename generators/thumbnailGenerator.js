@@ -128,7 +128,7 @@ async function generateSplit(teamA, teamB, width, height, league, orientation) {
         ctx.fill();
         
         // Draw white diagonal line
-        ctx.strokeStyle = 'white';
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0)'; // Transparent (hidden but can be restored)
         ctx.lineWidth = 16;
         ctx.lineCap = 'butt';
         ctx.lineJoin = 'miter';
@@ -152,7 +152,7 @@ async function generateSplit(teamA, teamB, width, height, league, orientation) {
         ctx.fillRect(0, midpointY, width, height - midpointY);
         
         // Draw white horizontal line
-        ctx.strokeStyle = 'white';
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0)'; // Transparent (hidden but can be restored)
         ctx.lineWidth = 16;
         ctx.lineCap = 'butt';
         ctx.beginPath();
