@@ -121,7 +121,7 @@ module.exports = {
                 const darkLogoPreferred = useLight !== 'true';
                 const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj, darkLogoPreferred);
                 
-                const { team1: resolvedTeam1, team2: resolvedTeam2 } = await resolveTeamsWithFallback(
+                const { team1: resolvedTeam1, team2: resolvedTeam2, useLeagueLogoOnly } = await resolveTeamsWithFallback(
                     providerManager,
                     leagueObj,
                     team1,
@@ -129,6 +129,14 @@ module.exports = {
                     fallback === 'true',
                     leagueLogoUrl
                 );
+
+                // Special handling for Olympics: if fallback triggered, return league logo
+                if (useLeagueLogoOnly) {
+                    logoBuffer = await downloadImage(leagueLogoUrl);
+                    res.set('Content-Type', 'image/png');
+                    res.send(logoBuffer);
+                    return;
+                }
 
                 // Get league logo URL if needed
                 let leagueInfo = null;

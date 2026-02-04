@@ -96,5 +96,17 @@
         "most"
       ]
     }
+  },
+  "olympics": {
+    "gb": {
+      "aliases": [
+        "great britain",
+        "team gb",
+        "britain",
+        "united kingdom",
+        "uk",
+        "gbr"
+      ]
+    }
   }
 }

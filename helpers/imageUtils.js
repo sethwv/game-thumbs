@@ -621,7 +621,7 @@ async function resolveSingleTeamWithFallback(providerManager, leagueObj, teamIde
  * @param {string} team2Identifier - Second team identifier
  * @param {boolean} enableFallback - Whether to use fallback for missing teams
  * @param {string} leagueLogoUrl - League logo URL for fallback
- * @returns {Promise<{team1: Object, team2: Object}>}
+ * @returns {Promise<{team1: Object, team2: Object, useLeagueLogoOnly?: boolean}>}
  */
 async function resolveTeamsWithFallback(providerManager, leagueObj, team1Identifier, team2Identifier, enableFallback, leagueLogoUrl) {
     // Resolve both teams in parallel
@@ -632,6 +632,16 @@ async function resolveTeamsWithFallback(providerManager, leagueObj, team1Identif
     
     let resolvedTeam1 = result1.team;
     let resolvedTeam2 = result2.team;
+    
+    // Special handling for Olympics: if any team fails, just return league logo
+    const isOlympics = leagueObj.shortName?.toLowerCase() === 'olympics';
+    if (isOlympics && (result1.failed || result2.failed)) {
+        return {
+            team1: null,
+            team2: null,
+            useLeagueLogoOnly: true
+        };
+    }
     
     // If both teams failed and need the same league logo, download and process it once
     if (result1.failed && result2.failed) {

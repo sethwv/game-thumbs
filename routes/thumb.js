@@ -119,7 +119,7 @@ module.exports = {
 
                 const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj, false);
                 
-                const { team1: resolvedTeam1, team2: resolvedTeam2 } = await resolveTeamsWithFallback(
+                const { team1: resolvedTeam1, team2: resolvedTeam2, useLeagueLogoOnly } = await resolveTeamsWithFallback(
                     providerManager,
                     leagueObj,
                     team1,
@@ -127,6 +127,19 @@ module.exports = {
                     fallback === 'true',
                     leagueLogoUrl
                 );
+
+                // Special handling for Olympics: if fallback triggered, return league logo
+                if (useLeagueLogoOnly) {
+                    const leagueLogoUrlAlt = await providerManager.getLeagueLogoUrl(leagueObj, true);
+                    buffer = await generateLeagueThumb(leagueLogoUrl, {
+                        width,
+                        height,
+                        leagueLogoUrlAlt: leagueLogoUrlAlt
+                    });
+                    res.set('Content-Type', 'image/png');
+                    res.send(buffer);
+                    return;
+                }
 
                 // Get league logo URL if needed
                 let leagueInfo = null;
