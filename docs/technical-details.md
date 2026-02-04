@@ -230,14 +230,54 @@ Game Thumbs implements a sophisticated multi-layer fallback system to ensure req
 
 ### Resolution Chain
 
-When resolving a team, the system tries multiple approaches in parallel for optimal performance:
+When resolving a team, the system tries multiple approaches for optimal performance:
 
-1. **Primary Provider**: Attempts to resolve team from the configured provider(s)
-2. **Alternate Providers** (parallel): If team found but has no logo, tries all other providers simultaneously
-3. **Feeder Leagues** (parallel): Searches all configured feeder leagues at once
-4. **Fallback League**: Falls back to a designated league (e.g., NCAA sports → Men's Basketball)
-5. **Greyscale League Logo**: If `fallback=true` parameter is set, uses greyscale league logo as placeholder
-6. **Ultimate Text Fallback**: If league logo fails, generates minimal single-letter placeholder on transparent background
+1. **Custom Teams**: Checks if team is marked as `custom: true` in `teams.json` (bypasses all provider lookups)
+2. **Primary Provider**: Attempts to resolve team from the configured provider(s)
+3. **Alternate Providers** (parallel): If team found but has no logo, tries all other providers simultaneously
+4. **Feeder Leagues** (parallel): Searches all configured feeder leagues at once
+5. **Fallback League**: Falls back to a designated league (e.g., NCAA sports → Men's Basketball)
+6. **Greyscale League Logo**: If `fallback=true` parameter is set, uses greyscale league logo as placeholder
+7. **Ultimate Text Fallback**: If league logo fails, generates minimal single-letter placeholder on transparent background
+
+### Custom Teams (No Provider Lookup)
+
+Teams can be defined as "custom teams" in `teams.json` with the `custom: true` flag. These teams bypass all provider lookups entirely:
+
+```json
+{
+  "nfl": {
+    "nfc": {
+      "custom": true,
+      "override": {
+        "name": "National Football Conference",
+        "abbreviation": "NFC",
+        "logoUrl": "https://a.espncdn.com/i/teamlogos/nfl/500/scoreboard/nfc.png",
+        "color": "#013369",
+        "alternateColor": "#D50A0A"
+      }
+    }
+  }
+}
+```
+
+**Required Fields**:
+- `name` - Team display name
+- `abbreviation` - Team abbreviation
+- `logoUrl` - Team logo URL
+
+**Optional Fields** (auto-extracted from logo):
+- `color` - Primary color (extracted from logo if omitted)
+- `alternateColor` - Secondary color (extracted from logo if omitted)
+
+**Use Cases**:
+- Conference/Division teams (NFC vs AFC)
+- All-Star teams (Pro Bowl rosters)
+- Special event teams
+- Historical teams not in current data
+- Fantasy/custom league teams
+
+**Resolution Priority**: Custom teams are checked **first** before any provider queries, ensuring instant resolution with zero external API calls.
 
 ### Unsupported League Fallback (Provider Interface)
 

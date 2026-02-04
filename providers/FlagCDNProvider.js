@@ -11,13 +11,13 @@ const { findTeamByAlias, applyTeamOverrides } = require('../helpers/teamUtils');
 const { downloadImage } = require('../helpers/imageUtils');
 const logger = require('../helpers/logger');
 
-// Custom error class for country not found errors
-class CountryNotFoundError extends Error {
+// Custom error class for team/country not found errors
+class TeamNotFoundError extends Error {
     constructor(countryIdentifier, availableCountries) {
         const countryNames = Object.keys(availableCountries).slice(0, 20).join(', ');
         const remaining = Object.keys(availableCountries).length > 20 ? ` and ${Object.keys(availableCountries).length - 20} more` : '';
         super(`Country not found: '${countryIdentifier}'. Available countries include: ${countryNames}${remaining}`);
-        this.name = 'CountryNotFoundError';
+        this.name = 'TeamNotFoundError';
         this.countryIdentifier = countryIdentifier;
         this.availableCountries = availableCountries;
     }
@@ -364,7 +364,7 @@ class FlagCDNProvider extends BaseProvider {
             }
 
             if (!bestCode || bestScore === 0) {
-                throw new CountryNotFoundError(teamIdentifier, countries);
+                throw new TeamNotFoundError(teamIdentifier, countries);
             }
 
             // Build flag URL (using w2560 for high resolution)
@@ -426,8 +426,8 @@ class FlagCDNProvider extends BaseProvider {
 
             return teamData;
         } catch (error) {
-            // Re-throw CountryNotFoundError as-is
-            if (error.name === 'CountryNotFoundError') {
+            // Re-throw TeamNotFoundError as-is
+            if (error.name === 'TeamNotFoundError') {
                 throw error;
             }
             

@@ -1358,6 +1358,17 @@
   },
   "olympics": {
     "name": "Olympic Games",
+    "aliases": [
+      "olympics",
+      "olympic games",
+      "summer olympics",
+      "winter olympics",
+      "olympic",
+      "olympics-mens-ice-hockey",
+      "olympics-womens-ice-hockey",
+      "olymh",
+      "olywh"
+    ],
     "logoUrl": "./assets/2026_OLYMPICS.png",
     "providers": [
       {
