@@ -65,6 +65,100 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league, useLig
     
     const { colorA, colorB } = adjustColors(teamA, teamB);
     
+    // Handle skipLogos flag for Olympics fallback
+    if (teamA.skipLogos || teamB.skipLogos) {
+        // Just draw the colored rectangle without team logos
+        const centerX = width / 2;
+        const centerY = height / 2;
+        const availableWidth = width * 0.95;
+        const badgeSize = availableWidth / 3;
+        const thumbWidth = badgeSize * 3;
+        const thumbHeight = badgeSize;
+        const thumbX = centerX - (thumbWidth / 2);
+        const thumbY = centerY - (thumbHeight / 2);
+        
+        // Draw shadow for entire rectangle first
+        ctx.save();
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+        ctx.shadowBlur = 15;
+        ctx.shadowOffsetX = 3;
+        ctx.shadowOffsetY = 3;
+        ctx.fillStyle = 'rgba(0, 0, 0, 0)';
+        ctx.fillRect(thumbX, thumbY, thumbWidth, thumbHeight);
+        ctx.restore();
+        
+        // If colors are the same, just draw a single rectangle
+        if (colorA === colorB) {
+            ctx.fillStyle = colorA;
+            ctx.fillRect(thumbX, thumbY, thumbWidth, thumbHeight);
+        } else {
+            // Diagonal split points
+            const topDiagonalX = thumbX + (thumbWidth * 0.5825);
+            const bottomDiagonalX = thumbX + (thumbWidth * 0.4175);
+            
+            // Left side (teamA)
+            ctx.fillStyle = colorA;
+            ctx.beginPath();
+            ctx.moveTo(thumbX, thumbY);
+            ctx.lineTo(topDiagonalX, thumbY);
+            ctx.lineTo(bottomDiagonalX, thumbY + thumbHeight);
+            ctx.lineTo(thumbX, thumbY + thumbHeight);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Right side (teamB)
+            ctx.fillStyle = colorB;
+            ctx.beginPath();
+            ctx.moveTo(topDiagonalX, thumbY);
+            ctx.lineTo(thumbX + thumbWidth, thumbY);
+            ctx.lineTo(thumbX + thumbWidth, thumbY + thumbHeight);
+            ctx.lineTo(bottomDiagonalX, thumbY + thumbHeight);
+            ctx.closePath();
+            ctx.fill();
+        }
+        
+        // Draw league logo in center if provided
+        if (league && league.logoUrl) {
+            try {
+                const leagueLogoUrl = league.logoUrl || league.logoUrlAlt;
+                let leagueLogoBuffer = await downloadImage(leagueLogoUrl);
+                leagueLogoBuffer = await trimImage(leagueLogoBuffer, leagueLogoUrl);
+                const leagueLogo = await loadImage(leagueLogoBuffer);
+                
+                const leagueLogoSize = badgeSize * 0.6;
+                const leagueLogoX = centerX - (leagueLogoSize / 2);
+                const leagueLogoY = centerY - (leagueLogoSize / 2);
+                
+                ctx.save();
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+                ctx.shadowBlur = 10;
+                ctx.shadowOffsetX = 2;
+                ctx.shadowOffsetY = 2;
+                
+                const aspectRatio = leagueLogo.width / leagueLogo.height;
+                let drawWidth, drawHeight;
+                
+                if (aspectRatio > 1) {
+                    drawWidth = leagueLogoSize;
+                    drawHeight = leagueLogoSize / aspectRatio;
+                } else {
+                    drawHeight = leagueLogoSize;
+                    drawWidth = leagueLogoSize * aspectRatio;
+                }
+                
+                const adjustedX = leagueLogoX + (leagueLogoSize - drawWidth) / 2;
+                const adjustedY = leagueLogoY + (leagueLogoSize - drawHeight) / 2;
+                
+                ctx.drawImage(leagueLogo, adjustedX, adjustedY, drawWidth, drawHeight);
+                ctx.restore();
+            } catch (error) {
+                logger.warn('Error loading league logo', { error: error.message });
+            }
+        }
+        
+        return canvas.toBuffer('image/png');
+    }
+    
     const teamALogoUrl = useLight ? teamA.logo : await selectBestLogo(teamA, colorA);
     const teamBLogoUrl = useLight ? teamB.logo : await selectBestLogo(teamB, colorB);
     

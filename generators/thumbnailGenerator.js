@@ -167,7 +167,7 @@ async function generateSplit(teamA, teamB, width, height, league, orientation) {
         : Math.min(width * 0.5, height * 0.32);
     
     // Load teamA logo independently
-    if (teamA.logo) {
+    if (teamA.logo && !teamA.skipLogos) {
         try {
             const finalLogoImageA = await loadTrimmedLogo(teamA, colorA);
             
@@ -188,7 +188,7 @@ async function generateSplit(teamA, teamB, width, height, league, orientation) {
     }
     
     // Load teamB logo independently
-    if (teamB.logo) {
+    if (teamB.logo && !teamB.skipLogos) {
         try {
             const finalLogoImageB = await loadTrimmedLogo(teamB, colorB);
             
@@ -255,7 +255,7 @@ async function generateGradient(teamA, teamB, width, height, league, orientation
             ? Math.min(width * 0.325, height * 0.52)
             : Math.min(width * 0.5, height * 0.32);
         
-        if (teamA.logo) {
+        if (teamA.logo && !teamA.skipLogos) {
             const finalLogoImageA = await loadTrimmedLogo(teamA, colorA);
             
             const logoAX = orientation === 'landscape'
@@ -268,7 +268,7 @@ async function generateGradient(teamA, teamB, width, height, league, orientation
             drawLogoWithShadow(ctx, finalLogoImageA, logoAX, logoAY, logoMaxSize);
         }
         
-        if (teamB.logo) {
+        if (teamB.logo && !teamB.skipLogos) {
             const finalLogoImageB = await loadTrimmedLogo(teamB, colorB);
             
             const logoBX = orientation === 'landscape'
@@ -388,7 +388,7 @@ async function generateGrid(teamA, teamB, width, height, league, orientation, us
             ? Math.min(width * 0.325, height * 0.52)
             : Math.min(width * 0.5, height * 0.32);
         
-        if (teamA.logo) {
+        if (teamA.logo && !teamA.skipLogos) {
             const finalLogoImageA = await loadTrimmedLogo(teamA, darkBackground);
             
             const logoAX = orientation === 'landscape'
@@ -401,7 +401,7 @@ async function generateGrid(teamA, teamB, width, height, league, orientation, us
             drawLogoWithShadow(ctx, finalLogoImageA, logoAX, logoAY, logoMaxSize);
         }
         
-        if (teamB.logo) {
+        if (teamB.logo && !teamB.skipLogos) {
             const finalLogoImageB = await loadTrimmedLogo(teamB, darkBackground);
             
             const logoBX = orientation === 'landscape'
@@ -467,7 +467,7 @@ async function generateMinimalist(teamA, teamB, width, height, league, orientati
     
     // Load and draw logos as badges
     try {
-        if (teamA.logo) {
+        if (teamA.logo && !teamA.skipLogos) {
             const finalLogoImageA = await loadTrimmedLogo(teamA, colorA);
             
             const badgeAX = orientation === 'landscape'
@@ -511,7 +511,7 @@ async function generateMinimalist(teamA, teamB, width, height, league, orientati
             ctx.drawImage(finalLogoImageA, logoX, logoY, logoWidth, logoHeight);
         }
         
-        if (teamB.logo) {
+        if (teamB.logo && !teamB.skipLogos) {
             const finalLogoImageB = await loadTrimmedLogo(teamB, colorB);
             
             const badgeBX = orientation === 'landscape'

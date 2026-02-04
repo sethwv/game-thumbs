@@ -633,13 +633,25 @@ async function resolveTeamsWithFallback(providerManager, leagueObj, team1Identif
     let resolvedTeam1 = result1.team;
     let resolvedTeam2 = result2.team;
     
-    // Special handling for Olympics: if any team fails, just return league logo
+    // Special handling for Olympics: if any team fails, create dummy teams with transparent logos
     const isOlympics = leagueObj.shortName?.toLowerCase() === 'olympics';
     if (isOlympics && (result1.failed || result2.failed)) {
+        // Use same moody gradient color for all slots (both teams, both color slots)
+        const moodColor = '#1a1d2e';
+        
+        const dummyTeam = {
+            name: '',
+            logo: null,
+            logoAlt: null,
+            color: moodColor,
+            alternateColor: moodColor,
+            isFallback: true,
+            skipLogos: true  // Flag to skip logo rendering
+        };
+        
         return {
-            team1: null,
-            team2: null,
-            useLeagueLogoOnly: true
+            team1: dummyTeam,
+            team2: { ...dummyTeam }
         };
     }
     
