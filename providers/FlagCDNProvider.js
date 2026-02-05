@@ -267,6 +267,12 @@ class FlagCDNProvider extends BaseProvider {
             return 900;
         }
         
+        // Check if input matches country name with spaces removed (e.g., "unitedstates" -> "united states")
+        const countryNoSpaces = normalizedCountry.replace(/\s+/g, '');
+        if (normalizedInput === countryNoSpaces) {
+            return 850; // High score, between exact match and starts-with
+        }
+        
         // Starts with input
         if (normalizedCountry.startsWith(normalizedInput)) {
             return 800;
@@ -276,6 +282,12 @@ class FlagCDNProvider extends BaseProvider {
         const words = normalizedCountry.split(' ');
         if (words.some(word => word === normalizedInput)) {
             return 700;
+        }
+        
+        // Check if input (without spaces) starts with country name (without spaces)
+        const inputNoSpaces = normalizedInput.replace(/\s+/g, '');
+        if (countryNoSpaces.startsWith(inputNoSpaces)) {
+            return 650;
         }
         
         // Contains input as partial match
