@@ -323,6 +323,20 @@ class FlagCDNProvider extends BaseProvider {
             throw new Error(`League ${league.shortName} is missing FlagCDN configuration`);
         }
 
+        // Validate input - reject empty or whitespace-only inputs
+        const trimmedInput = teamIdentifier.trim();
+        if (!trimmedInput) {
+            const countries = await this.fetchCountries();
+            throw new TeamNotFoundError(teamIdentifier, countries);
+        }
+
+        // Reject very short normalized inputs (less than 2 chars) to prevent weak matches
+        const normalizedInput = this.normalizeCountryName(trimmedInput);
+        if (normalizedInput.length < 2) {
+            const countries = await this.fetchCountries();
+            throw new TeamNotFoundError(teamIdentifier, countries);
+        }
+
         try {
             const countries = await this.fetchCountries();
 
@@ -375,7 +389,10 @@ class FlagCDNProvider extends BaseProvider {
                 }
             }
 
-            if (!bestCode || bestScore === 0) {
+            // Require minimum match score of 700 to prevent weak matches
+            // (scores below 700 are partial word matches, which are too permissive)
+            const MIN_MATCH_SCORE = 700;
+            if (!bestCode || bestScore < MIN_MATCH_SCORE) {
                 throw new TeamNotFoundError(teamIdentifier, countries);
             }
 
