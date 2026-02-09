@@ -84,7 +84,7 @@ jobs:
         password: ${{ secrets.REPO_TOKEN }}
 
     - name: Cache Docker layers
-      if: ${{ !inputs.no-cache }}
+      if: ${{ !inputs.no-cache && github.server_url == 'https://github.com' }}
       uses: actions/cache@v4
       with:
         path: /tmp/.buildx-cache
