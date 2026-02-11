@@ -34,6 +34,7 @@ nav_order: 8
 | `style` | integer | 1 | Visual style 1-4 (matchup only) |
 | `logo` | boolean | true | Include league logo (matchup only) |
 | `badge` | string | - | Add quality badge overlay: `ALT`, `4K`, `HD`, `FHD`, or `UHD` (matchup only) |
+| `winner` | string | - | Winning team identifier - displays losing team in greyscale (matchup only) |
 | `fallback` | boolean | false | **Single team:** Return league cover. **Matchup:** Use greyscale league logo for missing teams |
 
 ---
@@ -125,6 +126,41 @@ If one or both teams are not found, uses greyscale league logo for missing teams
 |---------|---------|----------|
 | `/nhl/leafs/invalidteam/cover?fallback=true&logo=true` | [![Matchup Fallback](https://game-thumbs.swvn.io/nhl/leafs/invalidteam/cover?fallback=true&logo=true)](https://game-thumbs.swvn.io/nhl/leafs/invalidteam/cover?fallback=true&logo=true) | Valid team + greyscale NHL logo |
 | `/mlb/invalidteam1/invalidteam2/cover?fallback=true&logo=true` | [![Both Teams Fallback](https://game-thumbs.swvn.io/mlb/invalidteam1/invalidteam2/cover?fallback=true&logo=true)](https://game-thumbs.swvn.io/mlb/invalidteam1/invalidteam2/cover?fallback=true&logo=true) | Both sides use greyscale MLB logo |
+
+### Winner Effect
+
+The `winner` parameter displays the losing team in greyscale (35% opacity with grey colors), making the winner stand out in full color.
+
+{: .note }
+> **Team Matching:** Uses the same flexible matching as team parameters - accepts team names, cities, or abbreviations.
+
+**Basic Usage:**
+```
+GET /nhl/leafs/canadiens/cover?winner=leafs
+GET /nba/lakers/celtics/cover?winner=lakers&style=2
+GET /mlb/yankees/redsox/cover?winner=yankees&logo=true
+```
+
+| Request | Preview | Result |
+|---------|---------|--------|
+| `/nhl/leafs/canadiens/cover?winner=leafs` | [![Winner Leafs](https://game-thumbs.swvn.io/nhl/leafs/canadiens/cover?winner=leafs)](https://game-thumbs.swvn.io/nhl/leafs/canadiens/cover?winner=leafs) | Leafs in color, Canadiens greyscale |
+| `/nhl/leafs/canadiens/cover?winner=canadiens&style=2` | [![Winner Canadiens](https://game-thumbs.swvn.io/nhl/leafs/canadiens/cover?winner=canadiens&style=2)](https://game-thumbs.swvn.io/nhl/leafs/canadiens/cover?winner=canadiens&style=2) | Canadiens in color, Leafs greyscale |
+
+**Combined with Other Parameters:**
+```
+GET /nfl/chiefs/49ers/cover?winner=chiefs&badge=UHD
+GET /nba/warriors/cavaliers/cover?winner=warriors&style=99
+```
+
+**Flexible Team Matching:**
+```
+GET /nhl/leafs/canadiens/cover?winner=toronto      # City name
+GET /nba/lakers/celtics/cover?winner=lal           # Abbreviation
+GET /mlb/yankees/redsox/cover?winner=new-york      # Partial match
+```
+
+{: .warning }
+> If the winner doesn't match either team, both teams display in full color (no error returned).
 
 ### Athlete Sports
 ```
