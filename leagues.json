@@ -821,6 +821,22 @@
       }
     ]
   },
+  "ewsl": {
+    "name": "English Women's Super League",
+    "aliases": [
+      "english womens super league",
+      "womens super league",
+      "wsl"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4849",
+          "leagueName": "English Womens Super League"
+        }
+      }
+    ]
+  },
   "__NCAA_SPORTS__": "===========================================",
   "ncaaf": {
     "name": "NCAA Football",
