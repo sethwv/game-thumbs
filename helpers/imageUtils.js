@@ -797,14 +797,14 @@ async function applyWinnerEffect(
         if (normalizedWinner === normalizedTeam1) {
             // Team 1 is winner, apply greyscale to team 2
             const greyTeam2 = await convertTeamToGreyscaleLoser(team2);
-            logger.winnerApplied(winnerIdentifier, team2.name);
+            logger.winnerApplied(team1.name, team2.name);
             return { team1, team2: greyTeam2 };
         }
 
         if (normalizedWinner === normalizedTeam2) {
             // Team 2 is winner, apply greyscale to team 1
             const greyTeam1 = await convertTeamToGreyscaleLoser(team1);
-            logger.winnerApplied(winnerIdentifier, team1.name);
+            logger.winnerApplied(team2.name, team1.name);
             return { team1: greyTeam1, team2 };
         }
 
@@ -835,12 +835,12 @@ async function applyWinnerEffect(
         if (team1Score > team2Score && team1Score >= MATCH_THRESHOLD) {
             // Team 1 is winner
             const greyTeam2 = await convertTeamToGreyscaleLoser(team2);
-            logger.winnerApplied(winnerIdentifier, team2.name);
+            logger.winnerApplied(team1.name, team2.name);
             return { team1, team2: greyTeam2 };
         } else if (team2Score > team1Score && team2Score >= MATCH_THRESHOLD) {
             // Team 2 is winner
             const greyTeam1 = await convertTeamToGreyscaleLoser(team1);
-            logger.winnerApplied(winnerIdentifier, team1.name);
+            logger.winnerApplied(team2.name, team1.name);
             return { team1: greyTeam1, team2 };
         } else {
             // No clear match or ambiguous
