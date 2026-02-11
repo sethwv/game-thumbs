@@ -374,7 +374,7 @@ function checkExactMatches(expandedInput, compactInput, normalized) {
         { norm: normalized.name, compact: normalized.compactName, score: 900 },
         { norm: normalized.shortDisplayName, compact: normalized.compactShortDisplayName, score: 850 },
         { norm: normalized.fullName, compact: normalized.compactFullName, score: 800 },
-        { norm: normalized.city, compact: normalized.compactCity, score: 700 }
+        { norm: normalized.city, compact: normalized.compactCity, score: 500 }
     ];
     
     for (const field of exactMatchFields) {
@@ -478,10 +478,11 @@ function checkPartialMatches(expandedInput, compactInput, normalized) {
         return s;
     };
     
-    // Team name/shortDisplayName (score: 400 if input contains, 300 if contains input)
+    // Team name/shortDisplayName (score: 700 if input contains, 650 if contains input)
+    // Increased from 400/300 to ensure name matches beat exact city matches (500)
     // Use trailing text check to prevent "Ohio" from matching "OhioWesleyanBattlingBishops"
-    score = Math.max(score, checkSubstring(normalized.name, normalized.compactName, 400, 300, true));
-    score = Math.max(score, checkSubstring(normalized.shortDisplayName, normalized.compactShortDisplayName, 400, 300, true));
+    score = Math.max(score, checkSubstring(normalized.name, normalized.compactName, 700, 650, true));
+    score = Math.max(score, checkSubstring(normalized.shortDisplayName, normalized.compactShortDisplayName, 700, 650, true));
     
     // Full name (score: 200)
     if (normalized.fullName && expandedInput.length >= MIN_LENGTH && normalized.fullName.includes(expandedInput)) {
