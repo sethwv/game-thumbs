@@ -11,6 +11,7 @@ const fsSync = require('fs');
 const path = require('path');
 const logger = require('./logger');
 const { rgbToHex: colorUtilsRgbToHex, calculateColorDistance } = require('./colorUtils');
+const { getTeamMatchScore, normalizeCompact } = require('./teamUtils');
 
 // ------------------------------------------------------------------------------
 // Constants
@@ -107,6 +108,10 @@ module.exports = {
     handleTeamNotFoundError,
     addBadgeOverlay,
     isValidBadge,
+
+    // Winner effect utilities
+    convertTeamToGreyscaleLoser,
+    applyWinnerEffect,
 
     // Color utilities
     hexToRgb,
@@ -714,6 +719,141 @@ async function resolveTeamsWithFallback(providerManager, leagueObj, team1Identif
         team1: resolvedTeam1,
         team2: resolvedTeam2
     };
+}
+
+/**
+ * Convert a team to a greyscale loser (for winner parameter)
+ * @param {Object} team - The team object to convert
+ * @returns {Promise<Object>} Modified team object with greyscale logos and grey colors
+ */
+async function convertTeamToGreyscaleLoser(team) {
+    try {
+        // Download and convert primary logo to greyscale
+        const logoBuffer = await downloadImage(team.logo);
+        const logoImage = await loadImage(logoBuffer);
+        const greyscaleCanvas = await convertToGreyscale(logoImage, 0.35);
+        const greyscaleBuffer = greyscaleCanvas.toBuffer('image/png');
+        const base64Logo = `data:image/png;base64,${greyscaleBuffer.toString('base64')}`;
+
+        // Also convert logoAlt if it exists and is different
+        let base64LogoAlt = base64Logo;
+        if (team.logoAlt && team.logoAlt !== team.logo) {
+            try {
+                const logoAltBuffer = await downloadImage(team.logoAlt);
+                const logoAltImage = await loadImage(logoAltBuffer);
+                const greyscaleAltCanvas = await convertToGreyscale(logoAltImage, 0.35);
+                const greyscaleAltBuffer = greyscaleAltCanvas.toBuffer('image/png');
+                base64LogoAlt = `data:image/png;base64,${greyscaleAltBuffer.toString('base64')}`;
+            } catch (error) {
+                logger.warn('Failed to convert logoAlt to greyscale', { team: team.name });
+            }
+        }
+
+        return {
+            ...team,
+            logo: base64Logo,
+            logoAlt: base64LogoAlt,
+            color: '#d3d3d3',
+            alternateColor: '#b8b8b8',
+            isLoser: true
+        };
+    } catch (error) {
+        logger.error('Failed to convert team to greyscale', { team: team.name, error: error.message });
+        return team; // Return unchanged on error
+    }
+}
+
+/**
+ * Apply winner effect by converting the losing team to greyscale
+ * @param {Object} providerManager - Provider manager instance
+ * @param {Object} leagueObj - League object
+ * @param {string} winnerIdentifier - Winner team identifier from query param
+ * @param {string} team1Identifier - Team 1 identifier from path
+ * @param {string} team2Identifier - Team 2 identifier from path
+ * @param {Object} team1 - Resolved team 1 object
+ * @param {Object} team2 - Resolved team 2 object
+ * @returns {Promise<{team1: Object, team2: Object}>} Modified team objects
+ */
+async function applyWinnerEffect(
+    providerManager,
+    leagueObj,
+    winnerIdentifier,
+    team1Identifier,
+    team2Identifier,
+    team1,
+    team2
+) {
+    try {
+        // Skip if teams have skipLogos flag (Olympics case)
+        if (team1.skipLogos || team2.skipLogos) {
+            return { team1, team2 };
+        }
+
+        // Phase 1: Identifier Matching (fast path)
+        const normalizedWinner = normalizeCompact(winnerIdentifier);
+        const normalizedTeam1 = normalizeCompact(team1Identifier);
+        const normalizedTeam2 = normalizeCompact(team2Identifier);
+
+        if (normalizedWinner === normalizedTeam1) {
+            // Team 1 is winner, apply greyscale to team 2
+            const greyTeam2 = await convertTeamToGreyscaleLoser(team2);
+            logger.winnerApplied(winnerIdentifier, team2.name);
+            return { team1, team2: greyTeam2 };
+        }
+
+        if (normalizedWinner === normalizedTeam2) {
+            // Team 2 is winner, apply greyscale to team 1
+            const greyTeam1 = await convertTeamToGreyscaleLoser(team1);
+            logger.winnerApplied(winnerIdentifier, team1.name);
+            return { team1: greyTeam1, team2 };
+        }
+
+        // Phase 2: Resolved Team Matching (fallback)
+        let winnerTeam;
+        try {
+            winnerTeam = await providerManager.resolveTeam(leagueObj, winnerIdentifier, new Set(), null, true);
+        } catch (error) {
+            logger.warn('Failed to resolve winner team', { winner: winnerIdentifier });
+            return { team1, team2 }; // Return unchanged
+        }
+
+        // Calculate match scores between winner and both teams
+        const team1Score = Math.max(
+            getTeamMatchScore(winnerIdentifier, team1),
+            getTeamMatchScore(winnerTeam.name || '', team1),
+            getTeamMatchScore(winnerTeam.fullName || '', team1)
+        );
+
+        const team2Score = Math.max(
+            getTeamMatchScore(winnerIdentifier, team2),
+            getTeamMatchScore(winnerTeam.name || '', team2),
+            getTeamMatchScore(winnerTeam.fullName || '', team2)
+        );
+
+        const MATCH_THRESHOLD = 500;
+
+        if (team1Score > team2Score && team1Score >= MATCH_THRESHOLD) {
+            // Team 1 is winner
+            const greyTeam2 = await convertTeamToGreyscaleLoser(team2);
+            logger.winnerApplied(winnerIdentifier, team2.name);
+            return { team1, team2: greyTeam2 };
+        } else if (team2Score > team1Score && team2Score >= MATCH_THRESHOLD) {
+            // Team 2 is winner
+            const greyTeam1 = await convertTeamToGreyscaleLoser(team1);
+            logger.winnerApplied(winnerIdentifier, team1.name);
+            return { team1: greyTeam1, team2 };
+        } else {
+            // No clear match or ambiguous
+            logger.warn('Winner does not match either team', {
+                winner: winnerIdentifier,
+                scores: `${team1.name}: ${team1Score}, ${team2.name}: ${team2Score}`
+            });
+            return { team1, team2 }; // Return unchanged
+        }
+    } catch (error) {
+        logger.error('Error applying winner effect', { winner: winnerIdentifier, error: error.message });
+        return { team1, team2 }; // Return unchanged on error
+    }
 }
 
 // ------------------------------------------------------------------------------
