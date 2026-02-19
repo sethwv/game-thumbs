@@ -37,6 +37,18 @@ docker run -p 3000:3000 ghcr.io/sethwv/game-thumbs:latest
 
 The API will be available at `http://localhost:3000`.
 
+### Redirect Root to Documentation
+
+Optionally redirect the root path (`/`) to your documentation site:
+
+```bash
+docker run -p 3000:3000 \
+  -e ROOT_REDIRECT_URL=https://game-thumbs-docs.swvn.io/ \
+  ghcr.io/sethwv/game-thumbs:latest
+```
+
+When enabled, visitors to `http://localhost:3000/` will be permanently redirected (301) to the specified URL.
+
 ---
 
 ## Environment Variables
@@ -51,6 +63,7 @@ Configure the server behavior using environment variables:
 | `NODE_ENV` | Environment mode (`development` or `production`). In development, error stack traces are included in responses. | `production` |
 | `SERVER_TIMEOUT` | Timeout for HTTP connections (in milliseconds). | `30000` |
 | `REQUEST_TIMEOUT` | Timeout for external API calls and image downloads (in milliseconds). | `10000` |
+| `ROOT_REDIRECT_URL` | Optional URL to redirect from root path (`/`) with a 301 permanent redirect. Useful for directing users to documentation. | Not set (disabled) |
 | `ALLOW_CUSTOM_BADGES` | Allow custom badge parameter entries on matchup generation endpoints. | `false` |
 
 ### Caching
