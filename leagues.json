@@ -489,18 +489,18 @@
     ],
     "providers": [
       {
-        "espn": {
-          "espnSlug": "uefa.nations",
-          "espnSport": "soccer"
-        }
-      },
-      {
         "theSportsDB": {
           "leagueId": "4490",
           "leagueName": "UEFA Nations League"
         }
       },
       {
+        "espn": {
+          "espnSlug": "uefa.nations",
+          "espnSport": "soccer"
+        }
+      },
+            {
         "flagcdn": {}
       }
     ]
