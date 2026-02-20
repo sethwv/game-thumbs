@@ -512,15 +512,15 @@
     ],
     "providers": [
       {
-        "espn": {
-          "espnSlug": "concacaf.nations.league",
-          "espnSport": "soccer"
-        }
-      },
-      {
         "theSportsDB": {
           "leagueId": "5280",
           "leagueName": "CONCACAF Nations League"
+        }
+      },
+      {
+        "espn": {
+          "espnSlug": "concacaf.nations.league",
+          "espnSport": "soccer"
         }
       },
       {
