@@ -429,6 +429,158 @@
       }
     ]
   },
+  "euros": {
+    "name": "UEFA European Championship",
+    "aliases": [
+      "european championship",
+      "uefa.euro"
+    ],
+    "feederLeagues": [
+      "euroq"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "uefa.euro",
+          "espnSport": "soccer"
+        }
+      },
+      {
+        "theSportsDB": {
+          "leagueId": "4502",
+          "leagueName": "UEFA European Championships"
+        }
+      },
+      {
+        "flagcdn": {}
+      }
+    ]
+  },
+  "euroq": {
+    "name": "UEFA European Championships Qualifying",
+    "aliases": [
+      "euro qualifiers",
+      "european championship qualifiers",
+      "uefa.euroq"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "uefa.euroq",
+          "espnSport": "soccer"
+        }
+      },
+      {
+        "theSportsDB": {
+          "leagueId": "4502",
+          "leagueName": "UEFA European Championships Qualifying"
+        }
+      },
+      {
+        "flagcdn": {}
+      }
+    ]
+  },
+  "uefanationsleague": {
+    "name": "UEFA Nations League",
+    "aliases": [
+      "Euro Nations League",
+      "uefa.nations"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "uefa.nations",
+          "espnSport": "soccer"
+        }
+      },
+      {
+        "theSportsDB": {
+          "leagueId": "4490",
+          "leagueName": "UEFA Nations League"
+        }
+      },
+      {
+        "flagcdn": {}
+      }
+    ]
+  },
+  "concacafnationsleague": {
+    "name": "CONCACAF Nations League",
+    "aliases": [
+      "concacaf.nations"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "concacaf.nations.league",
+          "espnSport": "soccer"
+        }
+      },
+      {
+        "theSportsDB": {
+          "leagueId": "5280",
+          "leagueName": "CONCACAF Nations League"
+        }
+      },
+      {
+        "flagcdn": {}
+      }
+    ]
+  },
+  "afcon": {
+    "name": "Africa Cup of Nations",
+    "aliases": [
+      "afcon",
+      "African Cup of Nations",
+      "caf.nations"
+    ],
+    "feederLeagues": [
+      "afconq"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "caf.nations",
+          "espnSport": "soccer"
+        }
+      },
+      {
+        "theSportsDB": {
+          "leagueId": "4496",
+          "leagueName": "African Cup of Nations"
+        }
+      },
+      {
+        "flagcdn": {}
+      }
+    ]
+  },
+  "afconq": {
+    "name": "Africa Cup of Nations Qualifying",
+    "aliases": [
+      "afconq",
+      "African Cup of Nations Qualifying",
+      "caf.nations_qual"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "caf.nations_qual",
+          "espnSport": "soccer"
+        }
+      },
+      {
+        "theSportsDB": {
+          "leagueId": "5520",
+          "leagueName": "African Cup of Nations Qualifying"
+        }
+      },
+      {
+        "flagcdn": {}
+      }
+    ]
+  },
   "epl": {
     "name": "English Premier League",
     "aliases": [
@@ -502,6 +654,68 @@
       }
     ]
   },
+  "engleaguetrophy": {
+    "name": "English Football League Trophy",
+    "aliases": [
+      "english league trophy",
+      "efl trophy",
+      "vertu trophy",
+      "eng.trophy"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4847",
+          "leagueName": "EFL Trophy"
+        }
+      },
+      {
+        "espn": {
+          "espnSlug": "eng.trophy",
+          "espnSport": "soccer"
+        }
+      }
+    ]
+  },
+  "engcommunityshield": {
+    "name": "English FA Community Shield",
+    "aliases": [
+      "english community shield",
+      "community shield",
+      "charity shield",
+      "eng.charity"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4571",
+          "leagueName": "FA Community Shield"
+        }
+      },
+      {
+        "espn": {
+          "espnSlug": "eng.charity",
+          "espnSport": "soccer"
+        }
+      }
+    ]
+  },
+  "engfatrophy": {
+    "name": "English FA Trophy",
+    "aliases": [
+      "fa trophy",
+      "fa challenge trophy",
+      "eng.fatrophy"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4788",
+          "leagueName": "FA Trophy"
+        }
+      }
+    ]
+  },
   "laliga": {
     "name": "La Liga",
     "feederLeagues": [
@@ -527,6 +741,32 @@
         "espn": {
           "espnSlug": "esp.copa_del_rey",
           "espnSport": "soccer"
+        }
+      }
+    ]
+  },
+  "espscup": {
+    "name": "Supercopa de Espana",
+    "feederLeagues": [
+      "laliga",
+      "segunda"
+    ],
+    "aliases": [
+      "Spanish Supercopa",
+      "Spanish Super Cup",
+      "esp.super_cup"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "esp.super_cup",
+          "espnSport": "soccer"
+        }
+      },
+      {
+        "theSportsDB": {
+          "leagueId": "4511",
+          "leagueName": "Supercopa de Espana"
         }
       }
     ]
@@ -674,6 +914,31 @@
       }
     ]
   },
+  "dfb-polka": {
+    "name": "DFB-Pokal",
+    "feederLeagues": [
+      "bundesliga"
+    ],
+    "aliases": [
+      "dfb pokal",
+      "german cup",
+      "ger.dfb_pokal"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "ger.dfb_pokal",
+          "espnSport": "soccer"
+        }
+      },
+      {
+        "theSportsDB": {
+          "leagueId": "4485",
+          "leagueName": "DFB-Pokal"
+        }
+      }
+    ]
+  },
   "serieb": {
     "name": "Serie B",
     "aliases": [
@@ -690,6 +955,27 @@
       }
     ]
   },
+  "supercoppa": {
+    "name": "Supercoppa Italiana",
+    "aliases": [
+      "ita.super_cup",
+      "italian super cup"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "ita.super_cup",
+          "espnSport": "soccer"
+        }
+      },
+      {
+        "theSportsDB": {
+          "leagueId": "4507",
+          "leagueName": "Supercoppa Italiana"
+        }
+      }
+    ]
+  },
   "ligue2": {
     "name": "Ligue 2",
     "aliases": [
@@ -702,6 +988,53 @@
         "espn": {
           "espnSlug": "fra.2",
           "espnSport": "soccer"
+        }
+      }
+    ]
+  },
+  "coupedefrance": {
+    "name": "Coupe de France",
+    "feederLeagues": [
+      "ligue 1"
+    ],
+    "aliases": [
+      "fra.coupe_de_france"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "fra.coupe_de_france",
+          "espnSport": "soccer"
+        }
+      },
+      {
+        "theSportsDB": {
+          "leagueId": "4484",
+          "leagueName": "Coupe de France"
+        }
+      }
+    ]
+  },
+  "CoupedelaLigue": {
+    "name": "Coupe de la Ligue",
+    "feederLeagues": [
+      "ligue 1"
+    ],
+    "aliases": [
+      "fra.coupe_de_la_ligue",
+      "French League Cup"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "fra.coupe_de_la_ligue",
+          "espnSport": "soccer"
+        }
+      },
+      {
+        "theSportsDB": {
+          "leagueId": "4504",
+          "leagueName": "Coupe de la Ligue"
         }
       }
     ]
@@ -734,6 +1067,27 @@
       "sch",
       "sl1",
       "sl2"
+    ]
+  },
+  "slcup": {
+    "name": "Scottish League Cup",
+    "aliases": [
+      "scottish League cup",
+      "sco.cis"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4888",
+          "leagueName": "Scottish League Cup"
+        }
+      },
+      {
+        "espn": {
+          "espnSport": "soccer",
+          "espnSlug": "sco.cis"
+        }
+      }
     ]
   },
   "spfl": {
