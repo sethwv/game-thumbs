@@ -722,32 +722,6 @@
       }
     ]
   },
-  "espscup": {
-    "name": "Supercopa de Espana",
-    "feederLeagues": [
-      "laliga",
-      "segunda"
-    ],
-    "aliases": [
-      "Spanish Supercopa",
-      "Spanish Super Cup",
-      "esp.super_cup"
-    ],
-    "providers": [
-      {
-        "theSportsDB": {
-          "leagueId": "4511",
-          "leagueName": "Supercopa de Espana"
-        }
-      },
-      {
-        "espn": {
-          "espnSlug": "esp.super_cup",
-          "espnSport": "soccer"
-        }
-      }
-    ]
-  },
   "bundesliga": {
     "name": "Bundesliga",
     "feederLeagues": [
@@ -891,31 +865,6 @@
       }
     ]
   },
-  "dfb-polka": {
-    "name": "DFB-Pokal",
-    "feederLeagues": [
-      "bundesliga"
-    ],
-    "aliases": [
-      "dfb pokal",
-      "german cup",
-      "ger.dfb_pokal"
-    ],
-    "providers": [
-            {
-        "theSportsDB": {
-          "leagueId": "4485",
-          "leagueName": "DFB-Pokal"
-        }
-      },
-      {
-        "espn": {
-          "espnSlug": "ger.dfb_pokal",
-          "espnSport": "soccer"
-        }
-      }
-    ]
-  },
   "serieb": {
     "name": "Serie B",
     "aliases": [
@@ -932,27 +881,6 @@
       }
     ]
   },
-  "supercoppa": {
-    "name": "Supercoppa Italiana",
-    "aliases": [
-      "ita.super_cup",
-      "italian super cup"
-    ],
-    "providers": [
-      {
-        "theSportsDB": {
-          "leagueId": "4507",
-          "leagueName": "Supercoppa Italiana"
-        }
-      },
-      {
-        "espn": {
-          "espnSlug": "ita.super_cup",
-          "espnSport": "soccer"
-        }
-      }
-    ]
-  },
   "ligue2": {
     "name": "Ligue 2",
     "aliases": [
@@ -964,29 +892,6 @@
       {
         "espn": {
           "espnSlug": "fra.2",
-          "espnSport": "soccer"
-        }
-      }
-    ]
-  },
-  "coupedefrance": {
-    "name": "Coupe de France",
-    "feederLeagues": [
-      "ligue 1"
-    ],
-    "aliases": [
-      "fra.coupe_de_france"
-    ],
-    "providers": [
-      {
-        "theSportsDB": {
-          "leagueId": "4484",
-          "leagueName": "Coupe de France"
-        }
-      },
-      {
-        "espn": {
-          "espnSlug": "fra.coupe_de_france",
           "espnSport": "soccer"
         }
       }
