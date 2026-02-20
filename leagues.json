@@ -1412,6 +1412,213 @@
       }
     ]
   },
+  "__CRICKET__": "===========================================",
+  "the100m": {
+    "name": "The Hundred",
+    "aliases": [
+      "the hundred",
+      "hundred cricket",
+      "100 cricket",
+      "the100",
+      "mens-hundred",
+      "hundred mens"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "5177",
+          "leagueName": "The Hundred"
+        }
+      },
+      {
+        "espn": {
+          "espnSlug": "mens-hundred",
+          "espnSport": "cricket"
+        }
+      }
+    ]
+  },
+  "the100w": {
+    "name": "The Hundred Women",
+    "aliases": [
+      "the hundred women",
+      "hundred cricket womens",
+      "100 cricket womens",
+      "the100 womens",
+      "womens-hundred",
+      "hundred womens"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "5668",
+          "leagueName": "The Hundred Women"
+        }
+      },
+      {
+        "espn": {
+          "espnSlug": "womens-100",
+          "espnSport": "cricket"
+        }
+      }
+    ]
+  },
+  "t20blast": {
+    "name": "English t20 Blast",
+    "aliases": [
+      "english t20",
+      "t20 blast",
+      "english-t20 blast"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4463",
+          "leagueName": "English t20 Blast"
+        }
+      }
+    ]
+  },
+  "ipl": {
+    "name": "Indian Premier League",
+    "aliases": [
+      "indian-premier-league",
+      "ipl t20",
+      "indian premier league"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4460",
+          "leagueName": "Indian Premier League"
+        }
+      }
+    ]
+  },
+  "bbl": {
+    "name": "Australian Big Bash League",
+    "aliases": [
+      "big bash",
+      "australian-big-bash-league",
+      "bbl t20",
+      "t20 big bash league"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4461",
+          "leagueName": "Australian Big Bash League"
+        }
+      }
+    ]
+  },
+  "bpl": {
+    "name": "Bangladesh Premier League",
+    "aliases": [
+      "bangladesh-premier-league",
+      "bangladesh premier league",
+      "bpl t20"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "5529",
+          "leagueName": "Bangladesh Premier League"
+        }
+      }
+    ]
+  },
+  "cpl": {
+    "name": "Caribbean Premier League",
+    "aliases": [
+      "caribbean-premier-league",
+      "cpl t20",
+      "caribbean premier league"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "5176",
+          "leagueName": "Caribbean Premier League"
+        }
+      }
+    ]
+  },
+  "mlc": {
+    "name": "Major League Cricket",
+    "aliases": [
+      "major-league-cricket"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "5401",
+          "leagueName": "Major League Cricket"
+        }
+      }
+    ]
+  },
+  "nzss": {
+    "name": "New Zealand Super Smash",
+    "aliases": [
+      "nz super smash",
+      "super smash",
+      "nz t20",
+      "new-zealand-super-smash"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "5174",
+          "leagueName": "New Zealand Super Smash"
+        }
+      }
+    ]
+  },
+  "sa20": {
+    "name": "SA20",
+    "aliases": [
+      "south africa t20"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "5532",
+          "leagueName": "SA20"
+        }
+      }
+    ]
+  },
+  "npl": {
+    "name": "Nepal Premier League",
+    "aliases": [
+      "nepal-premier-league",
+      "nepal t20"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "5533",
+          "leagueName": "Nepal Premier League"
+        }
+      }
+    ]
+  },
+  "psl": {
+    "name": "Pakistan Super League",
+    "aliases": [
+      "pakistan-super-league",
+      "pakistan t20"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "5067",
+          "leagueName": "Pakistan Super League"
+        }
+      }
+    ]
+  },
   "__INTERNATIONAL__": "===========================================",
   "iihf": {
     "name": "International Ice Hockey Federation",
