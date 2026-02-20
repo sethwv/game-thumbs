@@ -500,7 +500,7 @@
           "espnSport": "soccer"
         }
       },
-            {
+      {
         "flagcdn": {}
       }
     ]
@@ -551,7 +551,7 @@
           "espnSport": "soccer"
         }
       },
-            {
+      {
         "flagcdn": {}
       }
     ]
@@ -576,7 +576,7 @@
           "espnSport": "soccer"
         }
       },
-            {
+      {
         "flagcdn": {}
       }
     ]
@@ -870,7 +870,6 @@
       }
     ]
   },
-  
   "english-national-league-north": {
     "name": "English National League North",
     "aliases": [
@@ -1620,6 +1619,22 @@
       {
         "hockeyTech": {
           "websiteUrl": "https://www.csshl.ca/"
+        }
+      }
+    ]
+  },
+      "eihl": {
+    "name": "UK Elite Ice Hockey League",
+    "aliases": [
+      "uk eihl",
+      "Elite Ice Hockey League",
+      "British Elite League"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4381",
+          "leagueName": "UK Elite Ice Hockey League"
         }
       }
     ]
