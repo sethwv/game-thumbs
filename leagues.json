@@ -508,7 +508,7 @@
   "concacafnationsleague": {
     "name": "CONCACAF Nations League",
     "aliases": [
-      "concacaf.nations"
+      "concacaf.nations.league"
     ],
     "providers": [
       {
