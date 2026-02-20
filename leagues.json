@@ -1341,13 +1341,14 @@
     ]
   },
   "__CRICKET__": "===========================================",
-  "mens-hundred": {
+  "the100m": {
     "name": "The Hundred",
     "aliases": [
       "the hundred",
       "hundred cricket",
       "100 cricket",
       "the100",
+      "mens-hundred",
       "hundred mens"
     ],
     "providers": [
@@ -1365,13 +1366,14 @@
       }
     ]
   },
-  "womens-hundred": {
+  "the100w": {
     "name": "The Hundred",
     "aliases": [
       "the hundred women",
       "hundred cricket womens",
       "100 cricket womens",
       "the100 womens",
+      "womens-hundred",
       "hundred womens"
     ],
     "providers": [
@@ -1389,11 +1391,12 @@
       }
     ]
   },
-  "english-t20-blast": {
+  "t20-blast": {
     "name": "English t20 Blast",
     "aliases": [
       "english t20",
-      "t20 blast"
+      "t20 blast",
+      "english-t20 blast"
     ],
     "providers": [
       {
@@ -1404,10 +1407,10 @@
       }
     ]
   },
-  "indian-premier-league": {
+  "ipl": {
     "name": "Indian Premier League",
     "aliases": [
-      "ipl",
+      "indian-premier-league",
       "ipl t20",
       "indian premier league"
     ],
@@ -1420,11 +1423,11 @@
       }
     ]
   },
-  "australian-big-bash-league": {
+  "bbl": {
     "name": "Australian Big Bash League",
     "aliases": [
       "big bash",
-      "bbl",
+      "australian-big-bash-league",
       "bbl t20",
       "t20 big bash league"
     ],
@@ -1437,10 +1440,10 @@
       }
     ]
   },
-  "bangladesh-premier-league": {
+  "bpl": {
     "name": "Bangladesh Premier League",
     "aliases": [
-      "bpl",
+      "bangladesh-premier-league",
       "bangladesh premier league",
       "bpl t20"
     ],
@@ -1453,10 +1456,10 @@
       }
     ]
   },
-  "caribbean-premier-league": {
+  "cpl": {
     "name": "Caribbean Premier League",
     "aliases": [
-      "cpl",
+      "caribbean-premier-league",
       "cpl t20",
       "caribbean premier league"
     ],
@@ -1469,10 +1472,10 @@
       }
     ]
   },
-  "major-league-cricket": {
+  "mlc": {
     "name": "Major League Cricket",
     "aliases": [
-      "mlc"
+      "major-league-cricket"
     ],
     "providers": [
       {
@@ -1483,13 +1486,13 @@
       }
     ]
   },
-  "new-zealand-super-smash": {
+  "nzss": {
     "name": "New Zealand Super Smash",
     "aliases": [
       "nz super smash",
       "super smash",
       "nz t20",
-      "nzss"
+      "new-zealand-super-smash"
     ],
     "providers": [
       {
@@ -1514,10 +1517,10 @@
       }
     ]
   },
-  "nepal-premier-league": {
+  "npl": {
     "name": "Nepal Premier League",
     "aliases": [
-      "npl",
+      "nepal-premier-league",
       "nepal t20"
     ],
     "providers": [
@@ -1529,10 +1532,10 @@
       }
     ]
   },
-  "pakistan-super-league": {
+  "psl": {
     "name": "Pakistan Super League",
     "aliases": [
-      "psl",
+      "pakistan-super-league",
       "pakistan t20"
     ],
     "providers": [
