@@ -440,7 +440,10 @@
     "feederLeagues": [
       "championship",
       "league-one",
-      "league-two"
+      "league-two",
+      "english-national-league",
+      "english-national-league-south",
+      "english-national-league-north"
     ],
     "providers": [
       {
@@ -635,6 +638,59 @@
         "espn": {
           "espnSlug": "eng.4",
           "espnSport": "soccer"
+        }
+      }
+    ]
+  },
+  "english-national-league": {
+    "name": "English National League",
+    "aliases": [
+      "ENL",
+      "National League",
+      "eng.5"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4590",
+          "leagueName": "English National League"
+        }
+      },
+      {
+        "espn": {
+          "espnSlug": "eng.5",
+          "espnSport": "soccer"
+        }
+      }
+    ]
+  },
+  "english-national-league-south": {
+    "name": "English National League South",
+    "aliases": [
+      "ENLS",
+      "National League South"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4682",
+          "leagueName": "English National League South"
+        }
+      }
+    ]
+  },
+  
+  "english-national-league-north": {
+    "name": "English National League North",
+    "aliases": [
+      "ENLN",
+      "National League North"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4681",
+          "leagueName": "English National League North"
         }
       }
     ]
