@@ -440,15 +440,15 @@
     ],
     "providers": [
       {
-        "espn": {
-          "espnSlug": "uefa.euro",
-          "espnSport": "soccer"
-        }
-      },
-      {
         "theSportsDB": {
           "leagueId": "4502",
           "leagueName": "UEFA European Championships"
+        }
+      },
+      {
+        "espn": {
+          "espnSlug": "uefa.euro",
+          "espnSport": "soccer"
         }
       },
       {
@@ -465,15 +465,15 @@
     ],
     "providers": [
       {
-        "espn": {
-          "espnSlug": "uefa.euroq",
-          "espnSport": "soccer"
-        }
-      },
-      {
         "theSportsDB": {
           "leagueId": "4502",
           "leagueName": "UEFA European Championships Qualifying"
+        }
+      },
+      {
+        "espn": {
+          "espnSlug": "uefa.euroq",
+          "espnSport": "soccer"
         }
       },
       {
@@ -540,18 +540,18 @@
     ],
     "providers": [
       {
-        "espn": {
-          "espnSlug": "caf.nations",
-          "espnSport": "soccer"
-        }
-      },
-      {
         "theSportsDB": {
           "leagueId": "4496",
           "leagueName": "African Cup of Nations"
         }
       },
       {
+        "espn": {
+          "espnSlug": "caf.nations",
+          "espnSport": "soccer"
+        }
+      },
+            {
         "flagcdn": {}
       }
     ]
@@ -565,18 +565,18 @@
     ],
     "providers": [
       {
-        "espn": {
-          "espnSlug": "caf.nations_qual",
-          "espnSport": "soccer"
-        }
-      },
-      {
         "theSportsDB": {
           "leagueId": "5520",
           "leagueName": "African Cup of Nations Qualifying"
         }
       },
       {
+        "espn": {
+          "espnSlug": "caf.nations_qual",
+          "espnSport": "soccer"
+        }
+      },
+            {
         "flagcdn": {}
       }
     ]
@@ -649,29 +649,6 @@
       {
         "espn": {
           "espnSlug": "eng.league_cup",
-          "espnSport": "soccer"
-        }
-      }
-    ]
-  },
-  "engleaguetrophy": {
-    "name": "English Football League Trophy",
-    "aliases": [
-      "english league trophy",
-      "efl trophy",
-      "vertu trophy",
-      "eng.trophy"
-    ],
-    "providers": [
-      {
-        "theSportsDB": {
-          "leagueId": "4847",
-          "leagueName": "EFL Trophy"
-        }
-      },
-      {
-        "espn": {
-          "espnSlug": "eng.trophy",
           "espnSport": "soccer"
         }
       }
@@ -758,15 +735,15 @@
     ],
     "providers": [
       {
-        "espn": {
-          "espnSlug": "esp.super_cup",
-          "espnSport": "soccer"
-        }
-      },
-      {
         "theSportsDB": {
           "leagueId": "4511",
           "leagueName": "Supercopa de Espana"
+        }
+      },
+      {
+        "espn": {
+          "espnSlug": "esp.super_cup",
+          "espnSport": "soccer"
         }
       }
     ]
@@ -925,16 +902,16 @@
       "ger.dfb_pokal"
     ],
     "providers": [
+            {
+        "theSportsDB": {
+          "leagueId": "4485",
+          "leagueName": "DFB-Pokal"
+        }
+      },
       {
         "espn": {
           "espnSlug": "ger.dfb_pokal",
           "espnSport": "soccer"
-        }
-      },
-      {
-        "theSportsDB": {
-          "leagueId": "4485",
-          "leagueName": "DFB-Pokal"
         }
       }
     ]
@@ -963,15 +940,15 @@
     ],
     "providers": [
       {
-        "espn": {
-          "espnSlug": "ita.super_cup",
-          "espnSport": "soccer"
-        }
-      },
-      {
         "theSportsDB": {
           "leagueId": "4507",
           "leagueName": "Supercoppa Italiana"
+        }
+      },
+      {
+        "espn": {
+          "espnSlug": "ita.super_cup",
+          "espnSport": "soccer"
         }
       }
     ]
@@ -1002,39 +979,15 @@
     ],
     "providers": [
       {
-        "espn": {
-          "espnSlug": "fra.coupe_de_france",
-          "espnSport": "soccer"
-        }
-      },
-      {
         "theSportsDB": {
           "leagueId": "4484",
           "leagueName": "Coupe de France"
         }
-      }
-    ]
-  },
-  "CoupedelaLigue": {
-    "name": "Coupe de la Ligue",
-    "feederLeagues": [
-      "ligue 1"
-    ],
-    "aliases": [
-      "fra.coupe_de_la_ligue",
-      "French League Cup"
-    ],
-    "providers": [
-      {
-        "espn": {
-          "espnSlug": "fra.coupe_de_la_ligue",
-          "espnSport": "soccer"
-        }
       },
       {
-        "theSportsDB": {
-          "leagueId": "4504",
-          "leagueName": "Coupe de la Ligue"
+        "espn": {
+          "espnSlug": "fra.coupe_de_france",
+          "espnSport": "soccer"
         }
       }
     ]
