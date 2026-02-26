@@ -1846,6 +1846,164 @@
       }
     ]
   },
+  "__RUGBY__": "===========================================",
+  "6n": {
+    "name": "Six Nations",
+    "aliases": [
+      "mens six nations",
+      "six nations rugby",
+      "6 nations",
+      "mens 6 nations"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4714",
+          "leagueName": "Six Nations Championship"
+        }
+      }
+    ]
+  },
+  "6nw": {
+    "name": "Six Nations Women",
+    "aliases": [
+      "womens six nations",
+      "six nations rugby women",
+      "6 nations women",
+      "womens 6 nations"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "5563",
+          "leagueName": "Six Nations Women"
+        }
+      }
+    ]
+  },
+  "epr": {
+    "name": "English Prem Rugby",
+    "aliases": [
+      "premiership rugby",
+      "prem rugby",
+      "Gallagher Prem",
+      "English Prem Rugby"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4414",
+          "leagueName": "English Prem Rugby"
+        }
+      }
+    ]
+  },
+  "urc": {
+    "name": "United Rugby Championship",
+    "aliases": [
+      "united rugby champ",
+      "urc",
+      "united rugby"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4446",
+          "leagueName": "United Rugby Championship"
+        }
+      }
+    ]
+  },
+  "ercc": {
+    "name": "European Rugby Challenge Cup",
+    "aliases": [
+      "epcrcc",
+      "EPCR Challenge Cup"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "5418",
+          "leagueName": "European Rugby Challenge Cup"
+        }
+      }
+    ]
+  },
+  "rwc": {
+    "name": "Rugby World Cup",
+    "aliases": [
+      "rugby union world cup",
+      "mens rugby world cup",
+      "mens rwc"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4574",
+          "leagueName": "Rugby World Cup"
+        }
+      }
+    ]
+  },
+  "wrwc": {
+    "name": "Womens Rugby World Cup",
+    "aliases": [
+      "womens rugby union world cup",
+      "womens rwc"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "5682",
+          "leagueName": "Womens Rugby World Cup"
+        }
+      }
+    ]
+  },
+  "erlsp": {
+    "name": "English Rugby League Super League",
+    "aliases": [
+      "english rugby league super league",
+      "super league"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4415",
+          "leagueName": "English Rugby League Super League"
+        }
+      }
+    ]
+  },
+  "rlwc": {
+    "name": "Rugby League World Cup",
+    "aliases": [
+      "mens rugby league world cup",
+      "rlwc"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "5806",
+          "leagueName": "Rugby League World Cup"
+        }
+      }
+    ]
+  },
+  "mlr": {
+    "name": "Major League Rugby",
+    "aliases": [
+      "major league rugby"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "5070",
+          "leagueName": "Major League Rugby"
+        }
+      }
+    ]
+  },
   "__INTERNATIONAL__": "===========================================",
   "iihf": {
     "name": "International Ice Hockey Federation",
