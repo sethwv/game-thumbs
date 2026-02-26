@@ -1105,6 +1105,11 @@
     ]
   },
   "__NCAA_SPORTS__": "===========================================",
+  "ncaa": {
+    "name": "NCAA",
+    "logoUrl": "./assets/NCAA.png",
+    "fallbackLeague": "ncaam"
+  },
   "ncaaf": {
     "name": "NCAA Football",
     "aliases": [
