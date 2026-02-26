@@ -34,6 +34,7 @@ nav_order: 7
 | `style` | integer | 1 | Visual style 1-4 (matchup only) |
 | `logo` | boolean | true | Include league logo (matchup only) |
 | `badge` | string | - | Add quality badge overlay: `ALT`, `4K`, `HD`, `FHD`, or `UHD` (matchup only) |
+| `winner` | string | - | Winning team identifier - displays losing team in greyscale (matchup only) |
 | `fallback` | boolean | false | **Single team:** Return league thumb. **Matchup:** Use greyscale league logo for missing teams |
 
 ---
@@ -53,6 +54,7 @@ nav_order: 7
 | **4: Minimalist Badge (Dark)** | Minimalist design with team circles, VS text, and dark background. | [![Style 4](https://game-thumbs.swvn.io/nhl/oilers/flames/thumb?style=4&logo=true)](https://game-thumbs.swvn.io/nhl/oilers/flames/thumb?style=4&logo=true) |
 | **5: Grid Background** | Dark background with grey diagonal grid lines and fade to black effect. | [![Style 5](https://game-thumbs.swvn.io/mls/toronto-fc/montreal/thumb?style=5&logo=true)](https://game-thumbs.swvn.io/mls/toronto-fc/montreal/thumb?style=5&logo=true) |
 | **6: Grid with Team Colors** | Dark background with team color gradient grid lines and fade to black effect. | [![Style 6](https://game-thumbs.swvn.io/nhl/canucks/senators/thumb?style=6&logo=true)](https://game-thumbs.swvn.io/nhl/canucks/senators/thumb?style=6&logo=true) |
+| **98: 3D Embossed with League Logo** | 3D embossed design with textured backgrounds, reflections, metallic VS badge, and league logo at top.<br/>_Credit: [@oOStroudyOo](https://github.com/oOStroudyOo)_ | [![Style 98](https://game-thumbs.swvn.io/nhl/leafs/bruins/thumb?style=98&logo=true)](https://game-thumbs.swvn.io/nhl/leafs/bruins/thumb?style=98&logo=true) |
 | **99: 3D Embossed** | 3D embossed design with textured backgrounds, reflections, and metallic VS badge.<br/>_Credit: @shelf on Dispatcharr Discord_ | [![Style 99](https://game-thumbs.swvn.io/nhl/leafs/bruins/thumb?style=99&logo=true)](https://game-thumbs.swvn.io/nhl/leafs/bruins/thumb?style=99&logo=true) |
 
 ---
@@ -125,6 +127,41 @@ If one or both teams are not found, uses greyscale league logo for missing teams
 |---------|---------|----------|
 | `/nhl/leafs/invalidteam/thumb?fallback=true&logo=true` | [![Matchup Fallback](https://game-thumbs.swvn.io/nhl/leafs/invalidteam/thumb?fallback=true&logo=true)](https://game-thumbs.swvn.io/nhl/leafs/invalidteam/thumb?fallback=true&logo=true) | Valid team + greyscale NHL logo |
 | `/nba/invalidteam1/invalidteam2/thumb?fallback=true&logo=true` | [![Both Teams Fallback](https://game-thumbs.swvn.io/nba/invalidteam1/invalidteam2/thumb?fallback=true&logo=true)](https://game-thumbs.swvn.io/nba/invalidteam1/invalidteam2/thumb?fallback=true&logo=true) | Both sides use greyscale NBA logo |
+
+### Winner Effect
+
+The `winner` parameter displays the losing team in greyscale (35% opacity with grey colors), making the winner stand out in full color.
+
+{: .note }
+> **Team Matching:** Uses the same flexible matching as team parameters - accepts team names, cities, or abbreviations.
+
+**Basic Usage:**
+```
+GET /nhl/leafs/canadiens/thumb?winner=leafs
+GET /nba/lakers/celtics/thumb?winner=lakers&style=2
+GET /mlb/yankees/redsox/thumb?winner=yankees&logo=true
+```
+
+| Request | Preview | Result |
+|---------|---------|--------|
+| `/nhl/leafs/canadiens/thumb?winner=leafs` | [![Winner Leafs](https://game-thumbs.swvn.io/nhl/leafs/canadiens/thumb?winner=leafs)](https://game-thumbs.swvn.io/nhl/leafs/canadiens/thumb?winner=leafs) | Leafs in color, Canadiens greyscale |
+| `/nhl/leafs/canadiens/thumb?winner=canadiens&style=2` | [![Winner Canadiens](https://game-thumbs.swvn.io/nhl/leafs/canadiens/thumb?winner=canadiens&style=2)](https://game-thumbs.swvn.io/nhl/leafs/canadiens/thumb?winner=canadiens&style=2) | Canadiens in color, Leafs greyscale |
+
+**Combined with Other Parameters:**
+```
+GET /nfl/chiefs/49ers/thumb?winner=chiefs&badge=4K
+GET /nba/warriors/cavaliers/thumb?winner=warriors&style=99
+```
+
+**Flexible Team Matching:**
+```
+GET /nhl/leafs/canadiens/thumb?winner=toronto      # City name
+GET /nba/lakers/celtics/thumb?winner=lal           # Abbreviation
+GET /mlb/yankees/redsox/thumb?winner=new-york      # Partial match
+```
+
+{: .warning }
+> If the winner doesn't match either team, both teams display in full color (no error returned).
 
 ### Athlete Sports (Singles)
 ```

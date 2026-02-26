@@ -86,10 +86,12 @@ async function generateImage(teamA, teamB, options) {
             return generateGrid(teamA, teamB, width, height, league, orientation, false);
         case 6:
             return generateGrid(teamA, teamB, width, height, league, orientation, true);
+        case 98:
+            return generate3DEmbossed(teamA, teamB, width, height, league, orientation, true);
         case 99:
-            return generate3DEmbossed(teamA, teamB, width, height, league, orientation);
+            return generate3DEmbossed(teamA, teamB, width, height, league, orientation, false);
         default:
-            throw new Error(`Unknown style: ${style}. Valid styles are 1 (split), 2 (gradient), 3 (minimalist badge), 4 (minimalist badge dark), 5 (grid), 6 (grid team colors), 99 (3D embossed)`);
+            throw new Error(`Unknown style: ${style}. Valid styles are 1 (split), 2 (gradient), 3 (minimalist badge), 4 (minimalist badge dark), 5 (grid), 6 (grid team colors), 98 (3D embossed with league logo), 99 (3D embossed)`);
     }
 }
 
@@ -617,11 +619,11 @@ async function generateMinimalist(teamA, teamB, width, height, league, orientati
     return canvas.toBuffer('image/png');
 }
 
-// ------------------------------------------------------------------------------
-// Style 99: 3D Embossed - Split panel with embossed texture and reflections
-// ------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------------------------------
+// Style 98/99: 3D Embossed - Split panel with embossed texture and reflections with/without league logo
+// -----------------------------------------------------------------------------------------------------
 
-async function generate3DEmbossed(teamA, teamB, width, height, league, orientation) {
+async function generate3DEmbossed(teamA, teamB, width, height, league, orientation, showLeagueLogo = false) {
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
     
@@ -726,7 +728,7 @@ async function generate3DEmbossed(teamA, teamB, width, height, league, orientati
             }
             const heroX = xOffset + (panelW - heroWidth) / 2;
             const heroY = (panelH - heroHeight) / 2;
-            
+
             // A. Draw Reflection (below logo, flipped vertically)
             const reflectionGap = Math.round(heroHeight * 0.05); // 5% gap between logo and reflection
             ctx.save();
@@ -820,6 +822,33 @@ async function generate3DEmbossed(teamA, teamB, width, height, league, orientati
     ctx.shadowBlur = 4;
     ctx.shadowOffsetY = 2;
     ctx.fillText('VS', centerX, centerY + 3);
+
+    // Style 98: Add league logo
+    if (showLeagueLogo && league && league.logoUrl) {
+        try {
+            let leagueLogoBuffer = await downloadImage(league.logoUrl);
+            leagueLogoBuffer = await trimImage(leagueLogoBuffer, league.logoUrl);
+            const leagueLogoImg = await loadImage(leagueLogoBuffer);
+
+            const logoSize = Math.min(width, height) * 0.20; // ~20% of min dimension (doubled)
+            const aspect = leagueLogoImg.width / leagueLogoImg.height;
+            let drawW, drawH;
+            if (aspect > 1) {
+                drawW = logoSize;
+                drawH = logoSize / aspect;
+            } else {
+                drawH = logoSize;
+                drawW = logoSize * aspect;
+            }
+
+            const x = (width - drawW) / 2;
+            const y = Math.max(12, Math.round(height * 0.03)); // ~3% from top, at least 12px
+
+                        ctx.drawImage(leagueLogoImg, x, y, drawW, drawH);
+        } catch (error) {
+            logger.warn('Failed to load league logo for 3D embossed style (showLeagueLogo)', { error: error.message });
+        }
+    }
     
     return canvas.toBuffer('image/png');
 }

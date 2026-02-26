@@ -282,13 +282,23 @@ const logger = {
     // Team not found logger (greyscale placeholder)
     teamNotFound: (teamIdentifier, leagueName) => {
         console.log(`       ${colors.gray('│')} ${colors.yellow('Team not found')}: ${leagueName} ${colors.dim('-')} ${teamIdentifier}`);
-        
+
         // Write to file
         if (LOG_TO_FILE) {
             writeToFile('[WARN]', `Team not found: ${leagueName} - ${teamIdentifier}`);
         }
     },
-    
+
+    // Winner effect logger
+    winnerApplied: (winnerIdentifier, loserName) => {
+        console.log(`       ${colors.gray('│')} ${colors.cyan('Winner')}: ${winnerIdentifier} ${colors.dim('>')} ${loserName}`);
+
+        // Write to file
+        if (LOG_TO_FILE) {
+            writeToFile('[INFO]', `Winner: ${winnerIdentifier} > ${loserName}`);
+        }
+    },
+
     // Unconfigured league fallback logger
     unconfiguredLeague: (providerName, leagueName, sport) => {
         console.log(`       ${colors.gray('│')} ${colors.dim('Unconfigured league fallback')}: ${providerName} ${colors.dim('-')} ${leagueName} ${colors.dim('(')}${sport}${colors.dim(')')}`);

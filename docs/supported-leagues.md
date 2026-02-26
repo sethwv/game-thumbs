@@ -26,17 +26,24 @@ nav_order: 4
 | National Football League | `nfl` | ESPN | |
 | United Football League | `ufl` | ESPN | |
 | Major League Baseball | `mlb` | ESPN | |
+| World Baseball Classic | `wbc` | ESPN | Fallback: MLB |
 | National Hockey League | `nhl` | ESPN | |
 | National Lacrosse League | `nll` | ESPN | |
 | Professional Women's Hockey League | `pwhl` | HockeyTech | |
 | US Hockey League | `ushl` | HockeyTech | |
+| UK Elite Ice Hockey League | `eihl` | TheSportsDB | |
 | Canadian Football League | `cfl` | TheSportsDB | |
-| English Premier League | `epl` | TheSportsDB / ESPN | Championship, League One, League Two |
+| English Premier League | `epl` | TheSportsDB / ESPN | Championship, League One, League Two, National League, National League South, National League North |
 | English FA Cup | `engfa` | ESPN | EPL, Championship, League One, League Two |
 | EFL Championship | `championship` | ESPN | |
 | EFL League One | `league-one` | ESPN | |
 | EFL League Two | `league-two` | ESPN | |
+| English National League | `english-national-league` | TheSportsDB / ESPN | |
+| English National League South | `english-national-league-south` | TheSportsDB | |
+| English National League North | `english-national-league-north` | TheSportsDB | |
 | EFL Cup | `engleaguecup` | ESPN | EPL, Championship, League One, League Two |
+| English FA Community Shield | `engcommunityshield` | TheSportsDB / ESPN | |
+| English FA Trophy | `engfatrophy` | TheSportsDB | |
 | La Liga (Spain) | `laliga` | ESPN | Segunda División |
 | Copa del Rey (Spain) | `copadelrey` | ESPN | La Liga, Segunda División |
 | Segunda División (Spain) | `segunda` | ESPN | |
@@ -51,11 +58,18 @@ nav_order: 4
 | Scottish Championship | `sch` | TheSportsDB / ESPN | |
 | Scottish League One | `sl1` | TheSportsDB / ESPN | |
 | Scottish League Two | `sl2` | TheSportsDB / ESPN | |
+| Scottish League Cup | `slcup` | TheSportsDB / ESPN | |
 | Major League Soccer | `mls` | ESPN | |
 | UEFA Champions League | `uefa` | ESPN | |
 | UEFA Women's Champions League | `uefa.wchampions` | ESPN | |
 | UEFA Europa League | `europa` | ESPN | |
 | UEFA Europa Conference League | `conference` | ESPN | |
+| UEFA European Championship | `euros` | TheSportsDB / ESPN / FlagCDN | European Championship Qualifying |
+| UEFA European Championships Qualifying | `euroq` | TheSportsDB / ESPN / FlagCDN | |
+| UEFA Nations League | `uefanationsleague` | TheSportsDB / ESPN / FlagCDN | |
+| Africa Cup of Nations | `afcon` | TheSportsDB / ESPN / FlagCDN | Africa Cup of Nations Qualifying |
+| Africa Cup of Nations Qualifying | `afconq` | TheSportsDB / ESPN / FlagCDN | |
+| CONCACAF Nations League | `concacafnationsleague` | TheSportsDB / ESPN / FlagCDN | |
 | FIFA World Cup | `worldcup` | ESPN | All WCQ Confederations |
 | FIFA WCQ - UEFA | `wcq-uefa` | ESPN | |
 | FIFA WCQ - CONMEBOL | `wcq-conmebol` | ESPN | |
@@ -83,6 +97,42 @@ nav_order: 4
 | Maritime Junior Hockey League | `mhl` | HockeyTech | |
 | Ontario Junior Hockey League | `ojhl` | HockeyTech | |
 | Canadian Sport School Hockey League | `csshl` | HockeyTech | |
+
+---
+
+## Cricket
+
+| League Name | Code | Provider |
+|-------------|------|----------|
+| The Hundred (Men's) | `the100m` | TheSportsDB / ESPN | |
+| The Hundred (Women's) | `the100w` | TheSportsDB / ESPN | |
+| English T20 Blast | `t20blast` | TheSportsDB | |
+| Indian Premier League | `ipl` | TheSportsDB | |
+| Australian Big Bash League | `bbl` | TheSportsDB | |
+| Bangladesh Premier League | `bpl` | TheSportsDB | |
+| Caribbean Premier League | `cpl` | TheSportsDB | |
+| Major League Cricket | `mlc` | TheSportsDB | |
+| New Zealand Super Smash | `nzss` | TheSportsDB | |
+| SA20 | `sa20` | TheSportsDB | |
+| Nepal Premier League | `npl` | TheSportsDB | |
+| Pakistan Super League | `psl` | TheSportsDB | |
+
+---
+
+## Rugby
+
+| League Name | Code | Provider |
+|-------------|------|----------|
+| Six Nations | `6n` | TheSportsDB | |
+| Six Nations Women | `6nw` | TheSportsDB | |
+| English Prem Rugby | `epr` | TheSportsDB | |
+| United Rugby Championship | `urc` | TheSportsDB | |
+| European Rugby Challenge Cup | `ercc` | TheSportsDB | |
+| Rugby World Cup | `rwc` | TheSportsDB | |
+| Women's Rugby World Cup | `wrwc` | TheSportsDB | |
+| English Rugby League Super League | `erlsp` | TheSportsDB | |
+| Rugby League World Cup | `rlwc` | TheSportsDB | |
+| Major League Rugby | `mlr` | TheSportsDB | |
 
 ---
 
@@ -174,6 +224,16 @@ GET /tennis/ram+salisbury/koolhof+skupski/logo
 - Country flags used as fallback when headshots are unavailable
 - **Doubles support**: Composite images with both players side-by-side
 - Searches both ATP (men's) and WTA (women's) rosters automatically
+
+---
+
+## NCAA
+
+| League Name | Code | Provider | Fallback |
+|-------------|------|----------|----------|
+| NCAA (Generic) | `ncaa` | ESPN | NCAA Men's Basketball |
+
+**Note:** The generic `ncaa` league can be used for any NCAA sport. It automatically falls back to NCAA Men's Basketball (`ncaam`) for team data when needed. For more specific sport identifiers, use the sport-specific codes below or the [NCAA Shorthand endpoint](api-reference/ncaa-route.html).
 
 ---
 
