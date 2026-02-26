@@ -54,6 +54,7 @@ nav_order: 8
 | **4: Minimalist Badge (Dark)** | Minimalist design with team circles, VS text, and dark background. | [![Style 4](https://game-thumbs.swvn.io/nhl/canadiens/bruins/cover?style=4&logo=true)](https://game-thumbs.swvn.io/nhl/canadiens/bruins/cover?style=4&logo=true) |
 | **5: Grid Background** | Dark background with grey diagonal grid lines and fade to black effect. | [![Style 5](https://game-thumbs.swvn.io/mls/montreal/toronto-fc/cover?style=5&logo=true)](https://game-thumbs.swvn.io/mls/montreal/toronto-fc/cover?style=5&logo=true) |
 | **6: Grid with Team Colors** | Dark background with team color gradient grid lines and fade to black effect. | [![Style 6](https://game-thumbs.swvn.io/nhl/oilers/canucks/cover?style=6&logo=true)](https://game-thumbs.swvn.io/nhl/oilers/canucks/cover?style=6&logo=true) |
+| **98: 3D Embossed with League Logo** | 3D embossed design with textured backgrounds, reflections, metallic VS badge, and league logo at top.<br/>_Credit: [@oOStroudyOo](https://github.com/oOStroudyOo)_ | [![Style 98](https://game-thumbs.swvn.io/nhl/jets/flames/cover?style=98&logo=true)](https://game-thumbs.swvn.io/nhl/jets/flames/cover?style=98&logo=true) |
 | **99: 3D Embossed** | 3D embossed design with textured backgrounds, reflections, and metallic VS badge.<br/>_Credit: @shelf on Dispatcharr Discord_ | [![Style 99](https://game-thumbs.swvn.io/nhl/jets/flames/cover?style=99&logo=true)](https://game-thumbs.swvn.io/nhl/jets/flames/cover?style=99&logo=true) |
 
 ---
