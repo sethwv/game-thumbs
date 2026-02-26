@@ -2010,6 +2010,20 @@
     ]
   },
   "__INTERNATIONAL__": "===========================================",
+  "wbc": {
+    "name": "World Baseball Classic",
+    "logoUrl": "./assets/WBC_LIGHTMODE.png",
+    "logoUrlDark": "./assets/WBC_DARKMODE.png",
+    "fallbackLeague": "mlb",
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "world-baseball-classic",
+          "espnSport": "baseball"
+        }
+      }
+    ]
+  },
   "iihf": {
     "name": "International Ice Hockey Federation",
     "aliases": [
