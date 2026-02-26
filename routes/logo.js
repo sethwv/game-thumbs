@@ -8,7 +8,7 @@
 
 const providerManager = require('../helpers/ProviderManager');
 const { generateLogo } = require('../generators/logoGenerator');
-const { downloadImage, resolveTeamsWithFallback, handleTeamNotFoundError, addBadgeOverlay, isValidBadge } = require('../helpers/imageUtils');
+const { downloadImage, resolveTeamsWithFallback, handleTeamNotFoundError, addBadgeOverlay, isValidBadge, applyWinnerEffect } = require('../helpers/imageUtils');
 const { getCachedImage, addToCache } = require('../helpers/imageCache');
 const { findLeague } = require('../leagues');
 const logger = require('../helpers/logger');
@@ -25,7 +25,7 @@ module.exports = {
     method: "get",
     handler: async (req, res) => {
         const { league, team1, team2 } = req.params;
-        const { size, logo, style, useLight, trim, fallback, variant, badge } = req.query;
+        const { size, logo, style, useLight, trim, fallback, variant, badge, winner } = req.query;
 
         try {
             const leagueObj = await findLeague(league);
@@ -120,8 +120,8 @@ module.exports = {
 
                 const darkLogoPreferred = useLight !== 'true';
                 const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj, darkLogoPreferred);
-                
-                const { team1: resolvedTeam1, team2: resolvedTeam2 } = await resolveTeamsWithFallback(
+
+                let { team1: resolvedTeam1, team2: resolvedTeam2 } = await resolveTeamsWithFallback(
                     providerManager,
                     leagueObj,
                     team1,
@@ -129,6 +129,21 @@ module.exports = {
                     fallback === 'true',
                     leagueLogoUrl
                 );
+
+                // Apply winner effect if specified
+                if (winner && winner.trim() !== '') {
+                    const result = await applyWinnerEffect(
+                        providerManager,
+                        leagueObj,
+                        winner,
+                        team1,
+                        team2,
+                        resolvedTeam1,
+                        resolvedTeam2
+                    );
+                    resolvedTeam1 = result.team1;
+                    resolvedTeam2 = result.team2;
+                }
 
                 // Get league logo URL if needed
                 let leagueInfo = null;

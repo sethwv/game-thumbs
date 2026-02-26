@@ -429,6 +429,158 @@
       }
     ]
   },
+  "euros": {
+    "name": "UEFA European Championship",
+    "aliases": [
+      "european championship",
+      "uefa.euro"
+    ],
+    "feederLeagues": [
+      "euroq"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4502",
+          "leagueName": "UEFA European Championships"
+        }
+      },
+      {
+        "espn": {
+          "espnSlug": "uefa.euro",
+          "espnSport": "soccer"
+        }
+      },
+      {
+        "flagcdn": {}
+      }
+    ]
+  },
+  "euroq": {
+    "name": "UEFA European Championships Qualifying",
+    "aliases": [
+      "euro qualifiers",
+      "european championship qualifiers",
+      "uefa.euroq"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "5519",
+          "leagueName": "UEFA European Championships Qualifying"
+        }
+      },
+      {
+        "espn": {
+          "espnSlug": "uefa.euroq",
+          "espnSport": "soccer"
+        }
+      },
+      {
+        "flagcdn": {}
+      }
+    ]
+  },
+  "uefanationsleague": {
+    "name": "UEFA Nations League",
+    "aliases": [
+      "Euro Nations League",
+      "uefa.nations"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4490",
+          "leagueName": "UEFA Nations League"
+        }
+      },
+      {
+        "espn": {
+          "espnSlug": "uefa.nations",
+          "espnSport": "soccer"
+        }
+      },
+      {
+        "flagcdn": {}
+      }
+    ]
+  },
+  "concacafnationsleague": {
+    "name": "CONCACAF Nations League",
+    "aliases": [
+      "concacaf.nations.league"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "5280",
+          "leagueName": "CONCACAF Nations League"
+        }
+      },
+      {
+        "espn": {
+          "espnSlug": "concacaf.nations.league",
+          "espnSport": "soccer"
+        }
+      },
+      {
+        "flagcdn": {}
+      }
+    ]
+  },
+  "afcon": {
+    "name": "Africa Cup of Nations",
+    "aliases": [
+      "afcon",
+      "African Cup of Nations",
+      "caf.nations"
+    ],
+    "feederLeagues": [
+      "afconq"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4496",
+          "leagueName": "African Cup of Nations"
+        }
+      },
+      {
+        "espn": {
+          "espnSlug": "caf.nations",
+          "espnSport": "soccer"
+        }
+      },
+      {
+        "flagcdn": {}
+      }
+    ]
+  },
+  "afconq": {
+    "name": "Africa Cup of Nations Qualifying",
+    "aliases": [
+      "afconq",
+      "African Cup of Nations Qualifying",
+      "caf.nations_qual"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "5520",
+          "leagueName": "African Cup of Nations Qualifying"
+        }
+      },
+      {
+        "espn": {
+          "espnSlug": "caf.nations_qual",
+          "espnSport": "soccer"
+        }
+      },
+      {
+        "flagcdn": {}
+      }
+    ]
+  },
   "epl": {
     "name": "English Premier League",
     "aliases": [
@@ -440,7 +592,10 @@
     "feederLeagues": [
       "championship",
       "league-one",
-      "league-two"
+      "league-two",
+      "english-national-league",
+      "english-national-league-south",
+      "english-national-league-north"
     ],
     "providers": [
       {
@@ -498,6 +653,45 @@
         "espn": {
           "espnSlug": "eng.league_cup",
           "espnSport": "soccer"
+        }
+      }
+    ]
+  },
+  "engcommunityshield": {
+    "name": "English FA Community Shield",
+    "aliases": [
+      "english community shield",
+      "community shield",
+      "charity shield",
+      "eng.charity"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4571",
+          "leagueName": "FA Community Shield"
+        }
+      },
+      {
+        "espn": {
+          "espnSlug": "eng.charity",
+          "espnSport": "soccer"
+        }
+      }
+    ]
+  },
+  "engfatrophy": {
+    "name": "English FA Trophy",
+    "aliases": [
+      "fa trophy",
+      "fa challenge trophy",
+      "eng.fatrophy"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4788",
+          "leagueName": "FA Trophy"
         }
       }
     ]
@@ -639,6 +833,58 @@
       }
     ]
   },
+  "english-national-league": {
+    "name": "English National League",
+    "aliases": [
+      "ENL",
+      "National League",
+      "eng.5"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4590",
+          "leagueName": "English National League"
+        }
+      },
+      {
+        "espn": {
+          "espnSlug": "eng.5",
+          "espnSport": "soccer"
+        }
+      }
+    ]
+  },
+  "english-national-league-south": {
+    "name": "English National League South",
+    "aliases": [
+      "ENLS",
+      "National League South"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4682",
+          "leagueName": "English National League South"
+        }
+      }
+    ]
+  },
+  "english-national-league-north": {
+    "name": "English National League North",
+    "aliases": [
+      "ENLN",
+      "National League North"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4681",
+          "leagueName": "English National League North"
+        }
+      }
+    ]
+  },
   "segunda": {
     "name": "Segunda División",
     "aliases": [
@@ -736,6 +982,27 @@
       "sl2"
     ]
   },
+  "slcup": {
+    "name": "Scottish League Cup",
+    "aliases": [
+      "scottish League cup",
+      "sco.cis"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4888",
+          "leagueName": "Scottish League Cup"
+        }
+      },
+      {
+        "espn": {
+          "espnSport": "soccer",
+          "espnSlug": "sco.cis"
+        }
+      }
+    ]
+  },
   "spfl": {
     "name": "Scottish Premiership",
     "aliases": [
@@ -821,7 +1088,28 @@
       }
     ]
   },
+  "ewsl": {
+    "name": "English Women's Super League",
+    "aliases": [
+      "english womens super league",
+      "womens super league",
+      "wsl"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4849",
+          "leagueName": "English Womens Super League"
+        }
+      }
+    ]
+  },
   "__NCAA_SPORTS__": "===========================================",
+  "ncaa": {
+    "name": "NCAA",
+    "logoUrl": "./assets/NCAA.png",
+    "fallbackLeague": "ncaam"
+  },
   "ncaaf": {
     "name": "NCAA Football",
     "aliases": [
@@ -1340,7 +1628,402 @@
       }
     ]
   },
+  "eihl": {
+    "name": "UK Elite Ice Hockey League",
+    "aliases": [
+      "uk eihl",
+      "Elite Ice Hockey League",
+      "British Elite League"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4381",
+          "leagueName": "UK Elite Ice Hockey League"
+        }
+      }
+    ]
+  },
+  "__CRICKET__": "===========================================",
+  "the100m": {
+    "name": "The Hundred",
+    "aliases": [
+      "the hundred",
+      "hundred cricket",
+      "100 cricket",
+      "the100",
+      "mens-hundred",
+      "hundred mens"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "5177",
+          "leagueName": "The Hundred"
+        }
+      },
+      {
+        "espn": {
+          "espnSlug": "mens-hundred",
+          "espnSport": "cricket"
+        }
+      }
+    ]
+  },
+  "the100w": {
+    "name": "The Hundred Women",
+    "aliases": [
+      "the hundred women",
+      "hundred cricket womens",
+      "100 cricket womens",
+      "the100 womens",
+      "womens-hundred",
+      "hundred womens"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "5668",
+          "leagueName": "The Hundred Women"
+        }
+      },
+      {
+        "espn": {
+          "espnSlug": "womens-100",
+          "espnSport": "cricket"
+        }
+      }
+    ]
+  },
+  "t20blast": {
+    "name": "English t20 Blast",
+    "aliases": [
+      "english t20",
+      "t20 blast",
+      "english-t20 blast"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4463",
+          "leagueName": "English t20 Blast"
+        }
+      }
+    ]
+  },
+  "ipl": {
+    "name": "Indian Premier League",
+    "aliases": [
+      "indian-premier-league",
+      "ipl t20",
+      "indian premier league"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4460",
+          "leagueName": "Indian Premier League"
+        }
+      }
+    ]
+  },
+  "bbl": {
+    "name": "Australian Big Bash League",
+    "aliases": [
+      "big bash",
+      "australian-big-bash-league",
+      "bbl t20",
+      "t20 big bash league"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4461",
+          "leagueName": "Australian Big Bash League"
+        }
+      }
+    ]
+  },
+  "bpl": {
+    "name": "Bangladesh Premier League",
+    "aliases": [
+      "bangladesh-premier-league",
+      "bangladesh premier league",
+      "bpl t20"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "5529",
+          "leagueName": "Bangladesh Premier League"
+        }
+      }
+    ]
+  },
+  "cpl": {
+    "name": "Caribbean Premier League",
+    "aliases": [
+      "caribbean-premier-league",
+      "cpl t20",
+      "caribbean premier league"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "5176",
+          "leagueName": "Caribbean Premier League"
+        }
+      }
+    ]
+  },
+  "mlc": {
+    "name": "Major League Cricket",
+    "aliases": [
+      "major-league-cricket"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "5401",
+          "leagueName": "Major League Cricket"
+        }
+      }
+    ]
+  },
+  "nzss": {
+    "name": "New Zealand Super Smash",
+    "aliases": [
+      "nz super smash",
+      "super smash",
+      "nz t20",
+      "new-zealand-super-smash"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "5174",
+          "leagueName": "New Zealand Super Smash"
+        }
+      }
+    ]
+  },
+  "sa20": {
+    "name": "SA20",
+    "aliases": [
+      "south africa t20"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "5532",
+          "leagueName": "SA20"
+        }
+      }
+    ]
+  },
+  "npl": {
+    "name": "Nepal Premier League",
+    "aliases": [
+      "nepal-premier-league",
+      "nepal t20"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "5533",
+          "leagueName": "Nepal Premier League"
+        }
+      }
+    ]
+  },
+  "psl": {
+    "name": "Pakistan Super League",
+    "aliases": [
+      "pakistan-super-league",
+      "pakistan t20"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "5067",
+          "leagueName": "Pakistan Super League"
+        }
+      }
+    ]
+  },
+  "__RUGBY__": "===========================================",
+  "6n": {
+    "name": "Six Nations",
+    "aliases": [
+      "mens six nations",
+      "six nations rugby",
+      "6 nations",
+      "mens 6 nations"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4714",
+          "leagueName": "Six Nations Championship"
+        }
+      }
+    ]
+  },
+  "6nw": {
+    "name": "Six Nations Women",
+    "aliases": [
+      "womens six nations",
+      "six nations rugby women",
+      "6 nations women",
+      "womens 6 nations"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "5563",
+          "leagueName": "Six Nations Women"
+        }
+      }
+    ]
+  },
+  "epr": {
+    "name": "English Prem Rugby",
+    "aliases": [
+      "premiership rugby",
+      "prem rugby",
+      "Gallagher Prem",
+      "English Prem Rugby"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4414",
+          "leagueName": "English Prem Rugby"
+        }
+      }
+    ]
+  },
+  "urc": {
+    "name": "United Rugby Championship",
+    "aliases": [
+      "united rugby champ",
+      "urc",
+      "united rugby"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4446",
+          "leagueName": "United Rugby Championship"
+        }
+      }
+    ]
+  },
+  "ercc": {
+    "name": "European Rugby Challenge Cup",
+    "aliases": [
+      "epcrcc",
+      "EPCR Challenge Cup"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "5418",
+          "leagueName": "European Rugby Challenge Cup"
+        }
+      }
+    ]
+  },
+  "rwc": {
+    "name": "Rugby World Cup",
+    "aliases": [
+      "rugby union world cup",
+      "mens rugby world cup",
+      "mens rwc"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4574",
+          "leagueName": "Rugby World Cup"
+        }
+      }
+    ]
+  },
+  "wrwc": {
+    "name": "Womens Rugby World Cup",
+    "aliases": [
+      "womens rugby union world cup",
+      "womens rwc"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "5682",
+          "leagueName": "Womens Rugby World Cup"
+        }
+      }
+    ]
+  },
+  "erlsp": {
+    "name": "English Rugby League Super League",
+    "aliases": [
+      "english rugby league super league",
+      "super league"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4415",
+          "leagueName": "English Rugby League Super League"
+        }
+      }
+    ]
+  },
+  "rlwc": {
+    "name": "Rugby League World Cup",
+    "aliases": [
+      "mens rugby league world cup",
+      "rlwc"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "5806",
+          "leagueName": "Rugby League World Cup"
+        }
+      }
+    ]
+  },
+  "mlr": {
+    "name": "Major League Rugby",
+    "aliases": [
+      "major league rugby"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "5070",
+          "leagueName": "Major League Rugby"
+        }
+      }
+    ]
+  },
   "__INTERNATIONAL__": "===========================================",
+  "wbc": {
+    "name": "World Baseball Classic",
+    "logoUrl": "./assets/WBC_LIGHTMODE.png",
+    "logoUrlDark": "./assets/WBC_DARKMODE.png",
+    "fallbackLeague": "mlb",
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "world-baseball-classic",
+          "espnSport": "baseball"
+        }
+      }
+    ]
+  },
   "iihf": {
     "name": "International Ice Hockey Federation",
     "aliases": [

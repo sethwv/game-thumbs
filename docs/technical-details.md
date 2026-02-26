@@ -170,6 +170,10 @@ Images are generated using the Node.js `canvas` library, which provides a Cairo-
 - **Style 2**: Gradient blend between team colors
 - **Style 3**: Minimalist badge with team circles (light background)
 - **Style 4**: Minimalist badge with team circles (dark background)
+- **Style 5**: Grid background with grey diagonal lines and fade to black
+- **Style 6**: Grid background with team color gradient lines and fade to black
+- **Style 98**: 3D embossed design with textures, reflections, metallic VS badge, and league logo
+- **Style 99**: 3D embossed design with textures, reflections, and metallic VS badge (no league logo)
 
 #### Logo Styles
 
@@ -316,10 +320,15 @@ This architecture allows any provider to support unconfigured leagues, not just 
 
 ### NCAA Fallback Configuration
 
-All NCAA sports use NCAA Men's Basketball (`ncaam`) as their fallback league, as it has the most comprehensive roster:
+All NCAA sports use NCAA Men's Basketball (`ncaam`) as their fallback league, as it has the most comprehensive roster. Additionally, a generic `ncaa` league is available that also falls back to `ncaam`:
 
 ```json
 {
+  "ncaa": {
+    "name": "NCAA",
+    "logoUrl": "./assets/NCAA.png",
+    "fallbackLeague": "ncaam"
+  },
   "ncaavb": {
     "name": "NCAA Men's Volleyball",
     "fallbackLeague": "ncaam"
@@ -327,7 +336,7 @@ All NCAA sports use NCAA Men's Basketball (`ncaam`) as their fallback league, as
 }
 ```
 
-This ensures that even obscure NCAA teams can be found if they participate in basketball.
+This ensures that even obscure NCAA teams can be found if they participate in basketball. The generic `ncaa` league allows teams to use `/ncaa/team1/team2/thumb` without specifying a particular sport.
 
 ### Feeder Leagues
 
@@ -438,10 +447,12 @@ Teams are scored based on how well they match the input:
 | Team name (exact) | 900 |
 | Short display name (exact) | 850 |
 | Full name (exact) | 800 |
-| City (exact) | 700 |
+| Team name (partial contains) | 700 |
+| City (exact) | 500 |
 | Location+Team concatenation | 950 |
-| Team name (partial contains) | 400 |
 | City (partial) | 100 |
+
+**Priority Order:** Team name matches are now prioritized over exact city matches (700 vs 500) to prevent false matches where a city name inadvertently matches a different team.
 
 The team with the highest score is selected. Teams with zero score are rejected.
 
@@ -481,6 +492,8 @@ The NCAA shorthand route (`/ncaa/:sport/:type`) needs to be registered before th
 - NCAA routes are registered first (priority: 1)
 - Other routes load alphabetically (no priority field = lowest priority)
 - No route conflicts or unexpected matching
+
+**NCAA Route Fallthrough**: When the NCAA route doesn't recognize a sport shorthand (e.g., `/ncaa/team1/team2/thumb`), it calls `next()` to pass control to the unified route handler. This allows the generic `ncaa` league to work for team matchups without specifying a specific sport.
 
 ---
 

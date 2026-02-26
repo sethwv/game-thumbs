@@ -16,7 +16,7 @@ module.exports = {
         "/ncaa/:sport/:type",
     ],
     method: "get",
-    handler: async (req, res) => {
+    handler: async (req, res, next) => {
         const { sport, team1, team2, type } = req.params;
 
         const ncaaLeagueMap = {
@@ -44,12 +44,9 @@ module.exports = {
         );
 
         if (!leagueEntry) {
-            logger.warn('Unsupported NCAA sport requested', {
-                Sport: sport,
-                URL: req.url,
-                IP: req.ip
-            });
-            return res.status(400).json({ error: `Unsupported NCAA sport: ${sport}` });
+            // Not a recognized NCAA sport shorthand - let normal routes handle it
+            // This allows the generic "ncaa" league definition to work for team matchups
+            return next();
         }
 
         const leagueKey = leagueEntry[0];
