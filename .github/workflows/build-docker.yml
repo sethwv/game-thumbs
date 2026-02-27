@@ -51,9 +51,10 @@ jobs:
             fi
           
           # CASE 2: Branch Push (e.g., dev, test/feature)
-          # Tags applied: <branch-name>
+          # Tags applied: <branch-name>, <branch-name>-<sha>
           else
-            tags+=("$release_version")
+            short_sha=$(echo "$GITHUB_SHA" | cut -c1-8)
+            tags+=("$release_version" "${release_version}-${short_sha}")
           fi
         else
           echo "Error: Unexpected event type: $GITHUB_EVENT_NAME"
