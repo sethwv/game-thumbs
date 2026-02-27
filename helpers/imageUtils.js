@@ -610,8 +610,10 @@ async function resolveSingleTeamWithFallback(providerManager, leagueObj, teamIde
         logger.teamResolved(providerId, leagueObj.shortName, resolvedTeam.fullName || resolvedTeam.name);
         return { team: resolvedTeam, failed: false };
     } catch (error) {
-        if (enableFallback && error.name === 'TeamNotFoundError') {
-            logger.teamNotFound(teamIdentifier, leagueObj.shortName.toUpperCase());
+        if (enableFallback) {
+            if (!leagueObj.skipLogos) {
+                logger.teamNotFound(teamIdentifier, leagueObj.shortName.toUpperCase());
+            }
             return { team: null, failed: true };
         }
         throw error;
@@ -638,12 +640,44 @@ async function resolveTeamsWithFallback(providerManager, leagueObj, team1Identif
     let resolvedTeam1 = result1.team;
     let resolvedTeam2 = result2.team;
     
-    // Special handling for Olympics: if any team fails, create dummy teams with transparent logos
-    const isOlympics = leagueObj.shortName?.toLowerCase() === 'olympics';
-    if (isOlympics && (result1.failed || result2.failed)) {
-        // Use same moody gradient color for all slots (both teams, both color slots)
-        const moodColor = '#1a1d2e';
-        
+    // If any team fails and the league has skipLogos enabled,
+    // create dummy teams that render only colored rectangles with the league logo
+    if ((result1.failed || result2.failed) && leagueObj.skipLogos) {
+        // Extract mood color from the league logo's dominant color, darkened
+        let moodColor = '#1a1d2e';
+        if (leagueLogoUrl) {
+            try {
+                const logoBuffer = await downloadImage(leagueLogoUrl);
+                const logoImage = await loadImage(logoBuffer);
+                const canvas = createCanvas(logoImage.width, logoImage.height);
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(logoImage, 0, 0);
+                const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+                // Tally quantized pixel colors, skipping transparent and near-white
+                const colorMap = new Map();
+                for (let i = 0; i < data.length; i += 20) { // sample every 5th pixel (5*4)
+                    const r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3];
+                    if (a < 128) continue;
+                    if (r > 240 && g > 240 && b > 240) continue;
+                    const key = `${Math.round(r / 10) * 10},${Math.round(g / 10) * 10},${Math.round(b / 10) * 10}`;
+                    colorMap.set(key, (colorMap.get(key) || 0) + 1);
+                }
+
+                if (colorMap.size > 0) {
+                    const [topColor] = [...colorMap.entries()].sort((a, b) => b[1] - a[1])[0];
+                    const [r, g, b] = topColor.split(',').map(Number);
+                    const factor = 0.08;
+                    const dr = Math.round(r * factor);
+                    const dg = Math.round(g * factor);
+                    const db = Math.round(b * factor);
+                    moodColor = `#${[dr, dg, db].map(c => c.toString(16).padStart(2, '0')).join('')}`;
+                }
+            } catch (error) {
+                logger.warn('Failed to extract color from league logo, using default', { error: error.message });
+            }
+        }
+
         const dummyTeam = {
             name: '',
             logo: null,
@@ -653,29 +687,27 @@ async function resolveTeamsWithFallback(providerManager, leagueObj, team1Identif
             isFallback: true,
             skipLogos: true  // Flag to skip logo rendering
         };
-        
+
         return {
             team1: dummyTeam,
             team2: { ...dummyTeam }
         };
     }
-    
-    // If both teams failed and need the same league logo, download and process it once
+
+    // For non-skipLogos leagues, fall back to greyscale league logos
     if (result1.failed && result2.failed) {
         try {
-            // Download and process the league logo once
             const logoBuffer = await downloadImage(leagueLogoUrl);
             if (!logoBuffer || !Buffer.isBuffer(logoBuffer) || logoBuffer.length === 0) {
                 throw new Error('Invalid or empty image buffer received');
             }
-            
+
             const trimmedLogoBuffer = await trimImage(logoBuffer, leagueLogoUrl);
             const logo = await loadImage(trimmedLogoBuffer);
             const greyscaleLogo = await convertToGreyscale(logo, 0.35);
             const greyscaleBuffer = greyscaleLogo.toBuffer('image/png');
             const base64Logo = `data:image/png;base64,${greyscaleBuffer.toString('base64')}`;
-            
-            // Reuse the processed logo for both teams
+
             resolvedTeam1 = {
                 name: team1Identifier,
                 logo: base64Logo,
@@ -700,7 +732,6 @@ async function resolveTeamsWithFallback(providerManager, leagueObj, team1Identif
             throw error;
         }
     } else if (result1.failed || result2.failed) {
-        // Generate fallbacks individually for any failed teams
         const fallbackPromises = [];
         if (result1.failed) {
             fallbackPromises.push(generateFallbackTeamObject(leagueLogoUrl, team1Identifier));
@@ -714,7 +745,7 @@ async function resolveTeamsWithFallback(providerManager, leagueObj, team1Identif
         }
         [resolvedTeam1, resolvedTeam2] = await Promise.all(fallbackPromises);
     }
-    
+
     return {
         team1: resolvedTeam1,
         team2: resolvedTeam2
@@ -784,7 +815,7 @@ async function applyWinnerEffect(
     team2
 ) {
     try {
-        // Skip if teams have skipLogos flag (Olympics case)
+        // Skip if teams have skipLogos flag (fallback case)
         if (team1.skipLogos || team2.skipLogos) {
             return { team1, team2 };
         }

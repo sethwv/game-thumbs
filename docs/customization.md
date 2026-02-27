@@ -192,6 +192,7 @@ All `.json` files in the directory will be loaded and merged in alphabetical ord
 | `logoUrl` | string | Custom league logo URL (overrides ESPN) |
 | `feederLeagues` | array | Array of league keys to try when team not found (in order) |
 | `fallbackLeague` | string | Legacy fallback league (prefer `feederLeagues` for new configurations) |
+| `skipLogos` | boolean | When `true`, fallback renders colored rectangles with league logo instead of greyscale team logos (see below) |
 
 #### Example: Adding a New League
 
@@ -286,6 +287,29 @@ This is useful for:
 - **Development Leagues** (G League for NBA, AHL for NHL)
 
 **Note:** Feeder leagues must reference existing league keys defined elsewhere in the configuration.
+
+#### skipLogos Mode
+
+For leagues without team data providers (e.g., motorsports, Olympics), you can enable `skipLogos` to change how `fallback=true` renders matchups. Instead of greyscale league logos used as team placeholders, the output will be colored rectangles with the league logo centered — the mood color is automatically extracted from the league logo's dominant color.
+
+```json
+{
+  "F1": {
+    "name": "Formula 1",
+    "providers": [],
+    "logoUrl": "./assets/F1.png",
+    "skipLogos": true
+  }
+}
+```
+
+**How it works:**
+
+1. When team resolution fails and `fallback=true` is set, the system extracts the dominant color from the league logo
+2. That color is heavily darkened to create a moody background tone
+3. The matchup renders as colored rectangles with the league logo overlaid — no team logos are shown
+
+**Built-in leagues with `skipLogos` enabled:** Olympics, F1, NASCAR, IndyCar
 
 #### Finding ESPN Slugs
 

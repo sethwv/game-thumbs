@@ -2053,6 +2053,7 @@
       "olywh"
     ],
     "logoUrl": "./assets/2026_OLYMPICS.png",
+    "skipLogos": true,
     "providers": [
       {
         "flagcdn": {}
@@ -2069,5 +2070,24 @@
         "flagcdn": {}
       }
     ]
+  },
+  "__DUMMY LEAGUES__": "===========================================",
+  "F1": {
+    "name": "Formula 1",
+    "providers": [],
+    "logoUrl": "./assets/F1.png",
+    "skipLogos": true
+  },
+  "NASCAR": {
+    "name": "NASCAR",
+    "providers": [],
+    "logoUrl": "./assets/NASCAR.png",
+    "skipLogos": true
+  },
+  "INDY": {
+    "name": "IndyCar",
+    "providers": [],
+    "logoUrl": "./assets/INDYCAR.png",
+    "skipLogos": true
   }
 }

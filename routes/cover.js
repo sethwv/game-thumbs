@@ -124,9 +124,20 @@ module.exports = {
                     leagueObj,
                     team1,
                     team2,
-                    fallback === 'true',
+                    fallback === 'true' || !!leagueObj.skipLogos,
                     leagueLogoUrl
                 );
+
+                // For skipLogos fallback, normalize cache key since team params are irrelevant
+                if (resolvedTeam1.skipLogos || resolvedTeam2.skipLogos) {
+                    req.originalUrl = req.originalUrl.replace(`/${team1}/${team2}/`, '/_/_/');
+                    const cached = getCachedImage(req.originalUrl);
+                    if (cached) {
+                        req._servedFromRouteCache = true;
+                        res.set('Content-Type', 'image/png');
+                        return res.send(cached);
+                    }
+                }
 
                 // Apply winner effect if specified
                 if (winner && winner.trim() !== '') {

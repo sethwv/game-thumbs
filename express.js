@@ -157,9 +157,14 @@ function init(port) {
 
     // Log all requests that make it past rate limiting and cache
     app.use((req, res, next) => {
-        // Only log if not already served from cache and not a health check
-        if (!res.headersSent && req.path !== '/health') {
-            logger.request(req, false);
+        if (req.path !== '/health') {
+            res.on('finish', () => {
+                // Skip if already logged (e.g., by cache middleware)
+                if (!req._logged) {
+                    const cached = !!req._servedFromRouteCache;
+                    logger.request(req, cached);
+                }
+            });
         }
         next();
     });

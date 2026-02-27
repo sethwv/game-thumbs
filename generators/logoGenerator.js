@@ -65,7 +65,7 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league, useLig
     
     const { colorA, colorB } = adjustColors(teamA, teamB);
     
-    // Handle skipLogos flag for Olympics fallback
+    // Handle skipLogos flag for team resolution fallback
     if (teamA.skipLogos || teamB.skipLogos) {
         // Just draw the colored rectangle without team logos
         const centerX = width / 2;

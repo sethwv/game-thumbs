@@ -161,6 +161,7 @@ async function checkCacheMiddleware(req, res, next) {
     const cachedImage = getCachedImage(req.originalUrl);
     
     if (cachedImage) {
+        req._logged = true;
         logger.request(req, true);
         res.set('Content-Type', 'image/png');
         return res.send(cachedImage);
