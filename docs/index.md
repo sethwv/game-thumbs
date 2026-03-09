@@ -98,7 +98,9 @@ See the [API Reference](api-reference.html) for complete documentation.
 
 ## Supported Leagues
 
-**Professional:** NBA, WNBA, NFL, UFL, MLB, NHL, NLL, PWHL, EPL, La Liga, Bundesliga, Serie A, Ligue 1, MLS, UEFA Champions League, UEFA Europa League, UEFA Conference League, FIFA World Cup, CFL, CHL, OHL, WHL, QMJHL, AHL
+**Professional:** NBA, WNBA, NFL, UFL, MLB, NHL, NLL, PWHL, EPL, La Liga, Bundesliga, Serie A, Ligue 1, MLS, UEFA Champions League, UEFA Europa League, UEFA Conference League, FIFA World Cup, CFL, CHL, OHL, WHL, QMJHL, AHL, KBO
+
+**Minor Leagues:** MiLB (Triple-A, Double-A, High-A, Single-A), Winter Leagues, Independent Leagues
 
 **Combat Sports:** UFC (600+ fighters), PFL (200+ fighters), Bellator (300+ fighters)
 
@@ -112,7 +114,7 @@ See the [full league list](supported-leagues.html) for league codes and details.
 
 ## Attribution
 
-This service uses publicly available ESPN APIs and logos. All team names, logos, and trademarks are property of their respective owners.
+This service uses publicly available ESPN APIs, MLB StatsAPI, and logos. All team names, logos, and trademarks are property of their respective owners.
 
 ## License
 
