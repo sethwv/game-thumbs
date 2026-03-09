@@ -14,123 +14,196 @@ on:
                 type: boolean
                 default: false
 
-jobs:     
-  build-and-publish:
-    permissions:
-      contents: read
+jobs:
+  # ──────────────────────────────────────────────
+  # Job 1: Compute tags and labels
+  # ──────────────────────────────────────────────
+  prepare:
     runs-on: ubuntu-latest
     if: github.actor != 'dependabot[bot]' && github.actor != 'github-actions[bot]'
+    permissions:
+      contents: read
+    outputs:
+      tags: ${{ steps.docker-meta.outputs.tags }}
+      labels: ${{ steps.docker-meta.outputs.labels }}
     steps:
     - uses: actions/checkout@v4
 
-    - id: pre-step
-      name: Determine Docker Tags
+    - name: Compute version metadata
+      id: version-check
       run: |
-        # Extract and normalize the version/branch name from the git ref
-        release_version=$(echo ${GITHUB_REF:10} | tr -d '/' | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]._-')
-        
-        if [[ "$GITHUB_EVENT_NAME" == "push" || "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
-          
-          # CASE 1: Version Tag Push (e.g., v1.2.3)
-          # Tags applied: <version>, latest, and latest-major (if vX.0.0)
-          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
-            tags+=("$release_version" "latest")
-            
-            # Parse semantic version components
-            if [[ "$release_version" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+) ]]; then
-              major="${BASH_REMATCH[1]}"
-              minor="${BASH_REMATCH[2]}"
-              patch="${BASH_REMATCH[3]}"
-              
-              # Add 'latest-major' tag only for new major version releases (vX.0.0)
-              # Example: v2.0.0 gets 'latest-major', but v2.0.1 or v2.1.0 do not
-              if [[ "$minor" == "0" && "$patch" == "0" ]]; then
-                tags+=("latest-major")
-                echo "🎉 Major version release detected: ${release_version}"
-              fi
-            fi
-          
-          # CASE 2: Branch Push (e.g., dev, test/feature)
-          # Tags applied: <branch-name>, <branch-name>-<sha>
-          else
-            short_sha=$(echo "$GITHUB_SHA" | cut -c1-8)
-            tags+=("$release_version" "${release_version}-${short_sha}")
+        # Check for major version release (vX.0.0)
+        is_major="false"
+        if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+          version="${GITHUB_REF#refs/tags/}"
+          if [[ "$version" =~ ^v[0-9]+\.0\.0$ ]]; then
+            is_major="true"
+            echo "🎉 Major version release detected: ${version}"
           fi
-        else
-          echo "Error: Unexpected event type: $GITHUB_EVENT_NAME"
-          exit 1
         fi
-        
-        # Export tags for later steps
-        echo "tags=$(IFS=,; echo "${tags[*]}")" >> $GITHUB_OUTPUT
-        
-        # Display build information
+        echo "is_major_release=${is_major}" >> $GITHUB_OUTPUT
+
+        # Compute branch-sha tag for branch pushes (e.g., dev-a1b2c3d4)
+        if [[ "$GITHUB_REF" == refs/heads/* ]]; then
+          branch=$(echo "${GITHUB_REF#refs/heads/}" | tr -d '/' | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]._-')
+          short_sha=$(echo "$GITHUB_SHA" | cut -c1-8)
+          echo "branch_sha=${branch}-${short_sha}" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Generate Docker metadata
+      id: docker-meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ vars.REPO_ADDRESS }}/${{ vars.REPO_USER }}/${{ vars.REPO_NAME }}
+        tags: |
+          # Version tag push: apply version + latest (+ latest-major if vX.0.0)
+          type=semver,pattern=v{{version}}
+          type=raw,value=latest,enable=${{ github.ref_type == 'tag' }}
+          type=raw,value=latest-major,enable=${{ steps.version-check.outputs.is_major_release == 'true' }}
+          # Branch push: apply branch name + branch-sha (e.g., dev, dev-a1b2c3d4)
+          type=ref,event=branch
+          type=raw,value=${{ steps.version-check.outputs.branch_sha }},enable=${{ github.ref_type != 'tag' }}
+        labels: |
+          org.opencontainers.image.title=game-thumbs
+          org.opencontainers.image.description=Dynamic sports thumbnail and logo generation API
+          org.opencontainers.image.licenses=MIT
+          org.opencontainers.image.authors=Seth WV
+          org.opencontainers.image.url=https://github.com/sethwv/game-thumbs
+          org.opencontainers.image.source=https://github.com/sethwv/game-thumbs
+          org.opencontainers.image.documentation=https://sethwv.github.io/game-thumbs
+
+    - name: Display build information
+      run: |
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         echo "Docker Image: ${{ vars.REPO_ADDRESS }}/${{ vars.REPO_USER }}/${{ vars.REPO_NAME }}"
         echo "Tags to be applied:"
-        for tag in ${tags[@]}; do
-          echo "  • $tag"
+        echo "${{ steps.docker-meta.outputs.tags }}" | while read -r tag; do
+          echo "  • ${tag##*:}"
         done
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        
+
+  # ──────────────────────────────────────────────
+  # Job 2: Build each platform in parallel
+  # ──────────────────────────────────────────────
+  build:
+    needs: prepare
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: true
+      matrix:
+        platform:
+          - linux/amd64
+          - linux/arm64
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Prepare platform slug
+      id: platform
+      run: |
+        platform="${{ matrix.platform }}"
+        echo "slug=${platform//\//-}" >> $GITHUB_OUTPUT
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
-    - name: Log in to Container Repo
+    - name: Log in to Container Registry
       uses: docker/login-action@v3
       with:
-        username: ${{ vars.REPO_USER }}
         registry: ${{ vars.REPO_ADDRESS }}
+        username: ${{ vars.REPO_USER }}
         password: ${{ secrets.REPO_TOKEN }}
 
-    - name: Cache Docker layers
-      if: ${{ !inputs.no-cache && github.server_url == 'https://github.com' }}
-      uses: actions/cache@v4
+    - name: Build and push by digest
+      id: build
+      uses: docker/build-push-action@v6
       with:
-        path: /tmp/.buildx-cache
-        key: ${{ runner.os }}-buildx-${{ github.sha }}
-        restore-keys: |
-          ${{ runner.os }}-buildx-
+        context: .
+        platforms: ${{ matrix.platform }}
+        labels: ${{ needs.prepare.outputs.labels }}
+        outputs: type=image,"name=${{ vars.REPO_ADDRESS }}/${{ vars.REPO_USER }}/${{ vars.REPO_NAME }}",push-by-digest=true,name-canonical=true,push=true,oci-mediatypes=true
+        cache-from: ${{ inputs.no-cache != true && format('type=gha,scope=buildx-{0}', steps.platform.outputs.slug) || '' }}
+        cache-to: ${{ inputs.no-cache != true && format('type=gha,scope=buildx-{0},mode=max', steps.platform.outputs.slug) || '' }}
+        provenance: false
 
-    - name: Build and Push Multi-Platform Docker Image
+    - name: Export digest
       run: |
-        declare -a tags=($(echo "${{ steps.pre-step.outputs.tags }}" | tr "," " "))
-        tag_cmd=""
-        for tag in "${tags[@]}"; do
-          tag_cmd+="-t ${{ vars.REPO_ADDRESS }}/${{ vars.REPO_USER }}/${{ vars.REPO_NAME }}:$tag "
+        mkdir -p $RUNNER_TEMP/digests
+        digest="${{ steps.build.outputs.digest }}"
+        touch "$RUNNER_TEMP/digests/${digest#sha256:}"
+
+    - name: Upload digest
+      uses: actions/upload-artifact@v4
+      with:
+        name: digests-${{ steps.platform.outputs.slug }}
+        path: ${{ runner.temp }}/digests/*
+        if-no-files-found: error
+        retention-days: 1
+
+  # ──────────────────────────────────────────────
+  # Job 3: Create multi-platform manifest and push
+  # ──────────────────────────────────────────────
+  manifest:
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+    - name: Download digests
+      uses: actions/download-artifact@v4
+      with:
+        path: ${{ runner.temp }}/digests
+        pattern: digests-*
+        merge-multiple: true
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ vars.REPO_ADDRESS }}
+        username: ${{ vars.REPO_USER }}
+        password: ${{ secrets.REPO_TOKEN }}
+
+    - name: Create and push manifest
+      run: |
+        REPO="${{ vars.REPO_ADDRESS }}/${{ vars.REPO_USER }}/${{ vars.REPO_NAME }}"
+
+        # Build -t arguments from metadata-action tags (full image references)
+        TAG_ARGS=()
+        while read -r tag; do
+          [ -n "$tag" ] && TAG_ARGS+=(-t "$tag")
+        done <<< "${{ needs.prepare.outputs.tags }}"
+
+        # Build source image references from digest files
+        SOURCES=()
+        for digest_file in ${{ runner.temp }}/digests/*; do
+          SOURCES+=("${REPO}@sha256:$(basename $digest_file)")
         done
-        
-        # Determine cache arguments based on workflow input
-        if [[ "${{ inputs.no-cache }}" == "true" ]]; then
-          echo "🚫 Building without cache (as requested)"
-          cache_args="--no-cache"
-        else
-          cache_args="--cache-from type=local,src=/tmp/.buildx-cache --cache-to type=local,dest=/tmp/.buildx-cache-new,mode=max"
-        fi
-        
-        # Build and push multi-platform image (amd64 and arm64) with layer caching
-        docker buildx build \
-          $tag_cmd \
-          --build-arg BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
-          --build-arg VCS_REF=$(git rev-parse --short HEAD) \
-          --build-arg VERSION=${GITHUB_REF##*/} \
-          --label org.opencontainers.image.created=$(date -u +'%Y-%m-%dT%H:%M:%SZ') \
-          --label org.opencontainers.image.revision=$(git rev-parse HEAD) \
-          --label org.opencontainers.image.version=${GITHUB_REF##*/} \
+
+        # Create and push the multi-platform manifest
+        docker buildx imagetools create \
+          "${TAG_ARGS[@]}" \
           --annotation "index:org.opencontainers.image.description=Dynamic sports thumbnail and logo generation API" \
           --annotation "index:org.opencontainers.image.source=https://github.com/sethwv/game-thumbs" \
           --annotation "index:org.opencontainers.image.url=https://github.com/sethwv/game-thumbs" \
           --annotation "index:org.opencontainers.image.title=game-thumbs" \
           --annotation "index:org.opencontainers.image.licenses=MIT" \
-          $cache_args \
-          --platform linux/amd64,linux/arm64 \
-          --provenance=false \
-          --push \
-          .
-        
-        # Move cache to avoid growing cache size indefinitely (only if cache was used)
-        if [[ "${{ inputs.no-cache }}" != "true" ]]; then
-          rm -rf /tmp/.buildx-cache
-          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
-        fi
+          "${SOURCES[@]}"
+
+    - name: Inspect manifest
+      run: |
+        REPO="${{ vars.REPO_ADDRESS }}/${{ vars.REPO_USER }}/${{ vars.REPO_NAME }}"
+
+        # Get first tag for inspection
+        PRIMARY_TAG=$(echo "${{ needs.prepare.outputs.tags }}" | head -n1)
+
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "Inspecting ${PRIMARY_TAG}"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        docker buildx imagetools inspect "${PRIMARY_TAG}"
