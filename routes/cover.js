@@ -13,6 +13,7 @@ const { generateLeagueCover, generateTeamCover } = require('../generators/generi
 const { resolveTeamsWithFallback, handleTeamNotFoundError, addBadgeOverlay, isValidBadge, applyWinnerEffect } = require('../helpers/imageUtils');
 const { getCachedImage, addToCache } = require('../helpers/imageCache');
 const { findLeague } = require('../leagues');
+const { getTeamDisplayName } = require('../helpers/teamUtils');
 const logger = require('../helpers/logger');
 
 module.exports = {
@@ -230,7 +231,10 @@ module.exports = {
             // For TeamNotFoundError, use a cleaner console message
             if (error.name === 'TeamNotFoundError') {
                 errorDetails.Error = `Team not found: '${error.teamIdentifier}' in ${error.league}`;
-                errorDetails['Available Teams'] = `${error.teamCount} teams available`;
+                if (Array.isArray(error.availableTeams) && error.availableTeams.length > 0) {
+                    const teamNames = error.availableTeams.map(t => getTeamDisplayName(t) || 'Unknown');
+                    errorDetails['Available Teams'] = `${teamNames.join(', ')} (${teamNames.length})`;
+                }
             }
 
             // Logger will handle stack trace automatically (file: always, console: dev only)

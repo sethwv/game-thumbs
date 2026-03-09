@@ -99,6 +99,7 @@ module.exports = {
 
     // Image utilities
     downloadImage,
+    downloadImageWithSvgSupport,
     selectBestLogo,
     trimImage,
     loadTrimmedLogo,
@@ -556,9 +557,8 @@ async function resolveSingleTeamWithFallback(providerManager, leagueObj, teamIde
                 const feederMatch = feederResults.find(result => result !== null);
                 
                 if (feederMatch) {
-                    // Get the provider that was used
-                    const providers = providerManager.getProvidersForLeague(feederMatch.leagueObj);
-                    const providerId = providers[0]?.getProviderId() || 'unknown';
+                    // Get the provider ID from the resolved team
+                    const providerId = feederMatch.team.providerId || 'unknown';
                     logger.teamResolved(providerId, feederMatch.league, feederMatch.team.fullName || feederMatch.team.name);
                     return { team: feederMatch.team, failed: false };
                 }
@@ -598,15 +598,14 @@ async function resolveSingleTeamWithFallback(providerManager, leagueObj, teamIde
             logger.teamNotFound(teamIdentifier, leagueObj.shortName.toUpperCase());
             return { team: null, failed: true };
         }
-        
         // Team was found with logo in original league - log it
         const { isCustomTeam } = require('./teamUtils');
         const leagueKey = leagueObj.shortName?.toLowerCase() || leagueObj.name?.toLowerCase();
         const teamKey = teamIdentifier.toLowerCase();
         const isCustom = isCustomTeam(leagueKey, teamKey);
-        
-        const providers = providerManager.getProvidersForLeague(leagueObj);
-        const providerId = isCustom ? 'custom' : (providers[0]?.getProviderId() || 'unknown');
+
+        // Get provider ID from the resolved team or fallback to league's first provider
+        const providerId = isCustom ? 'custom' : (resolvedTeam.providerId || 'unknown');
         logger.teamResolved(providerId, leagueObj.shortName, resolvedTeam.fullName || resolvedTeam.name);
         return { team: resolvedTeam, failed: false };
     } catch (error) {
@@ -898,7 +897,16 @@ async function downloadImage(urlOrPath) {
     if (!urlOrPath || typeof urlOrPath !== 'string') {
         throw new Error(`Invalid URL or path: ${urlOrPath}`);
     }
-    
+
+    // Handle data URLs (base64 embedded images)
+    if (urlOrPath.startsWith('data:image/')) {
+        const matches = urlOrPath.match(/^data:image\/[^;]+;base64,(.+)$/);
+        if (matches && matches[1]) {
+            return Buffer.from(matches[1], 'base64');
+        }
+        throw new Error(`Invalid data URL format: ${urlOrPath.substring(0, 50)}...`);
+    }
+
     // If it's a local file path, load from filesystem
     if (urlOrPath.startsWith('/') || urlOrPath.startsWith('./') || urlOrPath.startsWith('../')) {
         return fs.readFile(path.resolve(urlOrPath));
@@ -970,13 +978,53 @@ async function downloadImage(urlOrPath) {
     }
 }
 
+/**
+ * Download an image, converting SVG to PNG if needed
+ * @param {string} urlOrPath - URL or path to the image
+ * @returns {Promise<Buffer>} Image buffer
+ */
+async function downloadImageWithSvgSupport(urlOrPath) {
+    // Check if it's an SVG by URL extension
+    const isSvgUrl = urlOrPath.toLowerCase().endsWith('.svg');
+
+    if (isSvgUrl) {
+        try {
+            // Download SVG and convert to PNG
+            const { rasterizeLogo } = require('./svgUtils');
+            const response = await axios.get(urlOrPath, {
+                responseType: 'arraybuffer',
+                timeout: REQUEST_TIMEOUT,
+                headers: { 'User-Agent': 'Mozilla/5.0' }
+            });
+
+            const svgBuffer = Buffer.from(response.data);
+            const { pngBuffer } = await rasterizeLogo(svgBuffer);
+            return pngBuffer;
+        } catch (error) {
+            logger.warn('Failed to download/convert SVG', {
+                url: urlOrPath,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    // Not SVG, use regular download
+    return downloadImage(urlOrPath);
+}
+
 async function selectBestLogo(team, backgroundColor) {
     try {
+        // If team has a pre-converted PNG data URL (from SVG conversion), use that
+        if (team._logoPng) {
+            return team._logoPng;
+        }
+
         // Validate that we have a primary logo
         if (!team.logo) {
             throw new Error('No logo available for team');
         }
-        
+
         // If no logoAlt, use the primary logo
         if (!team.logoAlt) {
             return team.logo;

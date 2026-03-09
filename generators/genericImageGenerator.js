@@ -4,7 +4,7 @@
 // ------------------------------------------------------------------------------
 
 const { createCanvas, loadImage } = require('canvas');
-const { downloadImage, drawLogoMaintainAspect, hexToRgb } = require('../helpers/imageUtils');
+const { downloadImage, downloadImageWithSvgSupport, drawLogoMaintainAspect, hexToRgb } = require('../helpers/imageUtils');
 const { extractDominantColors, blendColors, blendColorsWeighted, calculateColorDistance, analyzeColor, adjustVibrancy } = require('../helpers/colorUtils');
 const logger = require('../helpers/logger');
 
@@ -81,7 +81,7 @@ async function generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAl
         
         // Load the league logo
         let finalLogoUrl = leagueLogoUrl;
-        const logoBuffer = await downloadImage(leagueLogoUrl);
+        const logoBuffer = await downloadImageWithSvgSupport(leagueLogoUrl);
         const logo = await loadImage(logoBuffer);
         
         // Check if logo has poor contrast against the background
@@ -96,7 +96,7 @@ async function generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAl
         // If contrast is too low and we have an alternate logo, use it
         if (contrast < 100 && leagueLogoUrlAlt && leagueLogoUrlAlt !== leagueLogoUrl) {
             try {
-                const altLogoBuffer = await downloadImage(leagueLogoUrlAlt);
+                const altLogoBuffer = await downloadImageWithSvgSupport(leagueLogoUrlAlt);
                 const altLogo = await loadImage(altLogoBuffer);
                 finalLogoUrl = leagueLogoUrlAlt;
                 
@@ -161,7 +161,7 @@ async function generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAl
         
         // Try to at least draw the logo
         try {
-            const logoBuffer = await downloadImage(leagueLogoUrl);
+            const logoBuffer = await downloadImageWithSvgSupport(leagueLogoUrl);
             const logo = await loadImage(logoBuffer);
             const logoSize = Math.min(width, height) * 0.6;
             const logoX = (width - logoSize) / 2;

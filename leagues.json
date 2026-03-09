@@ -1644,6 +1644,134 @@
       }
     ]
   },
+  "__MINOR_LEAGUE_BASEBALL__": "===========================================",
+  "milb": {
+    "name": "Minor League Baseball",
+    "aliases": [
+      "minor league baseball",
+      "minor leagues"
+    ],
+    "logoUrl": "https://images.ctfassets.net/iiozhi00a8lc/7eeTdW5zGYe0sW2ZlIle7E/990464d4b5e4e3b3a65cb6c56ce808ea/milb-alt.svg",
+    "feederLeagues": [
+      "milb-aaa",
+      "milb-aa",
+      "milb-high-a",
+      "milb-a"
+    ]
+  },
+  "milb-aaa": {
+    "name": "Triple-A Baseball",
+    "aliases": [
+      "aaa",
+      "triple-a",
+      "triple a",
+      "aaa baseball"
+    ],
+    "logoUrl": "https://images.ctfassets.net/iiozhi00a8lc/7eeTdW5zGYe0sW2ZlIle7E/990464d4b5e4e3b3a65cb6c56ce808ea/milb-alt.svg",
+    "providers": [
+      {
+        "mlbStats": {
+          "sportId": 11
+        }
+      }
+    ]
+  },
+  "milb-aa": {
+    "name": "Double-A Baseball",
+    "aliases": [
+      "aa",
+      "double-a",
+      "double a",
+      "aa baseball"
+    ],
+    "logoUrl": "https://images.ctfassets.net/iiozhi00a8lc/7eeTdW5zGYe0sW2ZlIle7E/990464d4b5e4e3b3a65cb6c56ce808ea/milb-alt.svg",
+    "providers": [
+      {
+        "mlbStats": {
+          "sportId": 12
+        }
+      }
+    ]
+  },
+  "milb-high-a": {
+    "name": "High-A Baseball",
+    "aliases": [
+      "high-a",
+      "high a",
+      "a-plus",
+      "high-a baseball"
+    ],
+    "logoUrl": "https://images.ctfassets.net/iiozhi00a8lc/7eeTdW5zGYe0sW2ZlIle7E/990464d4b5e4e3b3a65cb6c56ce808ea/milb-alt.svg",
+    "providers": [
+      {
+        "mlbStats": {
+          "sportId": 13
+        }
+      }
+    ]
+  },
+  "milb-a": {
+    "name": "Single-A Baseball",
+    "aliases": [
+      "single-a",
+      "single a",
+      "a baseball",
+      "low-a"
+    ],
+    "logoUrl": "https://images.ctfassets.net/iiozhi00a8lc/7eeTdW5zGYe0sW2ZlIle7E/990464d4b5e4e3b3a65cb6c56ce808ea/milb-alt.svg",
+    "providers": [
+      {
+        "mlbStats": {
+          "sportId": 14
+        }
+      }
+    ]
+  },
+  "milb-winter": {
+    "name": "Winter Leagues",
+    "aliases": [
+      "winter baseball",
+      "winter leagues baseball"
+    ],
+    "logoUrl": "https://images.ctfassets.net/iiozhi00a8lc/7eeTdW5zGYe0sW2ZlIle7E/990464d4b5e4e3b3a65cb6c56ce808ea/milb-alt.svg",
+    "providers": [
+      {
+        "mlbStats": {
+          "sportId": 17
+        }
+      }
+    ]
+  },
+  "milb-independent": {
+    "name": "Independent League Baseball",
+    "aliases": [
+      "independent baseball",
+      "indie baseball"
+    ],
+    "logoUrl": "https://images.ctfassets.net/iiozhi00a8lc/7eeTdW5zGYe0sW2ZlIle7E/990464d4b5e4e3b3a65cb6c56ce808ea/milb-alt.svg",
+    "providers": [
+      {
+        "mlbStats": {
+          "sportId": 23
+        }
+      }
+    ]
+  },
+  "kbo": {
+    "name": "Korean Baseball Organization",
+    "aliases": [
+      "korean baseball",
+      "korea baseball",
+      "kbo baseball"
+    ],
+    "providers": [
+      {
+        "mlbStats": {
+          "sportId": 32
+        }
+      }
+    ]
+  },
   "__CRICKET__": "===========================================",
   "the100m": {
     "name": "The Hundred",

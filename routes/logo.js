@@ -11,6 +11,7 @@ const { generateLogo } = require('../generators/logoGenerator');
 const { downloadImage, resolveTeamsWithFallback, handleTeamNotFoundError, addBadgeOverlay, isValidBadge, applyWinnerEffect } = require('../helpers/imageUtils');
 const { getCachedImage, addToCache } = require('../helpers/imageCache');
 const { findLeague } = require('../leagues');
+const { getTeamDisplayName } = require('../helpers/teamUtils');
 const logger = require('../helpers/logger');
 
 module.exports = {
@@ -65,29 +66,35 @@ module.exports = {
             // Case 2: Single team logo (/:league/:team1/logo)
             else if (team1 && !team2) {
                 const teamIdentifier = team1;
-                
+
                 try {
                     const resolvedTeam = await providerManager.resolveTeam(leagueObj, teamIdentifier);
-                    
-                    // Determine which logo URL to use based on variant parameter
-                    let logoUrl;
-                    if (variant === 'dark' && resolvedTeam.logoAlt) {
-                        logoUrl = resolvedTeam.logoAlt;
-                    } else if (variant === 'light' || !variant) {
-                        logoUrl = resolvedTeam.logo;
+
+                    // If team has pre-converted PNG (e.g., from SVG), use that directly
+                    if (resolvedTeam._logoPng) {
+                        // _logoPng is a data URL, downloadImage can handle it
+                        logoBuffer = await downloadImage(resolvedTeam._logoPng);
                     } else {
-                        // If variant specified but not 'dark' or 'light', return error
-                        return res.status(400).json({ 
-                            error: `Invalid variant: ${variant}. Use 'light' or 'dark'` 
-                        });
-                    }
+                        // Determine which logo URL to use based on variant parameter
+                        let logoUrl;
+                        if (variant === 'dark' && resolvedTeam.logoAlt) {
+                            logoUrl = resolvedTeam.logoAlt;
+                        } else if (variant === 'light' || !variant) {
+                            logoUrl = resolvedTeam.logo;
+                        } else {
+                            // If variant specified but not 'dark' or 'light', return error
+                            return res.status(400).json({
+                                error: `Invalid variant: ${variant}. Use 'light' or 'dark'`
+                            });
+                        }
 
-                    if (!logoUrl) {
-                        return res.status(404).json({ error: 'Logo not found for team' });
-                    }
+                        if (!logoUrl) {
+                            return res.status(404).json({ error: 'Logo not found for team' });
+                        }
 
-                    // Download and return the team logo
-                    logoBuffer = await downloadImage(logoUrl);
+                        // Download and return the team logo
+                        logoBuffer = await downloadImage(logoUrl);
+                    }
                 } catch (teamError) {
                     await handleTeamNotFoundError(teamError, fallback === 'true', async () => {
                         const darkLogoPreferred = variant === 'dark';
@@ -234,7 +241,10 @@ module.exports = {
             // For TeamNotFoundError, use a cleaner console message
             if (error.name === 'TeamNotFoundError') {
                 errorDetails.Error = `Team not found: '${error.teamIdentifier}' in ${error.league}`;
-                errorDetails['Available Teams'] = `${error.teamCount} teams available`;
+                if (Array.isArray(error.availableTeams) && error.availableTeams.length > 0) {
+                    const teamNames = error.availableTeams.map(t => getTeamDisplayName(t) || 'Unknown');
+                    errorDetails['Available Teams'] = `${teamNames.join(', ')} (${teamNames.length})`;
+                }
             }
 
             // Logger will handle stack trace automatically (file: always, console: dev only)
