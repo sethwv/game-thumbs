@@ -2,7 +2,7 @@ name: Build & Push Docker Image
 
 on:
     push:
-        branches: [ 'dev', 'dev/**' , 'test/**' ]
+        branches: [ 'dev', 'wip/**' , 'test/**' ]
         tags: [ 'v*' ]
         paths-ignore:
           - 'docs/**'
