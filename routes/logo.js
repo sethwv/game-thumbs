@@ -12,7 +12,6 @@ const { downloadImage, buildSkipLogosTeam, resolveTeamsWithFallback, handleTeamN
 const { sendCachedOrGenerate, handleImageRouteError } = require('../helpers/routeUtils');
 const { getCachedImage, addToCache } = require('../helpers/imageCache');
 const { findLeague } = require('../leagues');
-const { getTeamDisplayName } = require('../helpers/teamUtils');
 const logger = require('../helpers/logger');
 
 module.exports = {
