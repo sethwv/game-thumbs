@@ -9,9 +9,9 @@
 const providerManager = require('../helpers/ProviderManager');
 const { generateLogo } = require('../generators/logoGenerator');
 const { downloadImage, resolveTeamsWithFallback, handleTeamNotFoundError, addBadgeOverlay, isValidBadge, applyWinnerEffect } = require('../helpers/imageUtils');
+const { sendCachedOrGenerate, handleImageRouteError } = require('../helpers/routeUtils');
 const { getCachedImage, addToCache } = require('../helpers/imageCache');
 const { findLeague } = require('../leagues');
-const { getTeamDisplayName } = require('../helpers/teamUtils');
 const logger = require('../helpers/logger');
 
 module.exports = {
@@ -212,48 +212,9 @@ module.exports = {
             }
 
             // Send successful response
-            res.set('Content-Type', 'image/png');
-            res.send(logoBuffer);
-
-            // Cache successful result (don't let caching errors affect the response)
-            try {
-                addToCache(req, res, logoBuffer);
-            } catch (cacheError) {
-                logger.error('Failed to cache image', {
-                    Error: cacheError.message,
-                    URL: req.url
-                });
-            }
+            sendCachedOrGenerate(req, res, logoBuffer);
         } catch (error) {
-            const errorDetails = {
-                Error: error.message,
-                League: league,
-                URL: req.url,
-                IP: req.ip
-            };
-
-            if (team1 && team2) {
-                errorDetails.Teams = `${team1} vs ${team2}`;
-            } else if (team1) {
-                errorDetails.Team = team1;
-            }
-
-            // For TeamNotFoundError, use a cleaner console message
-            if (error.name === 'TeamNotFoundError') {
-                errorDetails.Error = `Team not found: '${error.teamIdentifier}' in ${error.league}`;
-                if (Array.isArray(error.availableTeams) && error.availableTeams.length > 0) {
-                    const teamNames = error.availableTeams.map(t => getTeamDisplayName(t) || 'Unknown');
-                    errorDetails['Available Teams'] = `${teamNames.join(', ')} (${teamNames.length})`;
-                }
-            }
-
-            // Logger will handle stack trace automatically (file: always, console: dev only)
-            logger.error('Logo generation failed', errorDetails, error);
-
-            // Only send error response if headers haven't been sent yet
-            if (!res.headersSent) {
-                res.status(400).json({ error: error.message });
-            }
+            handleImageRouteError(error, req, res, 'Logo generation failed');
         }
     }
 };

@@ -11,24 +11,13 @@ const { findTeamByAlias, applyTeamOverrides } = require('../helpers/teamUtils');
 const { downloadImage } = require('../helpers/imageUtils');
 const logger = require('../helpers/logger');
 const fsCache = require('../helpers/fsCache');
-
-// Custom error class for team/country not found errors
-class TeamNotFoundError extends Error {
-    constructor(countryIdentifier, availableCountries) {
-        const countryNames = Object.keys(availableCountries).slice(0, 20).join(', ');
-        const remaining = Object.keys(availableCountries).length > 20 ? ` and ${Object.keys(availableCountries).length - 20} more` : '';
-        super(`Country not found: '${countryIdentifier}'. Available countries include: ${countryNames}${remaining}`);
-        this.name = 'TeamNotFoundError';
-        this.countryIdentifier = countryIdentifier;
-        this.availableCountries = availableCountries;
-    }
-}
+const { TeamNotFoundError } = require('../helpers/errors');
+const { REQUEST_TIMEOUT } = require('../helpers/requestConfig');
 
 class FlagCDNProvider extends BaseProvider {
     constructor() {
         super();
         this.CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days
-        this.REQUEST_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '10000', 10); // 10 seconds
         
         // ISO 3166 alpha-3 to alpha-2 code mappings for common Olympic/sports codes
         this.iso3to2 = {
@@ -56,17 +45,8 @@ class FlagCDNProvider extends BaseProvider {
         return 'flagcdn';
     }
 
-    getLeagueConfig(league) {
-        // Check for config in providers array
-        if (league.providers && Array.isArray(league.providers)) {
-            for (const providerConfig of league.providers) {
-                if (typeof providerConfig === 'object' && providerConfig.flagcdn) {
-                    return providerConfig.flagcdn;
-                }
-            }
-        }
-        
-        return null;
+    getConfigKey() {
+        return 'flagcdn';
     }
 
     /**
@@ -81,7 +61,7 @@ class FlagCDNProvider extends BaseProvider {
 
         try {
             const response = await axios.get('https://flagcdn.com/en/codes.json', {
-                timeout: this.REQUEST_TIMEOUT,
+                timeout: REQUEST_TIMEOUT,
                 headers: {
                     'User-Agent': 'game-thumbs/1.0'
                 }
@@ -325,14 +305,14 @@ class FlagCDNProvider extends BaseProvider {
         const trimmedInput = teamIdentifier.trim();
         if (!trimmedInput) {
             const countries = await this.fetchCountries();
-            throw new TeamNotFoundError(teamIdentifier, countries);
+            throw new TeamNotFoundError(teamIdentifier, league, countries);
         }
 
         // Reject very short normalized inputs (less than 2 chars) to prevent weak matches
         const normalizedInput = this.normalizeCountryName(trimmedInput);
         if (normalizedInput.length < 2) {
             const countries = await this.fetchCountries();
-            throw new TeamNotFoundError(teamIdentifier, countries);
+            throw new TeamNotFoundError(teamIdentifier, league, countries);
         }
 
         try {
@@ -391,7 +371,7 @@ class FlagCDNProvider extends BaseProvider {
             // (scores below 700 are partial word matches, which are too permissive)
             const MIN_MATCH_SCORE = 700;
             if (!bestCode || bestScore < MIN_MATCH_SCORE) {
-                throw new TeamNotFoundError(teamIdentifier, countries);
+                throw new TeamNotFoundError(teamIdentifier, league, countries);
             }
 
             // Build flag URL (using w2560 for high resolution)

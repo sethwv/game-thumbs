@@ -10,19 +10,7 @@ const { getTeamMatchScoreWithOverrides, generateSlug } = require('../helpers/tea
 const { extractDominantColors } = require('../helpers/colorUtils');
 const logger = require('../helpers/logger');
 const fsCache = require('../helpers/fsCache');
-
-// Custom error class for team not found errors
-class TeamNotFoundError extends Error {
-    constructor(teamIdentifier, league, teamList) {
-        const teamNames = teamList.map(t => `${t.city} ${t.nickname}`).join(', ');
-        super(`Team not found: '${teamIdentifier}' in ${league.shortName.toUpperCase()}. Available teams: ${teamNames}`);
-        this.name = 'TeamNotFoundError';
-        this.teamIdentifier = teamIdentifier;
-        this.league = league.shortName;
-        this.availableTeams = teamList;
-        this.teamCount = teamList.length;
-    }
-}
+const { TeamNotFoundError } = require('../helpers/errors');
 
 class HockeyTechProvider extends BaseProvider {
     constructor() {
@@ -39,22 +27,8 @@ class HockeyTechProvider extends BaseProvider {
         return 'hockeytech';
     }
 
-    getLeagueConfig(league) {
-        // Check for config in providers array (preferred)
-        if (league.providers && Array.isArray(league.providers)) {
-            for (const providerConfig of league.providers) {
-                if (typeof providerConfig === 'object' && (providerConfig.hockeyTech || providerConfig.hockeyTechConfig)) {
-                    return providerConfig.hockeyTech || providerConfig.hockeyTechConfig;
-                }
-            }
-        }
-        
-        // DEPRECATED: Check for direct config (for backward compatibility)
-        if (league.hockeyTech || league.hockeyTechConfig) {
-            return league.hockeyTech || league.hockeyTechConfig;
-        }
-        
-        return null;
+    getConfigKey() {
+        return ['hockeyTech', 'hockeyTechConfig'];
     }
 
     /**

@@ -11,21 +11,8 @@ const { getTeamMatchScoreWithOverrides, generateSlug, findTeamByAlias, applyTeam
 const { rasterizeLogo, extractPalette } = require('../helpers/svgUtils');
 const logger = require('../helpers/logger');
 const fsCache = require('../helpers/fsCache');
-
-const REQUEST_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '10000', 10);
-
-// Custom error class for team not found errors
-class TeamNotFoundError extends Error {
-    constructor(teamIdentifier, league, teamList) {
-        const teamNames = teamList.map(t => t.name).join(', ');
-        super(`Team not found: '${teamIdentifier}' in ${league.shortName.toUpperCase()}. Available teams: ${teamNames}`);
-        this.name = 'TeamNotFoundError';
-        this.teamIdentifier = teamIdentifier;
-        this.league = league.shortName;
-        this.availableTeams = teamList;
-        this.teamCount = teamList.length;
-    }
-}
+const { TeamNotFoundError } = require('../helpers/errors');
+const { REQUEST_TIMEOUT } = require('../helpers/requestConfig');
 
 class MLBStatsProvider extends BaseProvider {
     constructor() {
@@ -40,20 +27,8 @@ class MLBStatsProvider extends BaseProvider {
         return 'mlbstats';
     }
 
-    /**
-     * Get MLBStats-specific config from a league's providers array
-     * @param {Object} league - League object
-     * @returns {Object|null} Config with sportId, or null
-     */
-    getLeagueConfig(league) {
-        if (league.providers && Array.isArray(league.providers)) {
-            for (const providerConfig of league.providers) {
-                if (typeof providerConfig === 'object' && providerConfig.mlbStats) {
-                    return providerConfig.mlbStats;
-                }
-            }
-        }
-        return null;
+    getConfigKey() {
+        return 'mlbStats';
     }
 
     /**

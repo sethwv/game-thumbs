@@ -10,25 +10,14 @@ const { getTeamMatchScoreWithOverrides, generateSlug, findTeamByAlias, applyTeam
 const { extractDominantColors } = require('../helpers/colorUtils');
 const logger = require('../helpers/logger');
 const fsCache = require('../helpers/fsCache');
-
-// Custom error class for team not found errors
-class TeamNotFoundError extends Error {
-    constructor(teamIdentifier, league, teamList) {
-        const teamNames = teamList.map(t => t.strTeam).join(', ');
-        super(`Team not found: '${teamIdentifier}' in ${league.shortName.toUpperCase()}. Available teams: ${teamNames}`);
-        this.name = 'TeamNotFoundError';
-        this.teamIdentifier = teamIdentifier;
-        this.league = league.shortName;
-        this.availableTeams = teamList;
-        this.teamCount = teamList.length;
-    }
-}
+const { TeamNotFoundError } = require('../helpers/errors');
+const { REQUEST_TIMEOUT } = require('../helpers/requestConfig');
 
 class TheSportsDBProvider extends BaseProvider {
     constructor() {
         super();
         this.CACHE_DURATION = 72 * 60 * 60 * 1000; // 72 hours
-        this.REQUEST_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '10000', 10); // 10 seconds
+        this.REQUEST_TIMEOUT = REQUEST_TIMEOUT;
         // Use premium API key from env var if available, otherwise use free tier
         this.API_KEY = process.env.THESPORTSDB_API_KEY || '3';
     }
@@ -37,22 +26,8 @@ class TheSportsDBProvider extends BaseProvider {
         return 'thesportsdb';
     }
 
-    getLeagueConfig(league) {
-        // Check for config in providers array (preferred)
-        if (league.providers && Array.isArray(league.providers)) {
-            for (const providerConfig of league.providers) {
-                if (typeof providerConfig === 'object' && (providerConfig.theSportsDB || providerConfig.theSportsDBConfig)) {
-                    return providerConfig.theSportsDB || providerConfig.theSportsDBConfig;
-                }
-            }
-        }
-        
-        // DEPRECATED: Check for direct config (for backward compatibility)
-        if (league.theSportsDB || league.theSportsDBConfig) {
-            return league.theSportsDB || league.theSportsDBConfig;
-        }
-        
-        return null;
+    getConfigKey() {
+        return ['theSportsDB', 'theSportsDBConfig'];
     }
 
     async resolveTeam(league, teamIdentifier) {

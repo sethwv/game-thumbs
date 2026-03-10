@@ -10,6 +10,8 @@ const axios = require('axios');
 const { createCanvas, loadImage } = require('canvas');
 const { rasterizeLogo, extractPalette } = require('../helpers/svgUtils');
 const fsCache = require('../helpers/fsCache');
+const { TeamNotFoundError } = require('../helpers/errors');
+const { REQUEST_TIMEOUT } = require('../helpers/requestConfig');
 
 const SPORTS = [
     'volleyball-women',
@@ -28,18 +30,6 @@ const MASCOT_SUFFIXES = [
 ];
 
 const TEAM_POOL_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
-
-const REQUEST_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '10000', 10);
-
-// Custom error class for team not found errors
-class TeamNotFoundError extends Error {
-    constructor(teamIdentifier, leagueName, message) {
-        super(message || `Team not found: '${teamIdentifier}' in ${leagueName}`);
-        this.name = 'TeamNotFoundError';
-        this.teamIdentifier = teamIdentifier;
-        this.league = leagueName;
-    }
-}
 
 function generateSchoolSlugs(teamName) {
     const slugs = [];
@@ -446,11 +436,7 @@ class NCAAProvider extends BaseProvider {
         }
 
         // All slug variations failed
-        throw new TeamNotFoundError(
-            teamIdentifier,
-            league.name,
-            `NCAA.com logo not found for team: ${teamIdentifier} (tried slugs: ${slugsToTry.join(', ')})`
-        );
+        throw new TeamNotFoundError(teamIdentifier, league);
     }
 
     /**

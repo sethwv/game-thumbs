@@ -26,29 +26,17 @@ const BaseProvider = require('./BaseProvider');
 const { getTeamMatchScoreWithOverrides } = require('../helpers/teamUtils');
 const logger = require('../helpers/logger');
 const RequestQueue = require('../helpers/RequestQueue');
+const { TeamNotFoundError } = require('../helpers/errors');
+const { REQUEST_TIMEOUT } = require('../helpers/requestConfig');
 
 // Track if we've logged queue initialization (prevent duplicate logs)
 let queueInitLogged = false;
-
-class AthleteNotFoundError extends Error {
-    constructor(athleteIdentifier, league, athleteList) {
-        const athleteNames = athleteList.map(a => a.displayName || a.fullName).slice(0, 20).join(', ');
-        const moreCount = Math.max(0, athleteList.length - 20);
-        const moreText = moreCount > 0 ? ` ... and ${moreCount} more` : '';
-        super(`Athlete not found: '${athleteIdentifier}' in ${league.shortName.toUpperCase()}. Available athletes (showing first 20): ${athleteNames}${moreText}`);
-        this.name = 'AthleteNotFoundError';
-        this.athleteIdentifier = athleteIdentifier;
-        this.league = league.shortName;
-        this.availableAthletes = athleteList;
-        this.athleteCount = athleteList.length;
-    }
-}
 
 class ESPNAthleteProvider extends BaseProvider {
     constructor() {
         super();
         this.CACHE_DURATION = 72 * 60 * 60 * 1000; // 72 hours
-        this.REQUEST_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '10000', 10); // 10 seconds
+        this.REQUEST_TIMEOUT = REQUEST_TIMEOUT;
         this.refreshIntervals = new Map(); // Track refresh intervals per league
         this.pendingFetches = new Map(); // Track in-progress fetches to prevent duplicates
         this.CACHE_DIR = path.join(process.cwd(), '.cache', 'providers');
@@ -97,15 +85,8 @@ class ESPNAthleteProvider extends BaseProvider {
         return palette[Math.floor(Math.random() * palette.length)];
     }
 
-    getLeagueConfig(league) {
-        if (league.providers && Array.isArray(league.providers)) {
-            for (const providerConfig of league.providers) {
-                if (typeof providerConfig === 'object' && providerConfig.espnAthlete) {
-                    return providerConfig.espnAthlete;
-                }
-            }
-        }
-        return null;
+    getConfigKey() {
+        return 'espnAthlete';
     }
 
     // Get all ESPN Athlete provider configs for a league (supports multiple providers)
@@ -199,7 +180,7 @@ class ESPNAthleteProvider extends BaseProvider {
                     lastName: athlete.lastName
                 })).sort((a, b) => a.displayName.localeCompare(b.displayName));
 
-                throw new AthleteNotFoundError(athleteIdentifier, league, athleteList);
+                throw new TeamNotFoundError(athleteIdentifier, league, athleteList);
             }
 
             // Get athlete headshot from API or construct sport-specific URL
@@ -240,7 +221,7 @@ class ESPNAthleteProvider extends BaseProvider {
             const { applyTeamOverrides } = require('../helpers/teamUtils');
             return applyTeamOverrides(athleteData, league.shortName.toLowerCase(), bestMatch.slug);
         } catch (error) {
-            if (error instanceof AthleteNotFoundError) {
+            if (error.name === 'TeamNotFoundError') {
                 throw error;
             }
             throw new Error(`Failed to resolve athlete: ${error.message}`);

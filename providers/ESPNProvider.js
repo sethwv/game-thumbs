@@ -8,30 +8,18 @@ const axios = require('axios');
 const fs = require('fs').promises;
 const path = require('path');
 const BaseProvider = require('./BaseProvider');
-const { getTeamMatchScoreWithOverrides, findTeamByAlias, applyTeamOverrides } = require('../helpers/teamUtils');
+const { getTeamMatchScoreWithOverrides, findTeamByAlias, applyTeamOverrides, normalizeCompact } = require('../helpers/teamUtils');
 const { extractDominantColors } = require('../helpers/colorUtils');
-const { normalizeCompact } = require('../helpers/teamUtils');
 const logger = require('../helpers/logger');
 const fsCache = require('../helpers/fsCache');
-
-// Custom error class for team not found errors
-class TeamNotFoundError extends Error {
-    constructor(teamIdentifier, league, teamList) {
-        const teamNames = teamList.map(t => t.shortDisplayName || t.displayName).join(', ');
-        super(`Team not found: '${teamIdentifier}' in ${league.shortName.toUpperCase()}. Available teams: ${teamNames}`);
-        this.name = 'TeamNotFoundError';
-        this.teamIdentifier = teamIdentifier;
-        this.league = league.shortName;
-        this.availableTeams = teamList;
-        this.teamCount = teamList.length;
-    }
-}
+const { TeamNotFoundError } = require('../helpers/errors');
+const { REQUEST_TIMEOUT } = require('../helpers/requestConfig');
 
 class ESPNProvider extends BaseProvider {
     constructor() {
         super();
         this.CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
-        this.REQUEST_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '10000', 10); // 10 seconds
+        this.REQUEST_TIMEOUT = REQUEST_TIMEOUT;
         
         // Sport/League cache for unconfigured league fallback
         this.sportLeagueMap = new Map(); // Map<sport, Set<leagueSlug>>
@@ -44,22 +32,8 @@ class ESPNProvider extends BaseProvider {
         return 'espn';
     }
 
-    getLeagueConfig(league) {
-        // Check for config in providers array (preferred)
-        if (league.providers && Array.isArray(league.providers)) {
-            for (const providerConfig of league.providers) {
-                if (typeof providerConfig === 'object' && (providerConfig.espn || providerConfig.espnConfig)) {
-                    return providerConfig.espn || providerConfig.espnConfig;
-                }
-            }
-        }
-        
-        // DEPRECATED: Check for direct config (for backward compatibility)
-        if (league.espn || league.espnConfig) {
-            return league.espn || league.espnConfig;
-        }
-        
-        return null;
+    getConfigKey() {
+        return ['espn', 'espnConfig'];
     }
 
     async resolveTeam(league, teamIdentifier) {

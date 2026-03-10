@@ -6,7 +6,7 @@
 const providerManager = require('../helpers/ProviderManager');
 const { findLeague } = require('../leagues');
 const { downloadImage } = require('../helpers/imageUtils');
-const { getTeamDisplayName } = require('../helpers/teamUtils');
+const { sendCachedOrGenerate, handleImageRouteError } = require('../helpers/routeUtils');
 const logger = require('../helpers/logger');
 
 module.exports = {
@@ -53,43 +53,9 @@ module.exports = {
             const logoBuffer = await downloadImage(logoUrl);
 
             // Send successful response
-            res.set('Content-Type', 'image/png');
-            res.send(logoBuffer);
-
-            // Cache successful result (don't let caching errors affect the response)
-            try {
-                require('../helpers/imageCache').addToCache(req, res, logoBuffer);
-            } catch (cacheError) {
-                logger.error('Failed to cache image', {
-                    Error: cacheError.message,
-                    URL: req.url
-                });
-            }
+            sendCachedOrGenerate(req, res, logoBuffer);
         } catch (error) {
-            const errorDetails = {
-                Error: error.message,
-                League: league,
-                Team: team,
-                URL: req.url,
-                IP: req.ip
-            };
-
-            // For TeamNotFoundError, use a cleaner console message
-            if (error.name === 'TeamNotFoundError') {
-                errorDetails.Error = `Team not found: '${error.teamIdentifier}' in ${error.league}`;
-                if (Array.isArray(error.availableTeams) && error.availableTeams.length > 0) {
-                    const teamNames = error.availableTeams.map(t => getTeamDisplayName(t) || 'Unknown');
-                    errorDetails['Available Teams'] = `${teamNames.join(', ')} (${teamNames.length})`;
-                }
-            }
-
-            // Logger will handle stack trace automatically (file: always, console: dev only)
-            logger.error('Team logo fetch failed', errorDetails, error);
-
-            // Only send error response if headers haven't been sent yet
-            if (!res.headersSent) {
-                res.status(400).json({ error: error.message });
-            }
+            handleImageRouteError(error, req, res, 'Team logo fetch failed');
         }
     }
 };

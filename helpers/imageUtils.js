@@ -887,7 +887,7 @@ async function applyWinnerEffect(
 // Image utilities
 // ------------------------------------------------------------------------------
 
-const REQUEST_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '10000', 10); // 10 seconds default
+const { REQUEST_TIMEOUT } = require('./requestConfig');
 
 async function downloadImage(urlOrPath) {
     // Validate URL exists
