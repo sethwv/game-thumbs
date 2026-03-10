@@ -3,13 +3,14 @@
 // Shared utilities for image manipulation and logo processing
 // ------------------------------------------------------------------------------
 
-const { createCanvas, loadImage } = require('canvas');
+const { createCanvas, loadImage, Image } = require('canvas');
 const axios = require('axios');
 const crypto = require('crypto');
 const fs = require('fs').promises;
 const fsSync = require('fs');
 const path = require('path');
 const logger = require('./logger');
+const fsCache = require('./fsCache');
 const { rgbToHex: colorUtilsRgbToHex, calculateColorDistance } = require('./colorUtils');
 const { getTeamMatchScore, normalizeCompact } = require('./teamUtils');
 
@@ -18,9 +19,9 @@ const { getTeamMatchScore, normalizeCompact } = require('./teamUtils');
 // ------------------------------------------------------------------------------
 
 const OUTLINE_WIDTH_PERCENTAGE = 0.015; // 1.5% of logo size for outline
-const MAX_CACHE_SIZE = 50; // Maximum number of cached white logos
 const EDGE_BRIGHTNESS_THRESHOLD = 200; // Average edge brightness above this means logo likely has white/light outline
 const COLOR_SIMILARITY_THRESHOLD = 120; // Colors closer than this need special handling
+const BADGE_SHADOW_MARGIN = 5; // shadowBlur(4) + max(abs(offsetX(1)), abs(offsetY(1)))
 
 // Valid badge keywords for overlay text
 const VALID_BADGE_KEYWORDS = [
@@ -62,14 +63,13 @@ function isValidBadge(badge) {
 const CACHE_HOURS = parseInt(process.env.IMAGE_CACHE_HOURS || '24', 10);
 const CACHE_ENABLED = CACHE_HOURS > 0;
 
-// Cache for white logo versions to avoid recreating them
-const whiteLogoCache = new Map();
-
-// Cache for greyscale logo versions
-const greyscaleLogoCache = new Map();
-
-// Cache for badge overlays (keyed by text+scale+dimensions)
-const badgeCache = new Map();
+// Clear image processing caches on startup
+if (CACHE_ENABLED) {
+    const cleared = fsCache.clearSubdir('white') + fsCache.clearSubdir('greyscale') + fsCache.clearSubdir('badges');
+    if (cleared > 0) {
+        logger.info(`Cleared ${cleared} cached processed logo(s) from previous session`);
+    }
+}
 
 // Cache directory for trimmed logos
 const TRIMMED_CACHE_DIR = path.join(__dirname, '..', '.cache', 'trimmed');
@@ -292,24 +292,27 @@ function hasLightOutline(logoImage) {
 }
 
 function getWhiteLogo(logoImage, size) {
-    // Use image source as cache key if available, otherwise generate checksum from image data
-    let cacheKey = logoImage.src;
-
-    if (!cacheKey) {
-        // Create a temporary canvas to extract image data for checksum
+    // Generate cache key including size
+    let keyBase;
+    if (logoImage.src) {
+        keyBase = logoImage.src;
+    } else {
         const tempCanvas = createCanvas(logoImage.width, logoImage.height);
         const tempCtx = tempCanvas.getContext('2d');
         tempCtx.drawImage(logoImage, 0, 0);
         const imageData = tempCtx.getImageData(0, 0, logoImage.width, logoImage.height);
-
-        // Generate checksum from image data
         const hash = crypto.createHash('md5');
         hash.update(Buffer.from(imageData.data.buffer));
-        cacheKey = `${hash.digest('hex')}_${size}`;
+        keyBase = hash.digest('hex');
     }
+    const cacheKey = `${keyBase}_${size}`;
 
-    if (whiteLogoCache.has(cacheKey)) {
-        return whiteLogoCache.get(cacheKey);
+    // Check filesystem cache
+    const cached = fsCache.getBuffer('white', cacheKey);
+    if (cached) {
+        const img = new Image();
+        img.src = cached;
+        return img;
     }
 
     // Create white version
@@ -331,18 +334,14 @@ function getWhiteLogo(logoImage, size) {
 
     tempCtx.putImageData(imageData, 0, 0);
 
-    // Cache it (limit cache size to prevent memory leaks)
-    if (whiteLogoCache.size >= MAX_CACHE_SIZE) {
-        // Remove oldest 20% of entries when limit reached
-        const entriesToRemove = Math.floor(MAX_CACHE_SIZE * 0.2);
-        const keys = Array.from(whiteLogoCache.keys());
-        for (let i = 0; i < entriesToRemove; i++) {
-            whiteLogoCache.delete(keys[i]);
-        }
-    }
-    whiteLogoCache.set(cacheKey, tempCanvas);
+    // Save to filesystem cache
+    const buffer = tempCanvas.toBuffer('image/png');
+    fsCache.setBuffer('white', cacheKey, buffer);
 
-    return tempCanvas;
+    // Return as Image (compatible with ctx.drawImage)
+    const img = new Image();
+    img.src = buffer;
+    return img;
 }
 
 /**
@@ -369,9 +368,14 @@ async function convertToGreyscale(logoImageOrBuffer, opacity = 0.35) {
         cacheKey = `${hash}_${opacity}`;
     }
 
-    // Check cache
-    if (greyscaleLogoCache.has(cacheKey)) {
-        return greyscaleLogoCache.get(cacheKey);
+    // Check filesystem cache
+    const cached = fsCache.getBuffer('greyscale', cacheKey);
+    if (cached) {
+        const img = await loadImage(cached);
+        const cachedCanvas = createCanvas(img.width, img.height);
+        const cachedCtx = cachedCanvas.getContext('2d');
+        cachedCtx.drawImage(img, 0, 0);
+        return cachedCanvas;
     }
 
     // Load the image if it's a buffer
@@ -405,15 +409,8 @@ async function convertToGreyscale(logoImageOrBuffer, opacity = 0.35) {
 
     ctx.putImageData(imageData, 0, 0);
 
-    // Cache the result (with size limit)
-    if (greyscaleLogoCache.size >= MAX_CACHE_SIZE) {
-        const entriesToRemove = Math.floor(MAX_CACHE_SIZE * 0.2);
-        const keys = Array.from(greyscaleLogoCache.keys());
-        for (let i = 0; i < entriesToRemove; i++) {
-            greyscaleLogoCache.delete(keys[i]);
-        }
-    }
-    greyscaleLogoCache.set(cacheKey, canvas);
+    // Save to filesystem cache
+    fsCache.setBuffer('greyscale', cacheKey, canvas.toBuffer('image/png'));
 
     return canvas;
 }
@@ -890,7 +887,7 @@ async function applyWinnerEffect(
 // Image utilities
 // ------------------------------------------------------------------------------
 
-const REQUEST_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '10000', 10); // 10 seconds default
+const { REQUEST_TIMEOUT } = require('./requestConfig');
 
 async function downloadImage(urlOrPath) {
     // Validate URL exists
@@ -1348,10 +1345,14 @@ async function addBadgeOverlay(imageBuffer, badgeText, options = {}) {
     // Create cache key based on badge text, scale, and image dimensions
     const cacheKey = `${badgeText}_${badgeScale}_${image.width}x${image.height}`;
     
-    // Check if we have a cached badge canvas
-    let badgeCanvas = badgeCache.get(cacheKey);
+    // Check filesystem cache for pre-rendered badge
+    const cachedBadge = fsCache.getBuffer('badges', cacheKey);
+    let badgeImg;
     
-    if (!badgeCanvas) {
+    if (cachedBadge) {
+        badgeImg = new Image();
+        badgeImg.src = cachedBadge;
+    } else {
         // Calculate badge dimensions based on image size
         const baseSize = Math.min(image.width, image.height);
         const badgeHeight = Math.round(baseSize * badgeScale);
@@ -1378,11 +1379,8 @@ async function addBadgeOverlay(imageBuffer, badgeText, options = {}) {
         // Create a canvas for the badge with extra space for shadow
         const canvasWidth = badgeWidth + (shadowMargin * 2);
         const canvasHeight = badgeHeight + (shadowMargin * 2);
-        badgeCanvas = createCanvas(canvasWidth, canvasHeight);
+        const badgeCanvas = createCanvas(canvasWidth, canvasHeight);
         const badgeCtx = badgeCanvas.getContext('2d');
-        
-        // Store shadow margin on the canvas object for positioning later
-        badgeCanvas.shadowMargin = shadowMargin;
         
         // Offset the drawing position to account for shadow margin
         const drawX = shadowMargin;
@@ -1422,40 +1420,38 @@ async function addBadgeOverlay(imageBuffer, badgeText, options = {}) {
         badgeCtx.textBaseline = 'middle';
         badgeCtx.fillText(badgeText, drawX + badgeWidth / 2, drawY + badgeHeight / 2);
         
-        // Cache the badge canvas (limit cache size)
-        if (badgeCache.size >= MAX_CACHE_SIZE) {
-            const firstKey = badgeCache.keys().next().value;
-            badgeCache.delete(firstKey);
-        }
-        badgeCache.set(cacheKey, badgeCanvas);
+        // Store in filesystem cache (not in memory)
+        const badgeBuffer = badgeCanvas.toBuffer('image/png');
+        fsCache.setBuffer('badges', cacheKey, badgeBuffer);
+        badgeImg = new Image();
+        badgeImg.src = badgeBuffer;
     }
     
     // Calculate badge position based on position parameter
     // Account for shadow margin to position the visible badge correctly
-    const shadowMargin = badgeCanvas.shadowMargin || 0;
     let badgeX, badgeY;
     switch (position) {
         case 'top-left':
-            badgeX = padding - shadowMargin;
-            badgeY = padding - shadowMargin;
+            badgeX = padding - BADGE_SHADOW_MARGIN;
+            badgeY = padding - BADGE_SHADOW_MARGIN;
             break;
         case 'bottom-left':
-            badgeX = padding - shadowMargin;
-            badgeY = image.height - badgeCanvas.height - padding + shadowMargin;
+            badgeX = padding - BADGE_SHADOW_MARGIN;
+            badgeY = image.height - badgeImg.height - padding + BADGE_SHADOW_MARGIN;
             break;
         case 'bottom-right':
-            badgeX = image.width - badgeCanvas.width - padding + shadowMargin;
-            badgeY = image.height - badgeCanvas.height - padding + shadowMargin;
+            badgeX = image.width - badgeImg.width - padding + BADGE_SHADOW_MARGIN;
+            badgeY = image.height - badgeImg.height - padding + BADGE_SHADOW_MARGIN;
             break;
         case 'top-right':
         default:
-            badgeX = image.width - badgeCanvas.width - padding + shadowMargin;
-            badgeY = padding - shadowMargin;
+            badgeX = image.width - badgeImg.width - padding + BADGE_SHADOW_MARGIN;
+            badgeY = padding - BADGE_SHADOW_MARGIN;
             break;
     }
     
-    // Draw the cached badge onto the main canvas
-    ctx.drawImage(badgeCanvas, badgeX, badgeY);
+    // Draw the badge onto the main canvas
+    ctx.drawImage(badgeImg, badgeX, badgeY);
     
     // Return the buffer
     return canvas.toBuffer('image/png');

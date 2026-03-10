@@ -4,9 +4,9 @@
 // ------------------------------------------------------------------------------
 
 const logger = require('../helpers/logger');
+const fsCache = require('../helpers/fsCache');
 
-// Cache EPG logos to avoid re-parsing on every request
-const epgCache = new Map();
+// EPG cache TTL
 const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
 // Check if XC proxy is enabled via environment variable
@@ -167,11 +167,16 @@ async function getEPGLogos(xcapi, queryParams) {
     const cacheKey = xcapi;
     const now = Date.now();
     
-    // Check if we have cached EPG data
-    const cached = epgCache.get(cacheKey);
-    if (cached && (now - cached.timestamp) < CACHE_TTL) {
-        logger.info('Using cached EPG logos', { CacheAge: `${Math.round((now - cached.timestamp) / 1000)}s` });
-        return cached.logos;
+    // Check filesystem cache for EPG data
+    const cached = fsCache.getJSON('epg', cacheKey, CACHE_TTL);
+    if (cached) {
+        logger.info('Using cached EPG logos');
+        // Reconstitute Maps from serialized Objects
+        return {
+            byId: new Map(Object.entries(cached.byId || {})),
+            byNumber: new Map(Object.entries(cached.byNumber || {})),
+            byName: new Map(Object.entries(cached.byName || {}))
+        };
     }
     
     try {
@@ -197,10 +202,11 @@ async function getEPGLogos(xcapi, queryParams) {
         // Parse EPG to extract logos
         const logos = parseEPGLogos(epgContent);
         
-        // Cache the result
-        epgCache.set(cacheKey, {
-            logos,
-            timestamp: now
+        // Cache the result to filesystem (serialize Maps to Objects)
+        fsCache.setJSON('epg', cacheKey, {
+            byId: Object.fromEntries(logos.byId),
+            byNumber: Object.fromEntries(logos.byNumber),
+            byName: Object.fromEntries(logos.byName)
         });
         
         logger.info('EPG logos cached', { 

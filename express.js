@@ -282,8 +282,7 @@ function init(port) {
         Promise.all([
             (async () => {
                 try {
-                    const ESPNAthleteProvider = require('./providers/ESPNAthleteProvider');
-                    espnAthleteProvider = new ESPNAthleteProvider();
+                    espnAthleteProvider = require('./providers/ESPNAthleteProvider');
                     await espnAthleteProvider.initializeCache();
                 } catch (error) {
                     logger.error('Failed to initialize ESPN Athlete cache', { error: error.message });
@@ -291,8 +290,7 @@ function init(port) {
             })(),
             (async () => {
                 try {
-                    const HockeyTechProvider = require('./providers/HockeyTechProvider');
-                    hockeyTechProvider = new HockeyTechProvider();
+                    hockeyTechProvider = require('./providers/HockeyTechProvider');
                     await hockeyTechProvider.initializeCache();
                 } catch (error) {
                     logger.error('Failed to initialize HockeyTech config cache', { error: error.message });
@@ -300,8 +298,7 @@ function init(port) {
             })(),
             (async () => {
                 try {
-                    const MLBStatsProvider = require('./providers/MLBStatsProvider');
-                    mlbStatsProvider = new MLBStatsProvider();
+                    mlbStatsProvider = require('./providers/MLBStatsProvider');
                     await mlbStatsProvider.initializeCache();
                 } catch (error) {
                     logger.error('Failed to initialize MLBStats cache', { error: error.message });

@@ -2,7 +2,7 @@ name: Build & Push Docker Image
 
 on:
     push:
-        branches: [ 'dev', 'test/.*' ]
+        branches: [ 'dev', 'wip/**' , 'test/**' ]
         tags: [ 'v*' ]
         paths-ignore:
           - 'docs/**'
@@ -45,7 +45,7 @@ jobs:
 
         # Compute branch-sha tag for branch pushes (e.g., dev-a1b2c3d4)
         if [[ "$GITHUB_REF" == refs/heads/* ]]; then
-          branch=$(echo "${GITHUB_REF#refs/heads/}" | tr -d '/' | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]._-')
+          branch=$(echo "${GITHUB_REF#refs/heads/}" | tr '/' '-' | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]._-')
           short_sha=$(echo "$GITHUB_SHA" | cut -c1-8)
           echo "branch_sha=${branch}-${short_sha}" >> $GITHUB_OUTPUT
         fi

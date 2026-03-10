@@ -9,27 +9,15 @@ const BaseProvider = require('./BaseProvider');
 const { getTeamMatchScoreWithOverrides, generateSlug, findTeamByAlias, applyTeamOverrides } = require('../helpers/teamUtils');
 const { extractDominantColors } = require('../helpers/colorUtils');
 const logger = require('../helpers/logger');
-
-// Custom error class for team not found errors
-class TeamNotFoundError extends Error {
-    constructor(teamIdentifier, league, teamList) {
-        const teamNames = teamList.map(t => t.strTeam).join(', ');
-        super(`Team not found: '${teamIdentifier}' in ${league.shortName.toUpperCase()}. Available teams: ${teamNames}`);
-        this.name = 'TeamNotFoundError';
-        this.teamIdentifier = teamIdentifier;
-        this.league = league.shortName;
-        this.availableTeams = teamList;
-        this.teamCount = teamList.length;
-    }
-}
+const fsCache = require('../helpers/fsCache');
+const { TeamNotFoundError } = require('../helpers/errors');
+const { REQUEST_TIMEOUT } = require('../helpers/requestConfig');
 
 class TheSportsDBProvider extends BaseProvider {
     constructor() {
         super();
-        this.teamCache = new Map();
-        this.colorCache = new Map();
         this.CACHE_DURATION = 72 * 60 * 60 * 1000; // 72 hours
-        this.REQUEST_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '10000', 10); // 10 seconds
+        this.REQUEST_TIMEOUT = REQUEST_TIMEOUT;
         // Use premium API key from env var if available, otherwise use free tier
         this.API_KEY = process.env.THESPORTSDB_API_KEY || '3';
     }
@@ -38,22 +26,8 @@ class TheSportsDBProvider extends BaseProvider {
         return 'thesportsdb';
     }
 
-    getLeagueConfig(league) {
-        // Check for config in providers array (preferred)
-        if (league.providers && Array.isArray(league.providers)) {
-            for (const providerConfig of league.providers) {
-                if (typeof providerConfig === 'object' && (providerConfig.theSportsDB || providerConfig.theSportsDBConfig)) {
-                    return providerConfig.theSportsDB || providerConfig.theSportsDBConfig;
-                }
-            }
-        }
-        
-        // DEPRECATED: Check for direct config (for backward compatibility)
-        if (league.theSportsDB || league.theSportsDBConfig) {
-            return league.theSportsDB || league.theSportsDBConfig;
-        }
-        
-        return null;
+    getConfigKey() {
+        return ['theSportsDB', 'theSportsDBConfig'];
     }
 
     async resolveTeam(league, teamIdentifier) {
@@ -134,11 +108,11 @@ class TheSportsDBProvider extends BaseProvider {
             const logoUrl = bestMatch.strBadge || bestMatch.strLogo;
             
             if ((!primaryColor || !alternateColor) && logoUrl) {
-                // Check cache first
+                // Check filesystem cache for previously extracted colors
                 const colorCacheKey = `colors_${bestMatch.idTeam}`;
-                const cachedColors = this.colorCache.get(colorCacheKey);
+                const cachedColors = fsCache.getJSON('thesportsdb-colors', colorCacheKey, this.CACHE_DURATION);
                 
-                if (cachedColors && Date.now() - cachedColors.timestamp < this.CACHE_DURATION) {
+                if (cachedColors) {
                     if (!primaryColor) primaryColor = cachedColors.primary;
                     if (!alternateColor) alternateColor = cachedColors.alternate;
                 } else {
@@ -148,11 +122,10 @@ class TheSportsDBProvider extends BaseProvider {
                         const extractedPrimary = extractedColors[0];
                         const extractedAlternate = extractedColors[1];
                         
-                        // Cache the extracted colors
-                        this.colorCache.set(colorCacheKey, {
+                        // Cache the extracted colors to filesystem
+                        fsCache.setJSON('thesportsdb-colors', colorCacheKey, {
                             primary: extractedPrimary,
-                            alternate: extractedAlternate,
-                            timestamp: Date.now()
+                            alternate: extractedAlternate
                         });
                         
                         if (!primaryColor) primaryColor = extractedPrimary;
@@ -229,8 +202,8 @@ class TheSportsDBProvider extends BaseProvider {
     }
 
     clearCache() {
-        this.teamCache.clear();
-        this.colorCache.clear();
+        fsCache.clearSubdir('thesportsdb');
+        fsCache.clearSubdir('thesportsdb-colors');
     }
 
     // ------------------------------------------------------------------------------
@@ -239,11 +212,11 @@ class TheSportsDBProvider extends BaseProvider {
 
     async fetchTeamData(league) {
         const cacheKey = `${league.shortName}_teams`;
-        const cached = this.teamCache.get(cacheKey);
 
-        // Return cached data if still valid
-        if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
-            return cached.data;
+        // Return cached data from filesystem if still valid
+        const cached = fsCache.getJSON('thesportsdb', cacheKey, this.CACHE_DURATION);
+        if (cached) {
+            return cached;
         }
 
         const theSportsDBConfig = this.getLeagueConfig(league);
@@ -271,11 +244,8 @@ class TheSportsDBProvider extends BaseProvider {
                 throw new Error(`No teams found for league: ${leagueName}`);
             }
             
-            // Cache the data
-            this.teamCache.set(cacheKey, {
-                data: teams,
-                timestamp: Date.now()
-            });
+            // Cache to filesystem
+            fsCache.setJSON('thesportsdb', cacheKey, teams);
             
             return teams;
         } catch (error) {
@@ -285,11 +255,11 @@ class TheSportsDBProvider extends BaseProvider {
 
     async fetchLeagueData(league) {
         const cacheKey = `${league.shortName}_league`;
-        const cached = this.teamCache.get(cacheKey);
 
-        // Return cached data if still valid
-        if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
-            return cached.data;
+        // Return cached data from filesystem if still valid
+        const cached = fsCache.getJSON('thesportsdb', cacheKey, this.CACHE_DURATION);
+        if (cached) {
+            return cached;
         }
 
         const theSportsDBConfig = this.getLeagueConfig(league);
@@ -311,11 +281,8 @@ class TheSportsDBProvider extends BaseProvider {
                 throw new Error('League not found');
             }
             
-            // Cache the data
-            this.teamCache.set(cacheKey, {
-                data: league,
-                timestamp: Date.now()
-            });
+            // Cache to filesystem
+            fsCache.setJSON('thesportsdb', cacheKey, league);
             
             return league;
         } catch (error) {
@@ -324,6 +291,9 @@ class TheSportsDBProvider extends BaseProvider {
     }
 }
 
-module.exports = TheSportsDBProvider;
+// Export singleton instance (ProviderManager and express.js share the same instance)
+const sharedInstance = new TheSportsDBProvider();
+module.exports = sharedInstance;
+module.exports.TheSportsDBProvider = TheSportsDBProvider;
 
 // ------------------------------------------------------------------------------
