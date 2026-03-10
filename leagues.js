@@ -15,6 +15,9 @@ const leaguesRaw = loadAndMergeJSON('leagues.json', 'json/leagues', 'leagues');
 // Leagues with an "env_var" property are only enabled if that environment variable is set to a truthy value
 const leagues = {};
 for (const key in leaguesRaw) {
+    // Skip section header comments (e.g. "__MAJOR_PROFESSIONAL_LEAGUES__")
+    if (key.startsWith('__') && key.endsWith('__')) continue;
+
     const league = leaguesRaw[key];
     
     // Check if league requires an environment variable to be enabled
