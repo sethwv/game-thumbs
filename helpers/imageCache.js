@@ -16,7 +16,6 @@ const CACHE_DIR = path.join(__dirname, '..', '.cache');
 // Set to 0 to disable caching
 const CACHE_HOURS = parseInt(process.env.IMAGE_CACHE_HOURS || '24', 10);
 const CACHE_ENABLED = CACHE_HOURS > 0;
-const MAX_CACHE_MAP_SIZE = 10000; // Prevent unbounded memory growth
 
 logger.info(`Image cache: ${CACHE_ENABLED ? `enabled (${CACHE_HOURS} hours)` : 'disabled'}`);
 
@@ -43,14 +42,16 @@ module.exports = { checkCacheMiddleware, addToCache, getCachedImage, cleanupExpi
 
 // ------------------------------------------------------------------------------
 
-// Store URL to checksum mapping in memory with LRU-like cleanup
-const urlToChecksumMap = new Map();
-
 // Track last cache cleanup to avoid checking on every request
 let lastCacheCleanup = Date.now();
 
+// Hash URL to a safe filesystem-friendly filename
+function urlHash(url) {
+    return crypto.createHash('md5').update(url).digest('hex');
+}
 
-// Add a file to cache based on image data checksum
+
+// Add a file to cache based on URL hash
 // this is not a middleware function
 function addToCache(req, res, body) {
     // Skip caching if disabled
@@ -58,29 +59,14 @@ function addToCache(req, res, body) {
         return;
     }
     
-    // Prevent unbounded memory growth
-    if (urlToChecksumMap.size >= MAX_CACHE_MAP_SIZE) {
-        // Remove oldest 10% of entries (LRU-like cleanup)
-        const entriesToRemove = Math.floor(MAX_CACHE_MAP_SIZE * 0.1);
-        const keys = Array.from(urlToChecksumMap.keys());
-        for (let i = 0; i < entriesToRemove; i++) {
-            urlToChecksumMap.delete(keys[i]);
-        }
-        logger.cache(`Cleared ${entriesToRemove} old entries from URL cache map to prevent memory leak`);
-    }
-    
-    // Generate checksum from image data
-    const imageChecksum = crypto.createHash('md5').update(body).digest('hex');
-    const cachePath = path.join(CACHE_DIR, imageChecksum + '.png');
-    
-    // Store the URL to checksum mapping
-    urlToChecksumMap.set(req.originalUrl, imageChecksum);
+    const hash = urlHash(req.originalUrl);
+    const cachePath = path.join(CACHE_DIR, hash + '.png');
     
     // Only write if file doesn't exist (avoid duplicate work)
     if (!fsSync.existsSync(cachePath)) {
         fsSync.writeFileSync(cachePath, body);
         logger.cache('New image cached', {
-            Checksum: imageChecksum,
+            Hash: hash,
             URL: req.originalUrl
         });
     }
@@ -89,16 +75,25 @@ function addToCache(req, res, body) {
 
 // Get cached image by URL (returns buffer or null)
 function getCachedImage(url) {
-    const checksum = urlToChecksumMap.get(url);
-    if (!checksum) return null;
+    const hash = urlHash(url);
+    const cachePath = path.join(CACHE_DIR, hash + '.png');
     
-    const cachePath = path.join(CACHE_DIR, checksum + '.png');
     if (fsSync.existsSync(cachePath)) {
+        // Check if the cached file has expired
+        try {
+            const stats = fsSync.statSync(cachePath);
+            const maxAge = CACHE_HOURS * 60 * 60 * 1000;
+            if (Date.now() - stats.mtimeMs > maxAge) {
+                // File expired, delete and return null
+                fsSync.unlinkSync(cachePath);
+                return null;
+            }
+        } catch {
+            return null;
+        }
         return fsSync.readFileSync(cachePath);
     }
     
-    // Checksum mapping exists but file doesn't, clean up
-    urlToChecksumMap.delete(url);
     return null;
 }
 
@@ -118,19 +113,14 @@ async function cleanupExpiredCache() {
             const filePath = path.join(CACHE_DIR, file);
             try {
                 const stats = await fs.stat(filePath);
+                // Only clean up .png files (not subdirectories)
+                if (!stats.isFile()) continue;
+                
                 const fileAge = now - stats.mtimeMs;
                 
                 if (fileAge > maxAge) {
                     await fs.unlink(filePath);
                     expiredCount++;
-                    
-                    // Clean up URL mappings that point to this checksum
-                    const checksum = file.replace('.png', '');
-                    for (const [url, cachedChecksum] of urlToChecksumMap.entries()) {
-                        if (cachedChecksum === checksum) {
-                            urlToChecksumMap.delete(url);
-                        }
-                    }
                 }
             } catch (err) {
                 // File might have been deleted, continue

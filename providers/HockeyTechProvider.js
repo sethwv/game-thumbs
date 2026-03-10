@@ -9,6 +9,7 @@ const BaseProvider = require('./BaseProvider');
 const { getTeamMatchScoreWithOverrides, generateSlug } = require('../helpers/teamUtils');
 const { extractDominantColors } = require('../helpers/colorUtils');
 const logger = require('../helpers/logger');
+const fsCache = require('../helpers/fsCache');
 
 // Custom error class for team not found errors
 class TeamNotFoundError extends Error {
@@ -26,9 +27,6 @@ class TeamNotFoundError extends Error {
 class HockeyTechProvider extends BaseProvider {
     constructor() {
         super();
-        this.teamCache = new Map();
-        this.colorCache = new Map();
-        this.configCache = new Map(); // Cache for extracted HockeyTech configs
         this.refreshTimers = new Map(); // Track scheduled config refreshes
         this.TEAM_CACHE_DURATION = 72 * 60 * 60 * 1000; // 72 hours
         this.CONFIG_CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days
@@ -137,8 +135,9 @@ class HockeyTechProvider extends BaseProvider {
 
             const team = bestMatch.team;
 
-            // Extract colors from logo if not cached
-            let colors = this.colorCache.get(team.team_logo_url);
+            // Extract colors from logo using filesystem cache
+            const colorCacheKey = `ht_${team.id}_${league.shortName}`;
+            let colors = fsCache.getJSON('colors', colorCacheKey);
             if (!colors) {
                 try {
                     const extractedColors = await extractDominantColors(team.team_logo_url, 2);
@@ -146,7 +145,7 @@ class HockeyTechProvider extends BaseProvider {
                         primary: extractedColors[0] || null,
                         secondary: extractedColors[1] || null
                     };
-                    this.colorCache.set(team.team_logo_url, colors);
+                    fsCache.setJSON('colors', colorCacheKey, colors);
                 } catch (colorError) {
                     logger.warn('Failed to extract colors from logo', {
                         team: team.name,
@@ -195,9 +194,8 @@ class HockeyTechProvider extends BaseProvider {
     }
 
     clearCache() {
-        this.teamCache.clear();
-        this.colorCache.clear();
-        this.configCache.clear();
+        fsCache.clearSubdir('hockeytech');
+        fsCache.clearSubdir('hockeytech-config');
         logger.info('HockeyTech provider cache cleared');
     }
 
@@ -251,11 +249,11 @@ class HockeyTechProvider extends BaseProvider {
 
     async fetchTeamData(league) {
         const cacheKey = `${league.shortName}_teams`;
-        const cached = this.teamCache.get(cacheKey);
 
-        // Return cached data if still valid
-        if (cached && Date.now() - cached.timestamp < this.TEAM_CACHE_DURATION) {
-            return cached.data;
+        // Return cached data from filesystem if still valid
+        const cached = fsCache.getJSON('hockeytech', cacheKey, this.TEAM_CACHE_DURATION);
+        if (cached) {
+            return cached;
         }
 
         const hockeyTechConfig = await this.getLeagueConfigAsync(league);
@@ -303,11 +301,8 @@ class HockeyTechProvider extends BaseProvider {
                 throw new Error(`No teams found for league: ${clientCode}`);
             }
             
-            // Cache the data
-            this.teamCache.set(cacheKey, {
-                data: teams,
-                timestamp: Date.now()
-            });
+            // Cache to filesystem
+            fsCache.setJSON('hockeytech', cacheKey, teams);
             
             return teams;
         } catch (error) {
@@ -326,13 +321,15 @@ class HockeyTechProvider extends BaseProvider {
      * @param {string} url - Website URL
      * @returns {Promise<Object>} Config with clientCode and apiKey
      */
-    async extractConfigFromWebsite(url) {
+    async extractConfigFromWebsite(url, forceRefresh = false) {
         const cacheKey = url.toLowerCase();
         
-        // Check memory cache first
-        const cached = this.configCache.get(cacheKey);
-        if (cached && Date.now() - cached.timestamp < this.CONFIG_CACHE_DURATION) {
-            return cached.config;
+        // Check filesystem cache first (skip when forcing refresh)
+        if (!forceRefresh) {
+            const cached = fsCache.getJSON('hockeytech-config', cacheKey, this.CONFIG_CACHE_DURATION);
+            if (cached) {
+                return cached;
+            }
         }
 
         try {
@@ -356,13 +353,8 @@ class HockeyTechProvider extends BaseProvider {
                 throw new Error('Could not extract clientCode or apiKey from website');
             }
 
-            // Cache the result in memory
-            const cacheEntry = {
-                config,
-                timestamp: Date.now()
-            };
-            
-            this.configCache.set(cacheKey, cacheEntry);
+            // Cache the result to filesystem
+            fsCache.setJSON('hockeytech-config', cacheKey, config);
 
             return config;
         } catch (error) {
@@ -473,10 +465,8 @@ class HockeyTechProvider extends BaseProvider {
         const timerId = setTimeout(async () => {
             logger.info('Auto-refreshing HockeyTech config', { url });
             try {
-                // Clear cache to force re-extraction
-                this.configCache.delete(cacheKey);
-                
-                const config = await this.extractConfigFromWebsite(url);
+                // Force re-extraction bypassing cache TTL
+                const config = await this.extractConfigFromWebsite(url, true);
                 
                 logger.info('Auto-refresh complete for HockeyTech config', {
                     url,
@@ -556,6 +546,9 @@ class HockeyTechProvider extends BaseProvider {
     }
 }
 
-module.exports = HockeyTechProvider;
+// Export singleton instance (ProviderManager and express.js share the same instance)
+const sharedInstance = new HockeyTechProvider();
+module.exports = sharedInstance;
+module.exports.HockeyTechProvider = HockeyTechProvider;
 
 // ------------------------------------------------------------------------------

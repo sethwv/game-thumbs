@@ -12,6 +12,7 @@ const { getTeamMatchScoreWithOverrides, findTeamByAlias, applyTeamOverrides } = 
 const { extractDominantColors } = require('../helpers/colorUtils');
 const { normalizeCompact } = require('../helpers/teamUtils');
 const logger = require('../helpers/logger');
+const fsCache = require('../helpers/fsCache');
 
 // Custom error class for team not found errors
 class TeamNotFoundError extends Error {
@@ -29,11 +30,8 @@ class TeamNotFoundError extends Error {
 class ESPNProvider extends BaseProvider {
     constructor() {
         super();
-        this.teamCache = new Map();
-        this.colorCache = new Map(); // Cache for extracted colors
         this.CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
         this.REQUEST_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '10000', 10); // 10 seconds
-        this.MAX_COLOR_CACHE_SIZE = 1000; // Prevent unbounded memory growth
         
         // Sport/League cache for unconfigured league fallback
         this.sportLeagueMap = new Map(); // Map<sport, Set<leagueSlug>>
@@ -207,35 +205,25 @@ class ESPNProvider extends BaseProvider {
             let alternateColor = teamObj.alternateColor ? `#${teamObj.alternateColor}` : null;
             
             if ((!primaryColor || !alternateColor) && logoUrl) {
-                // Check cache first
+                // Check filesystem cache for previously extracted colors
                 const colorCacheKey = `colors_${teamObj.id}`;
-                const cachedColors = this.colorCache.get(colorCacheKey);
+                const cachedColors = fsCache.getJSON('espn-colors', colorCacheKey, this.CACHE_DURATION);
                 
-                if (cachedColors && Date.now() - cachedColors.timestamp < this.CACHE_DURATION) {
+                if (cachedColors) {
                     // Use cached colors
                     if (!primaryColor) primaryColor = cachedColors.primary;
                     if (!alternateColor) alternateColor = cachedColors.alternate;
                 } else {
-                    // Prevent unbounded memory growth in color cache
-                    if (this.colorCache.size >= this.MAX_COLOR_CACHE_SIZE) {
-                        const entriesToRemove = Math.floor(this.MAX_COLOR_CACHE_SIZE * 0.1);
-                        const keys = Array.from(this.colorCache.keys());
-                        for (let i = 0; i < entriesToRemove; i++) {
-                            this.colorCache.delete(keys[i]);
-                        }
-                    }
-                    
                     // Extract colors from logo
                     try {
                         const extractedColors = await extractDominantColors(logoUrl, 2);
                         const extractedPrimary = extractedColors[0];
                         const extractedAlternate = extractedColors[1];
                         
-                        // Cache the extracted colors
-                        this.colorCache.set(colorCacheKey, {
+                        // Cache the extracted colors to filesystem
+                        fsCache.setJSON('espn-colors', colorCacheKey, {
                             primary: extractedPrimary,
-                            alternate: extractedAlternate,
-                            timestamp: Date.now()
+                            alternate: extractedAlternate
                         });
                         
                         if (!primaryColor) primaryColor = extractedPrimary;
@@ -322,8 +310,8 @@ class ESPNProvider extends BaseProvider {
     }
 
     clearCache() {
-        this.teamCache.clear();
-        this.colorCache.clear();
+        fsCache.clearSubdir('espn');
+        fsCache.clearSubdir('espn-colors');
     }
 
     // ------------------------------------------------------------------------------
@@ -556,11 +544,11 @@ class ESPNProvider extends BaseProvider {
 
     async fetchTeamData(league) {
         const cacheKey = `${league.shortName}_teams`;
-        const cached = this.teamCache.get(cacheKey);
 
-        // Return cached data if still valid
-        if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
-            return cached.data;
+        // Return cached data from filesystem if still valid
+        const cached = fsCache.getJSON('espn', cacheKey, this.CACHE_DURATION);
+        if (cached) {
+            return cached;
         }
 
         const espnConfig = this.getLeagueConfig(league);
@@ -578,11 +566,8 @@ class ESPNProvider extends BaseProvider {
             
             const teams = response.data.sports?.[0]?.leagues?.[0]?.teams || [];
             
-            // Cache the data
-            this.teamCache.set(cacheKey, {
-                data: teams,
-                timestamp: Date.now()
-            });
+            // Cache to filesystem
+            fsCache.setJSON('espn', cacheKey, teams);
             
             return teams;
         } catch (error) {
@@ -592,11 +577,11 @@ class ESPNProvider extends BaseProvider {
 
     async fetchLeagueData(league) {
         const cacheKey = `${league.shortName}_league`;
-        const cached = this.teamCache.get(cacheKey);
 
-        // Return cached data if still valid
-        if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
-            return cached.data;
+        // Return cached data from filesystem if still valid
+        const cached = fsCache.getJSON('espn', cacheKey, this.CACHE_DURATION);
+        if (cached) {
+            return cached;
         }
 
         const espnConfig = this.getLeagueConfig(league);
@@ -612,11 +597,8 @@ class ESPNProvider extends BaseProvider {
                 headers: { 'User-Agent': 'Mozilla/5.0' }
             });
             
-            // Cache the data
-            this.teamCache.set(cacheKey, {
-                data: response.data,
-                timestamp: Date.now()
-            });
+            // Cache to filesystem
+            fsCache.setJSON('espn', cacheKey, response.data);
             
             return response.data;
         } catch (error) {

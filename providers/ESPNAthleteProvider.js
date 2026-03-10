@@ -47,7 +47,6 @@ class AthleteNotFoundError extends Error {
 class ESPNAthleteProvider extends BaseProvider {
     constructor() {
         super();
-        this.athleteCache = new Map();
         this.CACHE_DURATION = 72 * 60 * 60 * 1000; // 72 hours
         this.REQUEST_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '10000', 10); // 10 seconds
         this.refreshIntervals = new Map(); // Track refresh intervals per league
@@ -290,7 +289,8 @@ class ESPNAthleteProvider extends BaseProvider {
     }
 
     clearCache() {
-        this.athleteCache.clear();
+        // Athlete data cached on filesystem in .cache/providers/
+        // Files managed by initializeCache/fetchAthleteData lifecycle
     }
 
     // Get cache file path for a given cache key
@@ -367,12 +367,6 @@ class ESPNAthleteProvider extends BaseProvider {
             const fileCache = await this.readCacheFile(cacheKey);
             
             if (fileCache) {
-                // Load into memory (even if expired)
-                this.athleteCache.set(cacheKey, { 
-                    data: fileCache.data, 
-                    timestamp: fileCache.timestamp 
-                });
-                
                 // Schedule refresh for this league
                 this.scheduleRefresh(league, espnConfig);
                 
@@ -444,7 +438,6 @@ class ESPNAthleteProvider extends BaseProvider {
                 await this.fetchAthleteData(league, espnConfig, true); // Force refresh
                 const duration = Date.now() - startTime;
                 logger.info(`Auto-refresh complete for ${league.shortName}`, {
-                    count: this.athleteCache.get(cacheKey)?.data?.length || 0,
                     duration: `${duration}ms`
                 });
             } catch (error) {
@@ -519,31 +512,23 @@ class ESPNAthleteProvider extends BaseProvider {
             ? `${league.shortName}_${espnSlug}_athletes`
             : `${league.shortName}_athletes`;
         
-        // Check memory cache first
-        const cached = this.athleteCache.get(cacheKey);
-        const isCacheFresh = cached && Date.now() - cached.timestamp < this.CACHE_DURATION;
+        // Check file cache
+        const cached = !forceRefresh ? await this.readCacheFile(cacheKey) : null;
+        const isCacheFresh = cached && !cached.isExpired;
         
-        if (!forceRefresh && isCacheFresh) {
+        if (isCacheFresh) {
             return cached.data;
         }
 
-        // Check file cache if not in memory
+        // Check file cache for stale data (can serve while refreshing)
         let staleData = null;
         if (!forceRefresh) {
+            if (cached && cached.isExpired) {
+                staleData = cached.data;
+            }
+        } else {
             const fileCache = await this.readCacheFile(cacheKey);
-            if (fileCache && !fileCache.isExpired) {
-                // Load fresh file cache into memory
-                this.athleteCache.set(cacheKey, { data: fileCache.data, timestamp: fileCache.timestamp });
-                // Only log in development or on first server start
-                if (process.env.NODE_ENV === 'development' || this.athleteCache.size <= 5) {
-                    logger.info('Loaded athlete cache from file', { 
-                        cacheKey, 
-                        count: fileCache.data.length 
-                    });
-                }
-                return fileCache.data;
-            } else if (fileCache && fileCache.isExpired) {
-                // Cache is expired but we can use it while fetching fresh data
+            if (fileCache) {
                 staleData = fileCache.data;
             }
         }
@@ -683,14 +668,8 @@ class ESPNAthleteProvider extends BaseProvider {
                 errorRate: finalStats.errorRate
             });
             
-            // Cache the data in memory
+            // Write to file cache
             const timestamp = Date.now();
-            this.athleteCache.set(cacheKey, {
-                data: allAthletes,
-                timestamp
-            });
-            
-            // Write to file cache (async, don't wait)
             this.writeCacheFile(cacheKey, allAthletes, timestamp);
             
             return allAthletes;
@@ -700,4 +679,7 @@ class ESPNAthleteProvider extends BaseProvider {
     }
 }
 
-module.exports = ESPNAthleteProvider;
+// Export singleton instance (ProviderManager and express.js share the same instance)
+const sharedInstance = new ESPNAthleteProvider();
+module.exports = sharedInstance;
+module.exports.ESPNAthleteProvider = ESPNAthleteProvider;

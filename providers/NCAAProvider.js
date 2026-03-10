@@ -9,6 +9,7 @@ const logger = require('../helpers/logger');
 const axios = require('axios');
 const { createCanvas, loadImage } = require('canvas');
 const { rasterizeLogo, extractPalette } = require('../helpers/svgUtils');
+const fsCache = require('../helpers/fsCache');
 
 const SPORTS = [
     'volleyball-women',
@@ -234,7 +235,6 @@ function matchTeamToTeam(teamIdentifier, teams) {
 class NCAAProvider extends BaseProvider {
     constructor() {
         super();
-        this.cache = new Map(); // Cache for converted logos
         this.poolInitPromise = null;
         this.teamsPoolExpiry = null; // TTL for teams pool cache
         this.teamsPoolTtlMs = TEAM_POOL_TTL_MS;
@@ -270,10 +270,12 @@ class NCAAProvider extends BaseProvider {
         const bgParam = darkBackground ? 'bgd' : 'bgl';
         const url = `https://www.ncaa.com/sites/default/files/images/logos/schools/${bgParam}/${schoolSlug}.svg`;
         
-        // Check cache
+        // Check filesystem cache
         const cacheKey = `${schoolSlug}-${bgParam}`;
-        if (this.cache.has(cacheKey)) {
-            return this.cache.get(cacheKey);
+        const cachedBuffer = fsCache.getBuffer('ncaa', cacheKey);
+        if (cachedBuffer) {
+            const cachedColors = fsCache.getJSON('ncaa', `${cacheKey}-colors`);
+            return { buffer: cachedBuffer, url, colors: cachedColors };
         }
 
         try {
@@ -287,16 +289,19 @@ class NCAAProvider extends BaseProvider {
             const svgBuffer = Buffer.from(response.data);
             const { pngBuffer, canvas } = await this.convertSvgToPng(svgBuffer);
             
-            const result = {
-                buffer: pngBuffer,
-                canvas: canvas,
-                url: url // Keep original URL for reference
-            };
+            // Extract colors before discarding the canvas (prevents C++ memory retention)
+            let colors = null;
+            try {
+                colors = extractPalette(canvas);
+            } catch {}
             
-            // Cache the result
-            this.cache.set(cacheKey, result);
+            // Cache only the PNG buffer and colors on filesystem (not the canvas)
+            fsCache.setBuffer('ncaa', cacheKey, pngBuffer);
+            if (colors) {
+                fsCache.setJSON('ncaa', `${cacheKey}-colors`, colors);
+            }
             
-            return result;
+            return { buffer: pngBuffer, url, colors };
         } catch (error) {
             // Suppress noisy logs for blocked/missing NCAA assets
             if (error.response?.status === 404 || error.response?.status === 403) {
@@ -414,18 +419,11 @@ class NCAAProvider extends BaseProvider {
         for (const schoolSlug of slugsToTry) {
             try {
                 // Fetch and convert logo
-                const { buffer, canvas, url } = await this.fetchAndConvertLogo(schoolSlug, false);
+                const { buffer, url, colors } = await this.fetchAndConvertLogo(schoolSlug, false);
                 
-                // Extract colors from canvas directly
-                let color = null;
-                let alternateColor = null;
-                try {
-                    const palette = extractPalette(canvas);
-                    color = palette.color;
-                    alternateColor = palette.alternateColor;
-                } catch (colorError) {
-                    // ignore palette failure
-                }
+                // Use pre-extracted colors (extracted during SVG conversion, cached on disk)
+                const color = colors?.color || null;
+                const alternateColor = colors?.alternateColor || null;
 
                 // Return standardized team object
                 return {
@@ -467,4 +465,7 @@ class NCAAProvider extends BaseProvider {
     }
 }
 
-module.exports = NCAAProvider;
+// Export singleton instance (ProviderManager and express.js share the same instance)
+const sharedInstance = new NCAAProvider();
+module.exports = sharedInstance;
+module.exports.NCAAProvider = NCAAProvider;

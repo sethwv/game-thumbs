@@ -10,6 +10,7 @@ const BaseProvider = require('./BaseProvider');
 const { findTeamByAlias, applyTeamOverrides } = require('../helpers/teamUtils');
 const { downloadImage } = require('../helpers/imageUtils');
 const logger = require('../helpers/logger');
+const fsCache = require('../helpers/fsCache');
 
 // Custom error class for team/country not found errors
 class TeamNotFoundError extends Error {
@@ -26,9 +27,6 @@ class TeamNotFoundError extends Error {
 class FlagCDNProvider extends BaseProvider {
     constructor() {
         super();
-        this.countriesCache = null;
-        this.cacheTimestamp = null;
-        this.colorCache = new Map();
         this.CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days
         this.REQUEST_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '10000', 10); // 10 seconds
         
@@ -75,10 +73,10 @@ class FlagCDNProvider extends BaseProvider {
      * Fetch country codes and names from flagcdn.com
      */
     async fetchCountries() {
-        // Return cached data if available and fresh
-        if (this.countriesCache && this.cacheTimestamp && 
-            Date.now() - this.cacheTimestamp < this.CACHE_DURATION) {
-            return this.countriesCache;
+        // Return cached data from filesystem if available and fresh
+        const cached = fsCache.getJSON('flagcdn', 'countries', this.CACHE_DURATION);
+        if (cached) {
+            return cached;
         }
 
         try {
@@ -89,17 +87,17 @@ class FlagCDNProvider extends BaseProvider {
                 }
             });
 
-            this.countriesCache = response.data;
-            this.cacheTimestamp = Date.now();
+            fsCache.setJSON('flagcdn', 'countries', response.data);
 
-            return this.countriesCache;
+            return response.data;
         } catch (error) {
             // If we have cached data, return it even if stale
-            if (this.countriesCache) {
+            const stale = fsCache.getJSON('flagcdn', 'countries');
+            if (stale) {
                 logger.warn('FlagCDN fetch failed, using stale cache', { 
                     error: error.message 
                 });
-                return this.countriesCache;
+                return stale;
             }
             throw this.handleHttpError(error, 'FlagCDN country list');
         }
@@ -403,11 +401,11 @@ class FlagCDNProvider extends BaseProvider {
             let primaryColor = null;
             let alternateColor = null;
             
-            // Check cache first
+            // Check filesystem cache for previously extracted colors
             const colorCacheKey = `colors_${bestCode}`;
-            const cachedColors = this.colorCache.get(colorCacheKey);
+            const cachedColors = fsCache.getJSON('flagcdn-colors', colorCacheKey, this.CACHE_DURATION);
             
-            if (cachedColors && Date.now() - cachedColors.timestamp < this.CACHE_DURATION) {
+            if (cachedColors) {
                 primaryColor = cachedColors.primary;
                 alternateColor = cachedColors.alternate;
             } else {
@@ -417,11 +415,10 @@ class FlagCDNProvider extends BaseProvider {
                     primaryColor = extractedColors[0];
                     alternateColor = extractedColors[1];
                     
-                    // Cache the extracted colors
-                    this.colorCache.set(colorCacheKey, {
+                    // Cache the extracted colors to filesystem
+                    fsCache.setJSON('flagcdn-colors', colorCacheKey, {
                         primary: primaryColor,
-                        alternate: alternateColor,
-                        timestamp: Date.now()
+                        alternate: alternateColor
                     });
                 } catch (error) {
                     logger.warn('Failed to extract colors from flag', { country: bestName, code: bestCode, error: error.message });
@@ -476,10 +473,12 @@ class FlagCDNProvider extends BaseProvider {
     }
 
     clearCache() {
-        this.countriesCache = null;
-        this.cacheTimestamp = null;
-        this.colorCache.clear();
+        fsCache.clearSubdir('flagcdn');
+        fsCache.clearSubdir('flagcdn-colors');
     }
 }
 
-module.exports = FlagCDNProvider;
+// Export singleton instance (ProviderManager and express.js share the same instance)
+const sharedInstance = new FlagCDNProvider();
+module.exports = sharedInstance;
+module.exports.FlagCDNProvider = FlagCDNProvider;

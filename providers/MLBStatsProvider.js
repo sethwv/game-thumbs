@@ -10,9 +10,9 @@ const BaseProvider = require('./BaseProvider');
 const { getTeamMatchScoreWithOverrides, generateSlug, findTeamByAlias, applyTeamOverrides } = require('../helpers/teamUtils');
 const { rasterizeLogo, extractPalette } = require('../helpers/svgUtils');
 const logger = require('../helpers/logger');
+const fsCache = require('../helpers/fsCache');
 
 const REQUEST_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '10000', 10);
-const MAX_LOGO_CACHE_SIZE = 300;
 
 // Custom error class for team not found errors
 class TeamNotFoundError extends Error {
@@ -30,8 +30,6 @@ class TeamNotFoundError extends Error {
 class MLBStatsProvider extends BaseProvider {
     constructor() {
         super();
-        this.teamCache = new Map();  // Map<cacheKey, {data, timestamp}>
-        this.logoCache = new Map();  // Map<teamId, {pngBase64, color, alternateColor, timestamp}>
         this.TEAM_CACHE_DURATION = 24 * 60 * 60 * 1000;     // 24 hours
         this.LOGO_CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days
         this.BASE_URL = 'https://statsapi.mlb.com/api/v1';
@@ -160,8 +158,8 @@ class MLBStatsProvider extends BaseProvider {
     }
 
     clearCache() {
-        this.teamCache.clear();
-        this.logoCache.clear();
+        fsCache.clearSubdir('mlbstats');
+        fsCache.clearSubdir('mlbstats-logos');
         logger.info('MLBStats provider cache cleared');
     }
 
@@ -209,10 +207,11 @@ class MLBStatsProvider extends BaseProvider {
      */
     async fetchTeamData(league) {
         const cacheKey = `${league.shortName}_teams`;
-        const cached = this.teamCache.get(cacheKey);
 
-        if (cached && Date.now() - cached.timestamp < this.TEAM_CACHE_DURATION) {
-            return cached.data;
+        // Return cached data from filesystem if still valid
+        const cached = fsCache.getJSON('mlbstats', cacheKey, this.TEAM_CACHE_DURATION);
+        if (cached) {
+            return cached;
         }
 
         const config = this.getLeagueConfig(league);
@@ -240,7 +239,7 @@ class MLBStatsProvider extends BaseProvider {
                     continue; // Try next season
                 }
 
-                this.teamCache.set(cacheKey, { data: teams, timestamp: Date.now() });
+                fsCache.setJSON('mlbstats', cacheKey, teams);
 
                 // Log if we had to fall back to a previous season
                 if (seasonParam !== seasonsToTry[0]) {
@@ -273,9 +272,9 @@ class MLBStatsProvider extends BaseProvider {
      * @returns {Promise<{pngBase64: string|null, color: string|null, alternateColor: string|null}>}
      */
     async fetchAndProcessLogo(teamId) {
-        // Check logo cache
-        const cached = this.logoCache.get(teamId);
-        if (cached && Date.now() - cached.timestamp < this.LOGO_CACHE_DURATION) {
+        // Check filesystem cache for logo data
+        const cached = fsCache.getJSON('mlbstats-logos', `logo_${teamId}`, this.LOGO_CACHE_DURATION);
+        if (cached) {
             return cached;
         }
 
@@ -295,30 +294,23 @@ class MLBStatsProvider extends BaseProvider {
                 svgUrl: svgUrl,
                 pngBase64: `data:image/png;base64,${pngBuffer.toString('base64')}`,
                 color: palette.color,
-                alternateColor: palette.alternateColor,
-                timestamp: Date.now()
+                alternateColor: palette.alternateColor
             };
 
-            // Evict oldest entries if cache is full
-            if (this.logoCache.size >= MAX_LOGO_CACHE_SIZE) {
-                const evictCount = Math.ceil(MAX_LOGO_CACHE_SIZE * 0.1);
-                const entries = Array.from(this.logoCache.entries())
-                    .sort((a, b) => a[1].timestamp - b[1].timestamp);
-                for (let i = 0; i < evictCount && i < entries.length; i++) {
-                    this.logoCache.delete(entries[i][0]);
-                }
-            }
-
-            this.logoCache.set(teamId, result);
+            // Cache to filesystem (no canvas retention)
+            fsCache.setJSON('mlbstats-logos', `logo_${teamId}`, result);
             return result;
         } catch (error) {
             logger.warn('Failed to fetch/process MLBStats logo', {
                 teamId,
                 error: error.message
             });
-            return { svgUrl: null, pngBase64: null, color: null, alternateColor: null, timestamp: Date.now() };
+            return { svgUrl: null, pngBase64: null, color: null, alternateColor: null };
         }
     }
 }
 
-module.exports = MLBStatsProvider;
+// Export singleton instance (ProviderManager and express.js share the same instance)
+const sharedInstance = new MLBStatsProvider();
+module.exports = sharedInstance;
+module.exports.MLBStatsProvider = MLBStatsProvider;
