@@ -30,7 +30,7 @@ services:
       # - ${CUSTOM_LEAGUES_DIR:-./custom-config/leagues}:/app/json/leagues:ro
       # - ${LOGS_DIR:-./logs}:/app/logs
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (r) => {let d='';r.on('data', (c) => d+=c);r.on('end', () => {if (r.statusCode !== 200) process.exit(1);const j=JSON.parse(d);process.exit(j.status==='ok'?0:1)})}).on('error', () => process.exit(1))"]
+      test: ["CMD-SHELL", "curl -sf http://localhost:${PORT:-3000}/health | grep -q '\"status\":\"ok\"'"]
       interval: 30s
       timeout: 5s
       start_period: 10s
