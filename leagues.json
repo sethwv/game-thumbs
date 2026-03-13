@@ -2202,7 +2202,24 @@
   "__DUMMY LEAGUES__": "===========================================",
   "F1": {
     "name": "Formula 1",
-    "providers": [],
+    "useSecondTeamColorsForBothSlots": true,
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4370",
+          "leagueName": "Formula 1"
+        }
+      },
+      {
+        "theSportsDBAthlete": {
+          "leagueId": "4370",
+          "leagueName": "Formula 1",
+          "sport": "Motorsport",
+          "portraitType": "strCartoon",
+          "extractColors": true
+        }
+      }
+    ],
     "logoUrl": "./assets/F1.png",
     "skipLogos": true
   },

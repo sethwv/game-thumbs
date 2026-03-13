@@ -113,6 +113,7 @@ module.exports = {
     // Winner effect utilities
     convertTeamToGreyscaleLoser,
     applyWinnerEffect,
+    applyLeagueMatchupColorRules,
 
     // Color utilities
     hexToRgb,
@@ -525,6 +526,9 @@ async function resolveSingleTeamWithFallback(providerManager, leagueObj, teamIde
             );
             
             if (teamWithLogo) {
+                if (!teamWithLogo.team.providerId) {
+                    teamWithLogo.team.providerId = teamWithLogo.provider.getProviderId();
+                }
                 logger.teamResolved(
                     teamWithLogo.provider.getProviderId(),
                     leagueObj.shortName,
@@ -573,6 +577,9 @@ async function resolveSingleTeamWithFallback(providerManager, leagueObj, teamIde
                             try {
                                 const fallbackTeam = await provider.resolveTeam(fallbackLeague, teamIdentifier);
                                 if (fallbackTeam && (fallbackTeam.logo || fallbackTeam.logoAlt)) {
+                                    if (!fallbackTeam.providerId) {
+                                        fallbackTeam.providerId = provider.getProviderId();
+                                    }
                                     // Log with fallback flag
                                     logger.teamResolved(
                                         provider.getProviderId(), 
@@ -1027,8 +1034,8 @@ async function selectBestLogo(team, backgroundColor) {
             return team.logo;
         }
 
-        // Check if this is an athlete (headshot + flag scenario)
-        const isAthlete = team.logo.includes('espncdn.com/i/headshots/');
+        // Check if this is an athlete (explicit flag or ESPN headshot + flag scenario)
+        const isAthlete = team.isAthlete === true || team.logo.includes('espncdn.com/i/headshots/');
         
         // Try to load primary logo first
         let primaryBuffer, primaryImage;
@@ -1313,6 +1320,67 @@ function getAverageColor(image) {
         g: Math.round(g / count),
         b: Math.round(b / count)
     };
+}
+
+/**
+ * Apply league-level matchup color rules.
+ *
+ * Supported league config flags (boolean or string "true"):
+ * - useSecondTeamColorsForBothSlots
+ * - useTeam2ColorsForBothSlots (alias)
+ *
+ * @param {Object} league - League configuration object
+ * @param {Object} team1 - Resolved team1 object
+ * @param {Object} team2 - Resolved team2 object
+ * @returns {{team1: Object, team2: Object}} Updated team objects
+ */
+function applyLeagueMatchupColorRules(league, team1, team2) {
+    const useSecondTeamColorsForBothSlots =
+        league?.useSecondTeamColorsForBothSlots === true ||
+        league?.useSecondTeamColorsForBothSlots === 'true' ||
+        league?.useTeam2ColorsForBothSlots === true ||
+        league?.useTeam2ColorsForBothSlots === 'true';
+
+    if (!useSecondTeamColorsForBothSlots) {
+        return { team1, team2 };
+    }
+
+    const clonedTeam1 = { ...team1 };
+    const clonedTeam2 = { ...team2 };
+    const team2Primary = clonedTeam2.color || clonedTeam1.color || '#000000';
+    const darkenedPrimary = darkenHexColor(team2Primary, 0.05);
+
+    clonedTeam1.color = darkenedPrimary;
+    clonedTeam1.alternateColor = darkenedPrimary;
+
+    clonedTeam2.color = darkenedPrimary;
+    clonedTeam2.alternateColor = darkenedPrimary;
+
+    return { team1: clonedTeam1, team2: clonedTeam2 };
+}
+
+function darkenHexColor(hex, amount = 0.15) {
+    if (typeof hex !== 'string') {
+        return hex;
+    }
+
+    const trimmed = hex.trim();
+    const match = /^#?([a-fA-F0-9]{6})$/.exec(trimmed);
+    if (!match) {
+        return hex;
+    }
+
+    const value = match[1];
+    const r = parseInt(value.slice(0, 2), 16);
+    const g = parseInt(value.slice(2, 4), 16);
+    const b = parseInt(value.slice(4, 6), 16);
+    const multiplier = Math.max(0, 1 - amount);
+
+    const darkenedR = Math.max(0, Math.min(255, Math.round(r * multiplier)));
+    const darkenedG = Math.max(0, Math.min(255, Math.round(g * multiplier)));
+    const darkenedB = Math.max(0, Math.min(255, Math.round(b * multiplier)));
+
+    return `#${darkenedR.toString(16).padStart(2, '0')}${darkenedG.toString(16).padStart(2, '0')}${darkenedB.toString(16).padStart(2, '0')}`;
 }
 
 /**

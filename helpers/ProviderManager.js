@@ -375,6 +375,7 @@ class ProviderManager {
         if (customTeamSlug) {
             const customTeam = await getCustomTeam(leagueKey, customTeamSlug);
             if (customTeam) {
+                customTeam.providerId = 'custom';
                 if (!suppressLogging) {
                     logger.teamResolved('custom', league.shortName, customTeam.name);
                 }
@@ -386,6 +387,7 @@ class ProviderManager {
         if (isCustomTeam(leagueKey, lowercaseIdentifier)) {
             const customTeam = await getCustomTeam(leagueKey, lowercaseIdentifier);
             if (customTeam) {
+                customTeam.providerId = 'custom';
                 if (!suppressLogging) {
                     logger.teamResolved('custom', league.shortName, customTeam.name);
                 }
@@ -397,6 +399,7 @@ class ProviderManager {
         if (isCustomTeam(leagueKey, teamIdentifier)) {
             const customTeam = await getCustomTeam(leagueKey, teamIdentifier);
             if (customTeam) {
+                customTeam.providerId = 'custom';
                 if (!suppressLogging) {
                     logger.teamResolved('custom', league.shortName, customTeam.name);
                 }
@@ -408,6 +411,7 @@ class ProviderManager {
         if (normalizedIdentifier !== lowercaseIdentifier && isCustomTeam(leagueKey, normalizedIdentifier)) {
             const customTeam = await getCustomTeam(leagueKey, normalizedIdentifier);
             if (customTeam) {
+                customTeam.providerId = 'custom';
                 if (!suppressLogging) {
                     logger.teamResolved('custom', league.shortName, customTeam.name);
                 }
@@ -429,6 +433,9 @@ class ProviderManager {
             const provider = providers[i];
             try {
                 const result = await provider.resolveTeam(league, teamIdentifier);
+                if (result && !result.providerId) {
+                    result.providerId = provider.getProviderId();
+                }
                 if (!suppressLogging) {
                     logger.teamResolved(provider.getProviderId(), league.shortName, result.fullName || result.name);
                 }

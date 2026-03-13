@@ -8,7 +8,7 @@
 
 const providerManager = require('../helpers/ProviderManager');
 const { generateLogo } = require('../generators/logoGenerator');
-const { downloadImage, resolveTeamsWithFallback, handleTeamNotFoundError, addBadgeOverlay, isValidBadge, applyWinnerEffect } = require('../helpers/imageUtils');
+const { downloadImage, resolveTeamsWithFallback, handleTeamNotFoundError, addBadgeOverlay, isValidBadge, applyWinnerEffect, applyLeagueMatchupColorRules } = require('../helpers/imageUtils');
 const { sendCachedOrGenerate, handleImageRouteError } = require('../helpers/routeUtils');
 const { getCachedImage, addToCache } = require('../helpers/imageCache');
 const { findLeague } = require('../leagues');
@@ -147,6 +147,13 @@ module.exports = {
                         return res.send(cached);
                     }
                 }
+
+                // Apply league-specific matchup color overrides after team resolution.
+                ({ team1: resolvedTeam1, team2: resolvedTeam2 } = applyLeagueMatchupColorRules(
+                    leagueObj,
+                    resolvedTeam1,
+                    resolvedTeam2
+                ));
 
                 // Apply winner effect if specified
                 if (winner && winner.trim() !== '') {

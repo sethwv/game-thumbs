@@ -85,6 +85,21 @@ Game Thumbs uses a modular provider architecture to fetch team and athlete data 
 - Team colors, logos, and basic information
 - 24-hour team data caching
 
+### TheSportsDB Athlete Provider
+
+**Leagues**: Individual/athlete-centric leagues (example: Formula 1 drivers)
+**Type**: Athlete-based sports
+**Features**:
+- Treats individual athletes as "teams" for thumbnail generation
+- Supports direct athlete lookup by player ID (e.g., `34164000`) or name
+- Optional league/sport filtering (`leagueId`, `leagueName`, `sport`) to reduce cross-league mismatches
+- Configurable portrait selection with `portraitType` or ordered `portraitPriority` (e.g., `cartoon` for F1)
+- Optional color extraction via `extractColors: true` to derive team colors from the selected portrait/logo
+- Strict constraint filtering prevents out-of-league athlete fallbacks when league/sport constraints are configured
+- Improved slug-name handling for athlete lookups (e.g., `lewis-hamilton`)
+- 24-hour request caching in `fsCache`
+- Supports `+` composite athlete syntax (same as ESPN athlete provider)
+
 ### HockeyTech Provider
 
 **Leagues**: PWHL, CHL, OHL, WHL
@@ -158,6 +173,7 @@ The system automatically infers which provider to use based on the configuration
 - `{ hockeytech: {...} }` → HockeyTech Provider
 - `{ mlbStats: {...} }` → MLBStats Provider
 - `{ espnAthlete: {...} }` → ESPN Athlete Provider
+- `{ theSportsDBAthlete: {...} }` → TheSportsDB Athlete Provider
 - `{ flagcdn: {...} }` → FlagCDN Provider
 
 No hardcoded provider lists to maintain!
@@ -258,6 +274,15 @@ When resolving a team, the system tries multiple approaches for optimal performa
 5. **Fallback League**: Falls back to a designated league (e.g., NCAA sports → Men's Basketball)
 6. **Greyscale League Logo**: If `fallback=true` parameter is set, uses greyscale league logo as placeholder
 7. **Ultimate Text Fallback**: If league logo fails, generates minimal single-letter placeholder on transparent background
+
+### League-Level Matchup Color Overrides
+
+Leagues can optionally force matchup backgrounds to use team 2's palette on both sides:
+
+- `useSecondTeamColorsForBothSlots: true`
+- Alias: `useTeam2ColorsForBothSlots: true`
+
+When enabled, both matchup slots use team 2's primary color darkened by about 15% for matchup rendering (`/thumb`, `/cover`, `/logo`).
 
 ### Custom Teams (No Provider Lookup)
 
