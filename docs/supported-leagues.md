@@ -60,7 +60,7 @@ nav_order: 4
 | Scottish League Two | `sl2` | TheSportsDB / ESPN | |
 | Scottish League Cup | `slcup` | TheSportsDB / ESPN | |
 | Major League Soccer | `mls` | ESPN | |
-| National Women's Soccer League | `nwsl` | TheSportsDB / ESPN | |
+| National Women's Soccer League | `nwsl` | ESPN | |
 | UEFA Champions League | `uefa` | ESPN | |
 | UEFA Women's Champions League | `uefa.wchampions` | ESPN | |
 | UEFA Europa League | `europa` | ESPN | |
