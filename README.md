@@ -31,7 +31,7 @@ GET http://localhost:3000/ncaa/football/alabama/georgia/thumb
 
 🏀 Multi-Sport • 🎨 Dynamic Generation • 🖼️ Multiple Styles • 💾 Smart Caching • 🎯 Flexible Matching • 🔧 Customizable
 
-**Supports:** NBA, WNBA, NFL, MLB, NHL, UFC, PFL, Bellator, Tennis (ATP/WTA with singles & doubles), EPL, MLS, UEFA, International/Olympics, 21+ NCAA sports, and more
+**Supports:** NBA, WNBA, NFL, MLB, NHL, UFC, PFL, Bellator, Tennis (ATP/WTA with singles & doubles), EPL, MLS, NWSL, UEFA, International/Olympics, 21+ NCAA sports, and more
 
 ## Documentation
 

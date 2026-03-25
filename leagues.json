@@ -782,6 +782,20 @@
       }
     ]
   },
+  "nwsl": {
+    "name": "National Women's Soccer League",
+    "aliases": [
+      "nwsl"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "usa.nwsl",
+          "espnSport": "soccer"
+        }
+      }
+    ]
+  },
   "championship": {
     "name": "EFL Championship",
     "aliases": [
