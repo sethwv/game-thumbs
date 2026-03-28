@@ -429,8 +429,9 @@ class ProviderManager {
             const provider = providers[i];
             try {
                 const result = await provider.resolveTeam(league, teamIdentifier);
+                result.providerId = provider.getProviderId();
                 if (!suppressLogging) {
-                    logger.teamResolved(provider.getProviderId(), league.shortName, result.fullName || result.name);
+                    logger.teamResolved(result.providerId, league.shortName, result.fullName || result.name);
                 }
                 return result;
             } catch (error) {
