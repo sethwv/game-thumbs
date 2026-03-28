@@ -1,10 +1,12 @@
 // ------------------------------------------------------------------------------
 // logger.js
 // Centralized logging utility with colored output and optional file logging
+// Supports request-scoped log batching to keep logs together and in order
 // ------------------------------------------------------------------------------
 
 const fs = require('fs');
 const path = require('path');
+const { AsyncLocalStorage } = require('async_hooks');
 
 let chalk;
 
@@ -12,6 +14,9 @@ let chalk;
 (async () => {
     chalk = (await import('chalk')).default;
 })();
+
+// Request-scoped log batching using AsyncLocalStorage
+const requestStorage = new AsyncLocalStorage();
 
 // Check if colors should be forced (for Docker/CI environments)
 const forceColor = process.env.FORCE_COLOR === '1' || process.env.FORCE_COLOR === 'true';
@@ -111,6 +116,28 @@ function timestamp() {
 // Format timestamp for file (always included)
 function fileTimestamp() {
     return new Date().toISOString();
+}
+
+// Condense a user-agent string to a short identifier
+const UA_PATTERNS = [
+    /^(curl\/[\d.]+)/i,
+    /^(PostmanRuntime\/[\d.]+)/i,
+    /^(axios\/[\d.]+)/i,
+    /(Chrome\/[\d.]+)/,
+    /(Firefox\/[\d.]+)/,
+    /(Safari\/[\d.]+)/,
+    /(Edge\/[\d.]+)/,
+    /(Opera\/[\d.]+)/,
+    /(OPR\/[\d.]+)/,
+];
+
+function condenseUserAgent(rawUserAgent) {
+    if (rawUserAgent.length <= 80) return rawUserAgent;
+    for (const pattern of UA_PATTERNS) {
+        const match = rawUserAgent.match(pattern);
+        if (match) return match[1];
+    }
+    return rawUserAgent.substring(0, 77) + '...';
 }
 
 // Strip ANSI color codes from text
@@ -218,41 +245,51 @@ function log(level, message, details = null, error = null) {
     const { color, prefix } = levels[level] || levels.info;
     const prefixStr = color(`[${prefix}]`);
     const ts = timestamp();
-    
+
     const logMessage = `${ts}${ts ? ' ' : ''}${prefixStr} ${message}`;
-    console.log(logMessage);
-    
-    // Check if we should show details in console (based on environment and level)
-    const isDevelopment = process.env.NODE_ENV === 'development';
-    const showDetailsInConsole = isDevelopment;
-    
-    // Write to file with separate formatting (always includes all details + stack)
-    writeToFile(prefixStr, message, details, error);
-    
-    if (details) {
-        if (typeof details === 'object' && !Array.isArray(details)) {
-            Object.entries(details).forEach(([key, value]) => {
-                const detailLine = `       ${colors.gray('│')} ${colors.dim(key)}: ${value}`;
-                // Only show in console if development or not an error
+
+    // Check if we're in a request context and should batch logs
+    const requestContext = requestStorage.getStore();
+    const shouldBatch = requestContext && requestContext.batchLogs;
+
+    if (shouldBatch) {
+        // Buffer log for later output
+        requestContext.logBuffer.push({ logMessage, details, error, level });
+    } else {
+        // Immediate output (normal behavior)
+        console.log(logMessage);
+
+        // Check if we should show details in console (based on environment and level)
+        const isDevelopment = process.env.NODE_ENV === 'development';
+        const showDetailsInConsole = isDevelopment;
+
+        if (details) {
+            if (typeof details === 'object' && !Array.isArray(details)) {
+                Object.entries(details).forEach(([key, value]) => {
+                    const detailLine = `       ${colors.gray('│')} ${colors.dim(key)}: ${value}`;
+                    if (showDetailsInConsole) {
+                        console.log(detailLine);
+                    }
+                });
+            } else {
+                const detailLine = `       ${colors.gray('│')} ${details}`;
                 if (showDetailsInConsole) {
                     console.log(detailLine);
                 }
-            });
-        } else {
-            const detailLine = `       ${colors.gray('│')} ${details}`;
-            if (showDetailsInConsole) {
-                console.log(detailLine);
             }
         }
+
+        // Show stack trace in console only in development mode
+        if (error && error.stack && isDevelopment) {
+            const stackLines = error.stack.split('\n');
+            stackLines.forEach(line => {
+                console.log(`       ${colors.gray('│')} ${colors.dim(line.trim())}`);
+            });
+        }
     }
-    
-    // Show stack trace in console only in development mode
-    if (error && error.stack && isDevelopment) {
-        const stackLines = error.stack.split('\n');
-        stackLines.forEach(line => {
-            console.log(`       ${colors.gray('│')} ${colors.dim(line.trim())}`);
-        });
-    }
+
+    // Write to file with separate formatting (always includes all details + stack)
+    writeToFile(prefixStr, message, details, error);
 }
 
 // Convenience methods
@@ -267,21 +304,37 @@ const logger = {
     
     // Team resolution logger
     teamResolved: (providerName, leagueName, teamName, isFallback = false) => {
-        const label = isFallback 
-            ? `${colors.yellow('Team found in fallback')}` 
+        const label = isFallback
+            ? `${colors.yellow('Team found in fallback')}`
             : `${colors.green('Team found')}`;
-        console.log(`       ${colors.gray('│')} ${label}: ${providerName} ${colors.dim('-')} ${leagueName} ${colors.dim('-')} ${teamName}`);
-        
+        const message = `       ${colors.gray('│')} ${label}: ${providerName} ${colors.dim('-')} ${leagueName} ${colors.dim('-')} ${teamName}`;
+
+        // Check if we're in a request context and should batch logs
+        const requestContext = requestStorage.getStore();
+        if (requestContext && requestContext.batchLogs) {
+            requestContext.logBuffer.push({ logMessage: message, details: null, error: null, level: 'info' });
+        } else {
+            console.log(message);
+        }
+
         // Write to file
         if (LOG_TO_FILE) {
             const fileLabel = isFallback ? 'Team found in fallback' : 'Team found';
             writeToFile('[INFO]', `${fileLabel}: ${providerName} - ${leagueName} - ${teamName}`);
         }
     },
-    
+
     // Team not found logger (greyscale placeholder)
     teamNotFound: (teamIdentifier, leagueName) => {
-        console.log(`       ${colors.gray('│')} ${colors.yellow('Team not found')}: ${leagueName} ${colors.dim('-')} ${teamIdentifier}`);
+        const message = `       ${colors.gray('│')} ${colors.yellow('Team not found')}: ${leagueName} ${colors.dim('-')} ${teamIdentifier}`;
+
+        // Check if we're in a request context and should batch logs
+        const requestContext = requestStorage.getStore();
+        if (requestContext && requestContext.batchLogs) {
+            requestContext.logBuffer.push({ logMessage: message, details: null, error: null, level: 'warn' });
+        } else {
+            console.log(message);
+        }
 
         // Write to file
         if (LOG_TO_FILE) {
@@ -291,7 +344,15 @@ const logger = {
 
     // Winner effect logger
     winnerApplied: (winnerIdentifier, loserName) => {
-        console.log(`       ${colors.gray('│')} ${colors.cyan('Winner')}: ${winnerIdentifier} ${colors.dim('>')} ${loserName}`);
+        const message = `       ${colors.gray('│')} ${colors.cyan('Winner')}: ${winnerIdentifier} ${colors.dim('>')} ${loserName}`;
+
+        // Check if we're in a request context and should batch logs
+        const requestContext = requestStorage.getStore();
+        if (requestContext && requestContext.batchLogs) {
+            requestContext.logBuffer.push({ logMessage: message, details: null, error: null, level: 'info' });
+        } else {
+            console.log(message);
+        }
 
         // Write to file
         if (LOG_TO_FILE) {
@@ -301,8 +362,16 @@ const logger = {
 
     // Unconfigured league fallback logger
     unconfiguredLeague: (providerName, leagueName, sport) => {
-        console.log(`       ${colors.gray('│')} ${colors.dim('Unconfigured league fallback')}: ${providerName} ${colors.dim('-')} ${leagueName} ${colors.dim('(')}${sport}${colors.dim(')')}`);
-        
+        const message = `       ${colors.gray('│')} ${colors.dim('Unconfigured league fallback')}: ${providerName} ${colors.dim('-')} ${leagueName} ${colors.dim('(')}${sport}${colors.dim(')')}`;
+
+        // Check if we're in a request context and should batch logs
+        const requestContext = requestStorage.getStore();
+        if (requestContext && requestContext.batchLogs) {
+            requestContext.logBuffer.push({ logMessage: message, details: null, error: null, level: 'info' });
+        } else {
+            console.log(message);
+        }
+
         // Write to file
         if (LOG_TO_FILE) {
             writeToFile('[INFO]', `Unconfigured league fallback: ${providerName} - ${leagueName} (${sport})`);
@@ -310,81 +379,142 @@ const logger = {
     },
     
     // Special request logger
-    request: (req, cached = false) => {
+    request: (req, cached = false, isError = false) => {
         const method = colors.bold(req.method);
         const url = req.url;
         const ip = req.headers['x-real-ip'] || req.ip;
-        const rawUserAgent = req.headers['user-agent'] || 'Unknown';
-        
-        // Condense user agent: extract browser/client and version, or truncate
-        let userAgent = rawUserAgent;
-        if (rawUserAgent.length > 80) {
-            // Try to extract meaningful parts (browser/client name)
-            const patterns = [
-                /^(curl\/[\d.]+)/i,
-                /^(PostmanRuntime\/[\d.]+)/i,
-                /^(axios\/[\d.]+)/i,
-                /(Chrome\/[\d.]+)/,
-                /(Firefox\/[\d.]+)/,
-                /(Safari\/[\d.]+)/,
-                /(Edge\/[\d.]+)/,
-                /(Opera\/[\d.]+)/,
-                /(OPR\/[\d.]+)/,
-            ];
-            
-            for (const pattern of patterns) {
-                const match = rawUserAgent.match(pattern);
-                if (match) {
-                    userAgent = match[1];
-                    break;
-                }
-            }
-            
-            // If no pattern matched, just truncate
-            if (userAgent === rawUserAgent) {
-                userAgent = rawUserAgent.substring(0, 77) + '...';
-            }
-        }
-        
-        const status = cached ? colors.cyan('[CACHED]') : colors.green('[OK]');
-        const statusPlain = cached ? '[CACHED]' : '[OK]';
+        const userAgent = condenseUserAgent(req.headers['user-agent'] || 'Unknown');
+
+        const status = isError ? colors.red('[ERROR]') : cached ? colors.cyan('[CACHED]') : colors.green('[OK]');
+        const statusPlain = isError ? '[ERROR]' : cached ? '[CACHED]' : '[OK]';
         const ts = timestamp();
-        
-        // Build the entire log message as a single string to prevent interleaving
+
+        // Check if we're in a request context and should batch logs
+        const requestContext = requestStorage.getStore();
+        if (requestContext && requestContext.batchLogs) {
+            // In batching mode, already logged header in requestStart, just add status
+            const statusMessage = `       ${colors.gray('│')} ${colors.dim('Status')}: ${status}`;
+            requestContext.logBuffer.push({ logMessage: statusMessage, details: null, error: null, level: 'api' });
+
+            // Write to file
+            writeToFile('[API]', `Status: ${statusPlain}`);
+        } else {
+            // Not in batching mode - log full request (legacy behavior)
+            const logMessage = [
+                `${ts}${ts ? ' ' : ''}${colors.gray('[API]')} ${method} ${url} ${status}`,
+                `       ${colors.gray('│')} ${colors.dim('IP')}: ${ip}`,
+                `       ${colors.gray('│')} ${colors.dim('User-Agent')}: ${userAgent}`
+            ].join('\n');
+
+            console.log(logMessage);
+
+            // Write to file with timestamp and details
+            writeToFile('[API]', `${stripColors(method)} ${url} ${statusPlain}`, {
+                IP: ip,
+                'User-Agent': userAgent
+            });
+        }
+    },
+    // Log incoming request (called at request start, not batched)
+    requestStart: (req) => {
+        const method = colors.bold(req.method);
+        const url = req.url;
+        const ip = req.headers['x-real-ip'] || req.ip;
+        const userAgent = condenseUserAgent(req.headers['user-agent'] || 'Unknown');
+
+        const ts = timestamp();
+
+        // Always log immediately (not batched)
         const logMessage = [
-            `${ts}${ts ? ' ' : ''}${colors.gray('[API]')} ${method} ${url} ${status}`,
+            `${ts}${ts ? ' ' : ''}${colors.gray('[API]')} ${method} ${url}`,
             `       ${colors.gray('│')} ${colors.dim('IP')}: ${ip}`,
             `       ${colors.gray('│')} ${colors.dim('User-Agent')}: ${userAgent}`
         ].join('\n');
-        
+
         console.log(logMessage);
-        
-        // Write to file with timestamp and details
-        writeToFile('[API]', `${stripColors(method)} ${url} ${statusPlain}`, {
+
+        // Write to file
+        writeToFile('[API]', `${stripColors(method)} ${url}`, {
             IP: ip,
             'User-Agent': userAgent
         });
     },
+
     
     // Special startup message
     startup: (message) => {
         const line = '═'.repeat(60);
-        const startupMessage = '\n' + colors.blue(colors.bold(line)) + '\n' + 
-                               colors.blue(colors.bold(`  ${message}`)) + '\n' + 
+        const startupMessage = '\n' + colors.blue(colors.bold(line)) + '\n' +
+                               colors.blue(colors.bold(`  ${message}`)) + '\n' +
                                colors.blue(colors.bold(line)) + '\n';
         console.log(startupMessage);
-        
+
         // Write to file (startup messages as INFO)
         writeToFile('[INFO]', `${'═'.repeat(60)}`);
         writeToFile('[INFO]', message);
         writeToFile('[INFO]', `${'═'.repeat(60)}`);
-        
+
         // Log file logging status (console only, show only once)
         if (LOG_TO_FILE && !fileLoggingStatusShown) {
             const fileInfo = `File logging enabled: ${currentLogFile} (rotate at ${Math.round(LOG_ROTATION_SIZE / 1024)}KB)`;
             logger.info(fileInfo);
             fileLoggingStatusShown = true;
         }
+    },
+
+    // Request-scoped log batching methods
+    startRequestBatching: (requestId) => {
+        const context = {
+            requestId,
+            batchLogs: true,
+            logBuffer: []
+        };
+        return context;
+    },
+
+    endRequestBatching: () => {
+        const requestContext = requestStorage.getStore();
+        if (!requestContext || !requestContext.batchLogs) {
+            return;
+        }
+
+        // Flush all buffered logs in order
+        const isDevelopment = process.env.NODE_ENV === 'development';
+        const showDetailsInConsole = isDevelopment;
+
+        for (const entry of requestContext.logBuffer) {
+            console.log(entry.logMessage);
+
+            if (entry.details) {
+                if (typeof entry.details === 'object' && !Array.isArray(entry.details)) {
+                    Object.entries(entry.details).forEach(([key, value]) => {
+                        const detailLine = `       ${colors.gray('│')} ${colors.dim(key)}: ${value}`;
+                        if (showDetailsInConsole) {
+                            console.log(detailLine);
+                        }
+                    });
+                } else {
+                    const detailLine = `       ${colors.gray('│')} ${entry.details}`;
+                    if (showDetailsInConsole) {
+                        console.log(detailLine);
+                    }
+                }
+            }
+
+            if (entry.error && entry.error.stack && isDevelopment) {
+                const stackLines = entry.error.stack.split('\n');
+                stackLines.forEach(line => {
+                    console.log(`       ${colors.gray('│')} ${colors.dim(line.trim())}`);
+                });
+            }
+        }
+
+        // Clear buffer
+        requestContext.logBuffer = [];
+    },
+
+    runWithRequestContext: (context, fn) => {
+        return requestStorage.run(context, fn);
     }
 };
 

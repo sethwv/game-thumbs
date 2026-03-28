@@ -61,6 +61,49 @@ class BaseProvider {
     }
 
     /**
+     * Get provider-specific config key(s) to look for in league.providers[].
+     * Override this to return the string key or array of keys for your provider.
+     * e.g. return 'espn' or ['hockeyTech', 'hockeyTechConfig']
+     * @returns {string|string[]} Config key(s) for this provider
+     */
+    getConfigKey() {
+        return this.getProviderId();
+    }
+
+    /**
+     * Extract this provider's config from a league's providers array.
+     * Uses getConfigKey() to know which key to look for.
+     * Also checks for deprecated direct config on the league object.
+     * @param {Object} league - League object
+     * @returns {Object|null} Provider-specific config or null
+     */
+    getLeagueConfig(league) {
+        const keys = [].concat(this.getConfigKey());
+
+        // Preferred: check providers array
+        if (league.providers && Array.isArray(league.providers)) {
+            for (const providerConfig of league.providers) {
+                if (typeof providerConfig === 'object') {
+                    for (const key of keys) {
+                        if (providerConfig[key]) {
+                            return providerConfig[key];
+                        }
+                    }
+                }
+            }
+        }
+
+        // DEPRECATED: direct config on league object (backward compatibility)
+        for (const key of keys) {
+            if (league[key]) {
+                return league[key];
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Clear any caches maintained by this provider
      */
     clearCache() {

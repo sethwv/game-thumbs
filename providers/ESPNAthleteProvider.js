@@ -26,30 +26,17 @@ const BaseProvider = require('./BaseProvider');
 const { getTeamMatchScoreWithOverrides } = require('../helpers/teamUtils');
 const logger = require('../helpers/logger');
 const RequestQueue = require('../helpers/RequestQueue');
+const { TeamNotFoundError } = require('../helpers/errors');
+const { REQUEST_TIMEOUT } = require('../helpers/requestConfig');
 
 // Track if we've logged queue initialization (prevent duplicate logs)
 let queueInitLogged = false;
 
-class AthleteNotFoundError extends Error {
-    constructor(athleteIdentifier, league, athleteList) {
-        const athleteNames = athleteList.map(a => a.displayName || a.fullName).slice(0, 20).join(', ');
-        const moreCount = Math.max(0, athleteList.length - 20);
-        const moreText = moreCount > 0 ? ` ... and ${moreCount} more` : '';
-        super(`Athlete not found: '${athleteIdentifier}' in ${league.shortName.toUpperCase()}. Available athletes (showing first 20): ${athleteNames}${moreText}`);
-        this.name = 'AthleteNotFoundError';
-        this.athleteIdentifier = athleteIdentifier;
-        this.league = league.shortName;
-        this.availableAthletes = athleteList;
-        this.athleteCount = athleteList.length;
-    }
-}
-
 class ESPNAthleteProvider extends BaseProvider {
     constructor() {
         super();
-        this.athleteCache = new Map();
         this.CACHE_DURATION = 72 * 60 * 60 * 1000; // 72 hours
-        this.REQUEST_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '10000', 10); // 10 seconds
+        this.REQUEST_TIMEOUT = REQUEST_TIMEOUT;
         this.refreshIntervals = new Map(); // Track refresh intervals per league
         this.pendingFetches = new Map(); // Track in-progress fetches to prevent duplicates
         this.CACHE_DIR = path.join(process.cwd(), '.cache', 'providers');
@@ -98,15 +85,8 @@ class ESPNAthleteProvider extends BaseProvider {
         return palette[Math.floor(Math.random() * palette.length)];
     }
 
-    getLeagueConfig(league) {
-        if (league.providers && Array.isArray(league.providers)) {
-            for (const providerConfig of league.providers) {
-                if (typeof providerConfig === 'object' && providerConfig.espnAthlete) {
-                    return providerConfig.espnAthlete;
-                }
-            }
-        }
-        return null;
+    getConfigKey() {
+        return 'espnAthlete';
     }
 
     // Get all ESPN Athlete provider configs for a league (supports multiple providers)
@@ -200,7 +180,7 @@ class ESPNAthleteProvider extends BaseProvider {
                     lastName: athlete.lastName
                 })).sort((a, b) => a.displayName.localeCompare(b.displayName));
 
-                throw new AthleteNotFoundError(athleteIdentifier, league, athleteList);
+                throw new TeamNotFoundError(athleteIdentifier, league, athleteList);
             }
 
             // Get athlete headshot from API or construct sport-specific URL
@@ -241,7 +221,7 @@ class ESPNAthleteProvider extends BaseProvider {
             const { applyTeamOverrides } = require('../helpers/teamUtils');
             return applyTeamOverrides(athleteData, league.shortName.toLowerCase(), bestMatch.slug);
         } catch (error) {
-            if (error instanceof AthleteNotFoundError) {
+            if (error.name === 'TeamNotFoundError') {
                 throw error;
             }
             throw new Error(`Failed to resolve athlete: ${error.message}`);
@@ -290,7 +270,8 @@ class ESPNAthleteProvider extends BaseProvider {
     }
 
     clearCache() {
-        this.athleteCache.clear();
+        // Athlete data cached on filesystem in .cache/providers/
+        // Files managed by initializeCache/fetchAthleteData lifecycle
     }
 
     // Get cache file path for a given cache key
@@ -367,12 +348,6 @@ class ESPNAthleteProvider extends BaseProvider {
             const fileCache = await this.readCacheFile(cacheKey);
             
             if (fileCache) {
-                // Load into memory (even if expired)
-                this.athleteCache.set(cacheKey, { 
-                    data: fileCache.data, 
-                    timestamp: fileCache.timestamp 
-                });
-                
                 // Schedule refresh for this league
                 this.scheduleRefresh(league, espnConfig);
                 
@@ -444,7 +419,6 @@ class ESPNAthleteProvider extends BaseProvider {
                 await this.fetchAthleteData(league, espnConfig, true); // Force refresh
                 const duration = Date.now() - startTime;
                 logger.info(`Auto-refresh complete for ${league.shortName}`, {
-                    count: this.athleteCache.get(cacheKey)?.data?.length || 0,
                     duration: `${duration}ms`
                 });
             } catch (error) {
@@ -519,31 +493,23 @@ class ESPNAthleteProvider extends BaseProvider {
             ? `${league.shortName}_${espnSlug}_athletes`
             : `${league.shortName}_athletes`;
         
-        // Check memory cache first
-        const cached = this.athleteCache.get(cacheKey);
-        const isCacheFresh = cached && Date.now() - cached.timestamp < this.CACHE_DURATION;
+        // Check file cache
+        const cached = !forceRefresh ? await this.readCacheFile(cacheKey) : null;
+        const isCacheFresh = cached && !cached.isExpired;
         
-        if (!forceRefresh && isCacheFresh) {
+        if (isCacheFresh) {
             return cached.data;
         }
 
-        // Check file cache if not in memory
+        // Check file cache for stale data (can serve while refreshing)
         let staleData = null;
         if (!forceRefresh) {
+            if (cached && cached.isExpired) {
+                staleData = cached.data;
+            }
+        } else {
             const fileCache = await this.readCacheFile(cacheKey);
-            if (fileCache && !fileCache.isExpired) {
-                // Load fresh file cache into memory
-                this.athleteCache.set(cacheKey, { data: fileCache.data, timestamp: fileCache.timestamp });
-                // Only log in development or on first server start
-                if (process.env.NODE_ENV === 'development' || this.athleteCache.size <= 5) {
-                    logger.info('Loaded athlete cache from file', { 
-                        cacheKey, 
-                        count: fileCache.data.length 
-                    });
-                }
-                return fileCache.data;
-            } else if (fileCache && fileCache.isExpired) {
-                // Cache is expired but we can use it while fetching fresh data
+            if (fileCache) {
                 staleData = fileCache.data;
             }
         }
@@ -683,14 +649,8 @@ class ESPNAthleteProvider extends BaseProvider {
                 errorRate: finalStats.errorRate
             });
             
-            // Cache the data in memory
+            // Write to file cache
             const timestamp = Date.now();
-            this.athleteCache.set(cacheKey, {
-                data: allAthletes,
-                timestamp
-            });
-            
-            // Write to file cache (async, don't wait)
             this.writeCacheFile(cacheKey, allAthletes, timestamp);
             
             return allAthletes;
@@ -700,4 +660,7 @@ class ESPNAthleteProvider extends BaseProvider {
     }
 }
 
-module.exports = ESPNAthleteProvider;
+// Export singleton instance (ProviderManager and express.js share the same instance)
+const sharedInstance = new ESPNAthleteProvider();
+module.exports = sharedInstance;
+module.exports.ESPNAthleteProvider = ESPNAthleteProvider;

@@ -604,6 +604,25 @@ function findBestTeamMatch(input, teams) {
 }
 
 // ------------------------------------------------------------------------------
+// Team display name extraction
+// ------------------------------------------------------------------------------
+
+/**
+ * Extract a display name from a team object across all provider formats.
+ * If the input is already a string, returns it as-is.
+ * @param {Object|string} team - Team object or string
+ * @returns {string|null} Display name or null if not extractable
+ */
+function getTeamDisplayName(team) {
+    if (typeof team === 'string') return team;
+    let name = team.shortDisplayName || team.displayName || team.fullName || team.name || team.strTeam;
+    if (!name && team.city && team.nickname) {
+        name = `${team.city} ${team.nickname}`;
+    }
+    return name || null;
+}
+
+// ------------------------------------------------------------------------------
 // Exports
 // ------------------------------------------------------------------------------
 
@@ -632,7 +651,10 @@ module.exports = {
     // Custom teams
     isCustomTeam,
     getCustomTeam,
-    findCustomTeamByAlias
+    findCustomTeamByAlias,
+
+    // Display name extraction
+    getTeamDisplayName
 };
 
 // ------------------------------------------------------------------------------

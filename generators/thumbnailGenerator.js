@@ -7,7 +7,8 @@ const { createCanvas, loadImage } = require('canvas');
 const { 
     drawLogoWithShadow, 
     drawLogoMaintainAspect,
-    downloadImage, 
+    downloadImage,
+    downloadImageWithSvgSupport, 
     selectBestLogo,
     adjustColors,
     colorDistance,
@@ -213,7 +214,7 @@ async function generateSplit(teamA, teamB, width, height, league, orientation) {
     // Draw league logo in bottom right corner if league logo URL is provided
     if (league && league.logoUrl) {
         try {
-            let leagueLogoBuffer = await downloadImage(league.logoUrl);
+            let leagueLogoBuffer = await downloadImageWithSvgSupport(league.logoUrl);
             leagueLogoBuffer = await trimImage(leagueLogoBuffer, league.logoUrl);
             const leagueLogo = await loadImage(leagueLogoBuffer);
             const leagueLogoSize = Math.min(width, height) * 0.25;
@@ -289,7 +290,7 @@ async function generateGradient(teamA, teamB, width, height, league, orientation
     // Draw league logo in the center if league logo URL is provided
     if (league && league.logoUrl) {
         try {
-            let leagueLogoBuffer = await downloadImage(league.logoUrl);
+            let leagueLogoBuffer = await downloadImageWithSvgSupport(league.logoUrl);
             leagueLogoBuffer = await trimImage(leagueLogoBuffer, league.logoUrl);
             const leagueLogo = await loadImage(leagueLogoBuffer);
             const leagueLogoSize = Math.min(width, height) * 0.25;
@@ -422,7 +423,7 @@ async function generateGrid(teamA, teamB, width, height, league, orientation, us
     // Draw league logo in the center if league logo URL is provided
     if (league && league.logoUrl) {
         try {
-            let leagueLogoBuffer = await downloadImage(league.logoUrl);
+            let leagueLogoBuffer = await downloadImageWithSvgSupport(league.logoUrl);
             leagueLogoBuffer = await trimImage(leagueLogoBuffer, league.logoUrl);
             const leagueLogo = await loadImage(leagueLogoBuffer);
             const leagueLogoSize = Math.min(width, height) * 0.25;
@@ -577,7 +578,7 @@ async function generateMinimalist(teamA, teamB, width, height, league, orientati
     // Draw league logo at bottom if league logo URL is provided
     if (league && league.logoUrl) {
         try {
-            let leagueLogoBuffer = await downloadImage(league.logoUrl);
+            let leagueLogoBuffer = await downloadImageWithSvgSupport(league.logoUrl);
             leagueLogoBuffer = await trimImage(leagueLogoBuffer, league.logoUrl);
             const leagueLogo = await loadImage(leagueLogoBuffer);
             // Smaller logo for portrait orientation
@@ -826,7 +827,7 @@ async function generate3DEmbossed(teamA, teamB, width, height, league, orientati
     // Style 98: Add league logo
     if (showLeagueLogo && league && league.logoUrl) {
         try {
-            let leagueLogoBuffer = await downloadImage(league.logoUrl);
+            let leagueLogoBuffer = await downloadImageWithSvgSupport(league.logoUrl);
             leagueLogoBuffer = await trimImage(leagueLogoBuffer, league.logoUrl);
             const leagueLogoImg = await loadImage(leagueLogoBuffer);
 

@@ -4,8 +4,7 @@
 
 const axios = require('axios');
 const { createCanvas, loadImage } = require('canvas');
-
-const REQUEST_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '10000', 10);
+const { REQUEST_TIMEOUT } = require('./requestConfig');
 
 /**
  * Fetch image from URL

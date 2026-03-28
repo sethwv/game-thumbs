@@ -27,6 +27,7 @@ RUN apt-get update \
     libgif-dev \
     librsvg2-dev \
     fonts-dejavu-core \
+    curl \
     git \
  && yarn install --frozen-lockfile --network-timeout 100000 \
  && apt-get purge -y --auto-remove build-essential \
@@ -51,7 +52,7 @@ ENV APP_MODE=standard
 
 # Add health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD node -e "require('http').get('http://localhost:3000/health', (r) => {let d='';r.on('data', (c) => d+=c);r.on('end', () => {if (r.statusCode !== 200) process.exit(1);const j=JSON.parse(d);process.exit(j.status==='ok'?0:1)})}).on('error', () => process.exit(1))"
+    CMD curl -sf http://localhost:${PORT}/health | grep -q '"status":"ok"'
 
 # Start the application based on APP_MODE
 # APP_MODE=standard (default) - runs full game-thumbs API

@@ -4,7 +4,7 @@
 // ------------------------------------------------------------------------------
 
 const { createCanvas, loadImage } = require('canvas');
-const { drawLogoWithShadow, downloadImage, selectBestLogo, adjustColors, trimImage } = require('../helpers/imageUtils');
+const { drawLogoWithShadow, downloadImage, downloadImageWithSvgSupport, selectBestLogo, adjustColors, trimImage } = require('../helpers/imageUtils');
 const logger = require('../helpers/logger');
 
 module.exports = {
@@ -65,7 +65,7 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league, useLig
     
     const { colorA, colorB } = adjustColors(teamA, teamB);
     
-    // Handle skipLogos flag for Olympics fallback
+    // Handle skipLogos flag for team resolution fallback
     if (teamA.skipLogos || teamB.skipLogos) {
         // Just draw the colored rectangle without team logos
         const centerX = width / 2;
@@ -121,7 +121,7 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league, useLig
         if (league && league.logoUrl) {
             try {
                 const leagueLogoUrl = league.logoUrl || league.logoUrlAlt;
-                let leagueLogoBuffer = await downloadImage(leagueLogoUrl);
+                let leagueLogoBuffer = await downloadImageWithSvgSupport(leagueLogoUrl);
                 leagueLogoBuffer = await trimImage(leagueLogoBuffer, leagueLogoUrl);
                 const leagueLogo = await loadImage(leagueLogoBuffer);
                 
@@ -261,7 +261,7 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league, useLig
     if (league && league.logoUrl) {
         try {
             const leagueLogoUrl = league.logoUrl || league.logoUrlAlt;
-            let leagueLogoBuffer = await downloadImage(leagueLogoUrl);
+            let leagueLogoBuffer = await downloadImageWithSvgSupport(leagueLogoUrl);
             leagueLogoBuffer = await trimImage(leagueLogoBuffer, leagueLogoUrl);
             const leagueLogo = await loadImage(leagueLogoBuffer);
             
@@ -381,7 +381,7 @@ async function generateSideBySide(teamA, teamB, width, height, league, useLight)
     // Draw league logo as a badge in the bottom center if league logo URL is provided
     if (league && league.logoUrl) {
         try {
-            let leagueLogoBuffer = await downloadImage(league.logoUrl);
+            let leagueLogoBuffer = await downloadImageWithSvgSupport(league.logoUrl);
             leagueLogoBuffer = await trimImage(leagueLogoBuffer, league.logoUrl);
             const leagueLogo = await loadImage(leagueLogoBuffer);
             
@@ -536,7 +536,7 @@ async function generateCircleBadges(teamA, teamB, width, height, league, useLigh
     // Draw league logo at bottom center if league logo URL is provided
     if (league && league.logoUrl) {
         try {
-            let leagueLogoBuffer = await downloadImage(league.logoUrl);
+            let leagueLogoBuffer = await downloadImageWithSvgSupport(league.logoUrl);
             leagueLogoBuffer = await trimImage(leagueLogoBuffer, leagueLogoUrl || league.logoUrl);
             const leagueLogo = await loadImage(leagueLogoBuffer);
             
@@ -687,7 +687,7 @@ async function generateSquareBadges(teamA, teamB, width, height, league, useLigh
     // Draw league logo at bottom center if league logo URL is provided
     if (league && league.logoUrl) {
         try {
-            let leagueLogoBuffer = await downloadImage(league.logoUrl);
+            let leagueLogoBuffer = await downloadImageWithSvgSupport(league.logoUrl);
             leagueLogoBuffer = await trimImage(leagueLogoBuffer, leagueLogoUrl || league.logoUrl);
             const leagueLogo = await loadImage(leagueLogoBuffer);
             
@@ -774,7 +774,7 @@ async function generateCircleBadgesWithLeague(teamA, teamB, width, height, leagu
         throw new Error('League logo is required for style 5');
     }
     
-    let leagueLogoBuffer = await downloadImage(leagueLogoUrl);
+    let leagueLogoBuffer = await downloadImageWithSvgSupport(leagueLogoUrl);
     leagueLogoBuffer = await trimImage(leagueLogoBuffer, leagueLogoUrl || league.logoUrl);
     const leagueLogo = await loadImage(leagueLogoBuffer);
     
@@ -900,7 +900,7 @@ async function generateSquareBadgesWithLeague(teamA, teamB, width, height, leagu
         throw new Error('League logo is required for style 6');
     }
     
-    let leagueLogoBuffer = await downloadImage(leagueLogoUrl);
+    let leagueLogoBuffer = await downloadImageWithSvgSupport(leagueLogoUrl);
     leagueLogoBuffer = await trimImage(leagueLogoBuffer, leagueLogoUrl || league.logoUrl);
     const leagueLogo = await loadImage(leagueLogoBuffer);
     

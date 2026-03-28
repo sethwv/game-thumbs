@@ -6,6 +6,7 @@
 const providerManager = require('../helpers/ProviderManager');
 const { findLeague } = require('../leagues');
 const { downloadImage } = require('../helpers/imageUtils');
+const { sendCachedOrGenerate, handleImageRouteError } = require('../helpers/routeUtils');
 const logger = require('../helpers/logger');
 
 module.exports = {
@@ -50,33 +51,9 @@ module.exports = {
             const logoBuffer = await downloadImage(leagueLogoUrl);
 
             // Send successful response
-            res.set('Content-Type', 'image/png');
-            res.send(logoBuffer);
-
-            // Cache successful result (don't let caching errors affect the response)
-            try {
-                require('../helpers/imageCache').addToCache(req, res, logoBuffer);
-            } catch (cacheError) {
-                logger.error('Failed to cache image', {
-                    Error: cacheError.message,
-                    URL: req.url
-                });
-            }
+            sendCachedOrGenerate(req, res, logoBuffer);
         } catch (error) {
-            const errorDetails = {
-                Error: error.message,
-                League: league,
-                URL: req.url,
-                IP: req.ip
-            };
-
-            // Logger will handle stack trace automatically (file: always, console: dev only)
-            logger.error('League logo fetch failed', errorDetails, error);
-
-            // Only send error response if headers haven't been sent yet
-            if (!res.headersSent) {
-                res.status(400).json({ error: error.message });
-            }
+            handleImageRouteError(error, req, res, 'League logo fetch failed');
         }
     }
 };

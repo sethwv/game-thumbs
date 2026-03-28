@@ -11,6 +11,7 @@ const providerManager = require('../helpers/ProviderManager');
 const { generateCover } = require('../generators/thumbnailGenerator');
 const { generateLeagueCover, generateTeamCover } = require('../generators/genericImageGenerator');
 const { resolveTeamsWithFallback, handleTeamNotFoundError, addBadgeOverlay, isValidBadge, applyWinnerEffect } = require('../helpers/imageUtils');
+const { sendCachedOrGenerate, handleImageRouteError } = require('../helpers/routeUtils');
 const { getCachedImage, addToCache } = require('../helpers/imageCache');
 const { findLeague } = require('../leagues');
 const logger = require('../helpers/logger');
@@ -124,9 +125,20 @@ module.exports = {
                     leagueObj,
                     team1,
                     team2,
-                    fallback === 'true',
+                    fallback === 'true' || !!leagueObj.skipLogos,
                     leagueLogoUrl
                 );
+
+                // For skipLogos fallback, normalize cache key since team params are irrelevant
+                if (resolvedTeam1.skipLogos || resolvedTeam2.skipLogos) {
+                    req.originalUrl = req.originalUrl.replace(`/${team1}/${team2}/`, '/_/_/');
+                    const cached = getCachedImage(req.originalUrl);
+                    if (cached) {
+                        req._servedFromRouteCache = true;
+                        res.set('Content-Type', 'image/png');
+                        return res.send(cached);
+                    }
+                }
 
                 // Apply winner effect if specified
                 if (winner && winner.trim() !== '') {
@@ -190,45 +202,9 @@ module.exports = {
             }
             
             // Send successful response
-            res.set('Content-Type', 'image/png');
-            res.send(buffer);
-            
-            // Cache successful result (don't let caching errors affect the response)
-            try {
-                addToCache(req, res, buffer);
-            } catch (cacheError) {
-                logger.error('Failed to cache image', {
-                    Error: cacheError.message,
-                    URL: req.url
-                });
-            }
+            sendCachedOrGenerate(req, res, buffer);
         } catch (error) {
-            const errorDetails = {
-                Error: error.message,
-                League: league,
-                URL: req.url,
-                IP: req.ip
-            };
-
-            if (team1 && team2) {
-                errorDetails.Teams = `${team1} vs ${team2}`;
-            } else if (team1) {
-                errorDetails.Team = team1;
-            }
-
-            // For TeamNotFoundError, use a cleaner console message
-            if (error.name === 'TeamNotFoundError') {
-                errorDetails.Error = `Team not found: '${error.teamIdentifier}' in ${error.league}`;
-                errorDetails['Available Teams'] = `${error.teamCount} teams available`;
-            }
-
-            // Logger will handle stack trace automatically (file: always, console: dev only)
-            logger.error('Cover generation failed', errorDetails, error);
-
-            // Only send error response if headers haven't been sent yet
-            if (!res.headersSent) {
-                res.status(400).json({ error: error.message });
-            }
+            handleImageRouteError(error, req, res, 'Cover generation failed');
         }
     }
 };

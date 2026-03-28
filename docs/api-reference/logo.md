@@ -37,7 +37,7 @@ nav_order: 6
 | `trim` | boolean | true | Trim whitespace (matchup only) |
 | `badge` | string | - | Add quality badge overlay: `ALT`, `4K`, `HD`, `FHD`, or `UHD` (matchup only) |
 | `winner` | string | - | Winning team identifier - displays losing team in greyscale (matchup only) |
-| `fallback` | boolean | false | **Single team:** Return league logo. **Matchup:** Use greyscale league logo for missing teams |
+| `fallback` | boolean | false | **Single team:** Return league logo. **Matchup:** Use greyscale league logo for missing teams (or skipLogos mode for configured leagues) |
 
 ---
 
@@ -123,6 +123,16 @@ If one or both teams are not found, uses greyscale league logo for missing teams
 |---------|---------|----------|
 | `/nhl/leafs/invalidteam/logo?fallback=true&style=2` | [![Matchup Fallback](https://game-thumbs.swvn.io/nhl/leafs/invalidteam/logo?fallback=true&style=2)](https://game-thumbs.swvn.io/nhl/leafs/invalidteam/logo?fallback=true&style=2) | Valid team + greyscale NHL logo |
 | `/mlb/invalidteam1/invalidteam2/logo?fallback=true&style=3` | [![Both Teams Fallback](https://game-thumbs.swvn.io/mlb/invalidteam1/invalidteam2/logo?fallback=true&style=3)](https://game-thumbs.swvn.io/mlb/invalidteam1/invalidteam2/logo?fallback=true&style=3) | Both sides use greyscale MLB logo |
+
+#### skipLogos Fallback
+
+Leagues configured with `skipLogos: true` (e.g., Olympics, F1, NASCAR, IndyCar) use a different fallback style. Instead of greyscale logos, the matchup renders colored rectangles with the league logo centered. The background color is automatically derived from the league logo's dominant color.
+
+| Request | Preview | Behavior |
+|---------|---------|----------|
+| `/f1/any/any/logo?fallback=true` | [![F1 Fallback](https://game-thumbs.swvn.io/f1/any/any/logo?fallback=true)](https://game-thumbs.swvn.io/f1/any/any/logo?fallback=true) | Mood-colored rectangles + F1 league logo |
+
+See [Customization → skipLogos Mode](../customization.html#skiplogosnbspmode) for how to enable this on custom leagues.
 
 ### Winner Effect
 

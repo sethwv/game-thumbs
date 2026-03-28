@@ -7,6 +7,7 @@
 const providerManager = require('../helpers/ProviderManager');
 const { findLeague } = require('../leagues');
 const { generateLeagueThumb } = require('../generators/genericImageGenerator');
+const { sendCachedOrGenerate, handleImageRouteError } = require('../helpers/routeUtils');
 const logger = require('../helpers/logger');
 
 module.exports = {
@@ -45,33 +46,9 @@ module.exports = {
             });
 
             // Send successful response
-            res.set('Content-Type', 'image/png');
-            res.send(thumbnailBuffer);
-
-            // Cache successful result (don't let caching errors affect the response)
-            try {
-                require('../helpers/imageCache').addToCache(req, res, thumbnailBuffer);
-            } catch (cacheError) {
-                logger.error('Failed to cache image', {
-                    Error: cacheError.message,
-                    URL: req.url
-                });
-            }
+            sendCachedOrGenerate(req, res, thumbnailBuffer);
         } catch (error) {
-            const errorDetails = {
-                Error: error.message,
-                League: league,
-                URL: req.url,
-                IP: req.ip
-            };
-
-            // Logger will handle stack trace automatically (file: always, console: dev only)
-            logger.error('League thumbnail generation failed', errorDetails, error);
-
-            // Only send error response if headers haven't been sent yet
-            if (!res.headersSent) {
-                res.status(400).json({ error: error.message });
-            }
+            handleImageRouteError(error, req, res, 'League thumbnail generation failed');
         }
     }
 };
