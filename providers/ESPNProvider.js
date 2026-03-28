@@ -80,7 +80,9 @@ class ESPNProvider extends BaseProvider {
                     teamSlug = teamSlug?.replace(/_/g, '-');
 
                     // Fast-path: compare compact input to slug variants (handles missing "state/st")
-                    if (teamSlug) {
+                    // Exact slug match scores 1000; startsWith scores 800 (lower priority so a
+                    // more-specific exact match elsewhere can still beat it)
+                    if (teamSlug && bestScore < 1000) {
                         const compactSlug = teamSlug.replace(/[^a-z0-9]/g, '');
                         const slugWithoutState = teamSlug
                             .replace(/-?state\b/gi, '')
@@ -89,15 +91,17 @@ class ESPNProvider extends BaseProvider {
                             .replace(/^-|-$/g, '');
                         const compactSlugNoState = slugWithoutState.replace(/[^a-z0-9]/g, '');
 
-                        if (
-                            compactInput === compactSlug ||
-                            compactInput === compactSlugNoState ||
-                            compactInput.startsWith(compactSlug) ||
-                            compactInput.startsWith(compactSlugNoState)
-                        ) {
+                        if (compactInput === compactSlug || compactInput === compactSlugNoState) {
                             bestMatch = team;
                             bestScore = 1000;
                             continue;
+                        }
+                        if (bestScore < 800 && (
+                            compactInput.startsWith(compactSlug) ||
+                            compactInput.startsWith(compactSlugNoState)
+                        )) {
+                            bestScore = 800;
+                            bestMatch = team;
                         }
                     }
 
@@ -110,15 +114,20 @@ class ESPNProvider extends BaseProvider {
                         .replace(/st\.$/g, '');
                     const compactCityNick = compactCity + compactNick;
                     const compactCityNickNoState = cityNoState + compactNick;
-                    if (
+                    if (bestScore < 1000 && (
                         compactInput === compactCityNick ||
-                        compactInput === compactCityNickNoState ||
-                        compactInput.startsWith(compactCityNick) ||
-                        compactInput.startsWith(compactCityNickNoState)
-                    ) {
+                        compactInput === compactCityNickNoState
+                    )) {
                         bestMatch = team;
                         bestScore = 1000;
                         continue;
+                    }
+                    if (bestScore < 800 && (
+                        compactInput.startsWith(compactCityNick) ||
+                        compactInput.startsWith(compactCityNickNoState)
+                    )) {
+                        bestScore = 800;
+                        bestMatch = team;
                     }
                     
                     const standardizedTeam = {
