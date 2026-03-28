@@ -36,3 +36,5 @@ test/output/*
 .DS_Store
 Thumbs.db
 .github/copilot-instructions.md
+CHANGELOG.md
+HIGHLIGHTS.md
