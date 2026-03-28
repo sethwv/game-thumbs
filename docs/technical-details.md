@@ -17,7 +17,7 @@ nav_order: 6
 
 ## Architecture Overview
 
-Game Thumbs is a Node.js Express application that dynamically generates sports matchup thumbnails and logos using team and athlete data from multiple providers (ESPN, TheSportsDB, HockeyTech).
+Game Thumbs is a Node.js Express application that dynamically generates sports matchup thumbnails and logos using team and athlete data from multiple providers (ESPN, TheSportsDB, HockeyTech, MLBStats).
 
 ### Key Components
 
@@ -87,13 +87,27 @@ Game Thumbs uses a modular provider architecture to fetch team and athlete data 
 
 ### HockeyTech Provider
 
-**Leagues**: PWHL, CHL, OHL, WHL  
-**Type**: Team-based sports (hockey)  
+**Leagues**: PWHL, CHL, OHL, WHL
+**Type**: Team-based sports (hockey)
 **Features**:
 - Official provider for Canadian hockey leagues
 - Real-time roster data
 - High-quality team information
 - 24-hour team data caching
+
+### MLBStats Provider
+
+**Leagues**: MiLB (Triple-A, Double-A, High-A, Single-A), Winter Leagues, Independent Leagues, KBO
+**Type**: Team-based sports (baseball)
+**API**: `statsapi.mlb.com/api/v1`
+**Features**:
+- Free MLB StatsAPI — no API key required
+- Covers all MiLB levels and international baseball leagues tracked by MLB
+- SVG logos rasterized to PNG via `svgUtils`
+- Automatic color extraction from team logos
+- Season fallback: tries current year, then previous two years
+- 24-hour team data caching, 7-day logo caching
+- Configurable via `sportId` in league config
 
 ### FlagCDN Provider
 
@@ -142,6 +156,7 @@ The system automatically infers which provider to use based on the configuration
 - `{ espn: {...} }` → ESPN Provider
 - `{ theSportsDB: {...} }` → TheSportsDB Provider
 - `{ hockeytech: {...} }` → HockeyTech Provider
+- `{ mlbStats: {...} }` → MLBStats Provider
 - `{ espnAthlete: {...} }` → ESPN Athlete Provider
 - `{ flagcdn: {...} }` → FlagCDN Provider
 

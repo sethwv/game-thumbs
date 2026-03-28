@@ -13,6 +13,7 @@ const app = express();
 let server = null; // Store server instance for graceful shutdown
 let espnAthleteProvider = null; // Store ESPN athlete provider instance for cleanup
 let hockeyTechProvider = null; // Store HockeyTech provider instance for cleanup
+let mlbStatsProvider = null; // Store MLBStats provider instance for cleanup
 
 module.exports = { init };
 
@@ -96,6 +97,24 @@ function init(port) {
         next();
     });
 
+        // Enable request-scoped log batching for image generation endpoints
+    app.use((req, res, next) => {
+        const isImageEndpoint = ['thumb', 'logo', 'cover', 'teamlogo', 'leaguelogo', 'leaguethumb', 'leaguecover'].some(path => req.path.includes(path));
+
+        if (isImageEndpoint) {
+            // Log incoming request immediately (not batched)
+            logger.requestStart(req);
+
+            const requestId = `${req.method}-${req.url}-${Date.now()}`;
+            const context = logger.startRequestBatching(requestId);
+
+            // Run the rest of the request in this context
+            return logger.runWithRequestContext(context, () => next());
+        } else {
+            next();
+        }
+    });
+
     // Rate limiting configuration
     const RATE_LIMIT_PER_MINUTE = parseInt(process.env.RATE_LIMIT_PER_MINUTE || '30', 10);
     const RATE_LIMIT_ENABLED = RATE_LIMIT_PER_MINUTE > 0;
@@ -157,9 +176,17 @@ function init(port) {
 
     // Log all requests that make it past rate limiting and cache
     app.use((req, res, next) => {
-        // Only log if not already served from cache and not a health check
-        if (!res.headersSent && req.path !== '/health') {
-            logger.request(req, false);
+        if (req.path !== '/health') {
+            res.on('finish', () => {
+                // Skip if already logged (e.g., by cache middleware)
+                if (!req._logged) {
+                    const cached = !!req._servedFromRouteCache;
+                    const isError = res.statusCode >= 400;
+                    logger.request(req, cached, isError);
+                }
+                // Flush batched logs after request logging
+                logger.endRequestBatching();
+            });
         }
         next();
     });
@@ -255,8 +282,7 @@ function init(port) {
         Promise.all([
             (async () => {
                 try {
-                    const ESPNAthleteProvider = require('./providers/ESPNAthleteProvider');
-                    espnAthleteProvider = new ESPNAthleteProvider();
+                    espnAthleteProvider = require('./providers/ESPNAthleteProvider');
                     await espnAthleteProvider.initializeCache();
                 } catch (error) {
                     logger.error('Failed to initialize ESPN Athlete cache', { error: error.message });
@@ -264,11 +290,18 @@ function init(port) {
             })(),
             (async () => {
                 try {
-                    const HockeyTechProvider = require('./providers/HockeyTechProvider');
-                    hockeyTechProvider = new HockeyTechProvider();
+                    hockeyTechProvider = require('./providers/HockeyTechProvider');
                     await hockeyTechProvider.initializeCache();
                 } catch (error) {
                     logger.error('Failed to initialize HockeyTech config cache', { error: error.message });
+                }
+            })(),
+            (async () => {
+                try {
+                    mlbStatsProvider = require('./providers/MLBStatsProvider');
+                    await mlbStatsProvider.initializeCache();
+                } catch (error) {
+                    logger.error('Failed to initialize MLBStats cache', { error: error.message });
                 }
             })(),
             (async () => {

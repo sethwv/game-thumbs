@@ -31,6 +31,7 @@ nav_order: 4
 | National Lacrosse League | `nll` | ESPN | |
 | Professional Women's Hockey League | `pwhl` | HockeyTech | |
 | US Hockey League | `ushl` | HockeyTech | |
+| Korean Baseball Organization | `kbo` | MLBStats | |
 | UK Elite Ice Hockey League | `eihl` | TheSportsDB | |
 | Canadian Football League | `cfl` | TheSportsDB | |
 | English Premier League | `epl` | TheSportsDB / ESPN | Championship, League One, League Two, National League, National League South, National League North |
@@ -84,6 +85,13 @@ nav_order: 4
 
 | League Name | Code | Provider | Feeder Leagues |
 |-------------|------|----------|----------------|
+| Minor League Baseball | `milb` | MLBStats | milb-aaa, milb-aa, milb-high-a, milb-a |
+| Triple-A Baseball | `milb-aaa` | MLBStats | |
+| Double-A Baseball | `milb-aa` | MLBStats | |
+| High-A Baseball | `milb-high-a` | MLBStats | |
+| Single-A Baseball | `milb-a` | MLBStats | |
+| Winter Leagues | `milb-winter` | MLBStats | |
+| Independent League Baseball | `milb-independent` | MLBStats | |
 | Canadian Hockey League | `chl` | Local Logo Only | OHL, WHL, QMJHL |
 | Ontario Hockey League | `ohl` | HockeyTech / TheSportsDB | CHL |
 | Western Hockey League | `whl` | HockeyTech / TheSportsDB | CHL |
@@ -302,6 +310,9 @@ GET /bchl/penticton-vees/trail-smoke-eaters/thumb
 GET /echl/adirondack-thunder/worcester-railers/cover
 GET /epl/manchester-united/chelsea/thumb
 GET /mls/lafc/galaxy/cover
+GET /milb/durham-bulls/norfolk-tides/thumb
+GET /milb-aaa/sugar-land/round-rock/logo
+GET /kbo/samsung-lions/kia-tigers/cover
 ```
 
 ### NCAA Leagues (Direct)
@@ -393,6 +404,24 @@ The provider type is automatically inferred from the config field (`theSportsDB`
 ```
 
 The provider type is automatically inferred from the config field (`flagcdn` = FlagCDN provider).
+
+**MLBStats Provider (MiLB / International Baseball):**
+```javascript
+{
+  "shortName": "milb-aaa",
+  "name": "Triple-A Baseball",
+  "logoUrl": "https://example.com/milb-alt.svg",
+  "providers": [
+    {
+      "mlbStats": {
+        "sportId": 11
+      }
+    }
+  ]
+}
+```
+
+The provider type is automatically inferred from the config field (`mlbStats` = MLBStats provider). The `sportId` corresponds to the MLB StatsAPI sport identifier.
 
 ### Multiple Providers with Priority
 

@@ -3,13 +3,14 @@
 // Shared utilities for image manipulation and logo processing
 // ------------------------------------------------------------------------------
 
-const { createCanvas, loadImage } = require('canvas');
+const { createCanvas, loadImage, Image } = require('canvas');
 const axios = require('axios');
 const crypto = require('crypto');
 const fs = require('fs').promises;
 const fsSync = require('fs');
 const path = require('path');
 const logger = require('./logger');
+const fsCache = require('./fsCache');
 const { rgbToHex: colorUtilsRgbToHex, calculateColorDistance } = require('./colorUtils');
 const { getTeamMatchScore, normalizeCompact } = require('./teamUtils');
 
@@ -18,9 +19,9 @@ const { getTeamMatchScore, normalizeCompact } = require('./teamUtils');
 // ------------------------------------------------------------------------------
 
 const OUTLINE_WIDTH_PERCENTAGE = 0.015; // 1.5% of logo size for outline
-const MAX_CACHE_SIZE = 50; // Maximum number of cached white logos
 const EDGE_BRIGHTNESS_THRESHOLD = 200; // Average edge brightness above this means logo likely has white/light outline
 const COLOR_SIMILARITY_THRESHOLD = 120; // Colors closer than this need special handling
+const BADGE_SHADOW_MARGIN = 5; // shadowBlur(4) + max(abs(offsetX(1)), abs(offsetY(1)))
 
 // Valid badge keywords for overlay text
 const VALID_BADGE_KEYWORDS = [
@@ -62,14 +63,13 @@ function isValidBadge(badge) {
 const CACHE_HOURS = parseInt(process.env.IMAGE_CACHE_HOURS || '24', 10);
 const CACHE_ENABLED = CACHE_HOURS > 0;
 
-// Cache for white logo versions to avoid recreating them
-const whiteLogoCache = new Map();
-
-// Cache for greyscale logo versions
-const greyscaleLogoCache = new Map();
-
-// Cache for badge overlays (keyed by text+scale+dimensions)
-const badgeCache = new Map();
+// Clear image processing caches on startup
+if (CACHE_ENABLED) {
+    const cleared = fsCache.clearSubdir('white') + fsCache.clearSubdir('greyscale') + fsCache.clearSubdir('badges');
+    if (cleared > 0) {
+        logger.info(`Cleared ${cleared} cached processed logo(s) from previous session`);
+    }
+}
 
 // Cache directory for trimmed logos
 const TRIMMED_CACHE_DIR = path.join(__dirname, '..', '.cache', 'trimmed');
@@ -99,6 +99,7 @@ module.exports = {
 
     // Image utilities
     downloadImage,
+    downloadImageWithSvgSupport,
     selectBestLogo,
     trimImage,
     loadTrimmedLogo,
@@ -291,24 +292,27 @@ function hasLightOutline(logoImage) {
 }
 
 function getWhiteLogo(logoImage, size) {
-    // Use image source as cache key if available, otherwise generate checksum from image data
-    let cacheKey = logoImage.src;
-
-    if (!cacheKey) {
-        // Create a temporary canvas to extract image data for checksum
+    // Generate cache key including size
+    let keyBase;
+    if (logoImage.src) {
+        keyBase = logoImage.src;
+    } else {
         const tempCanvas = createCanvas(logoImage.width, logoImage.height);
         const tempCtx = tempCanvas.getContext('2d');
         tempCtx.drawImage(logoImage, 0, 0);
         const imageData = tempCtx.getImageData(0, 0, logoImage.width, logoImage.height);
-
-        // Generate checksum from image data
         const hash = crypto.createHash('md5');
         hash.update(Buffer.from(imageData.data.buffer));
-        cacheKey = `${hash.digest('hex')}_${size}`;
+        keyBase = hash.digest('hex');
     }
+    const cacheKey = `${keyBase}_${size}`;
 
-    if (whiteLogoCache.has(cacheKey)) {
-        return whiteLogoCache.get(cacheKey);
+    // Check filesystem cache
+    const cached = fsCache.getBuffer('white', cacheKey);
+    if (cached) {
+        const img = new Image();
+        img.src = cached;
+        return img;
     }
 
     // Create white version
@@ -330,18 +334,14 @@ function getWhiteLogo(logoImage, size) {
 
     tempCtx.putImageData(imageData, 0, 0);
 
-    // Cache it (limit cache size to prevent memory leaks)
-    if (whiteLogoCache.size >= MAX_CACHE_SIZE) {
-        // Remove oldest 20% of entries when limit reached
-        const entriesToRemove = Math.floor(MAX_CACHE_SIZE * 0.2);
-        const keys = Array.from(whiteLogoCache.keys());
-        for (let i = 0; i < entriesToRemove; i++) {
-            whiteLogoCache.delete(keys[i]);
-        }
-    }
-    whiteLogoCache.set(cacheKey, tempCanvas);
+    // Save to filesystem cache
+    const buffer = tempCanvas.toBuffer('image/png');
+    fsCache.setBuffer('white', cacheKey, buffer);
 
-    return tempCanvas;
+    // Return as Image (compatible with ctx.drawImage)
+    const img = new Image();
+    img.src = buffer;
+    return img;
 }
 
 /**
@@ -368,9 +368,14 @@ async function convertToGreyscale(logoImageOrBuffer, opacity = 0.35) {
         cacheKey = `${hash}_${opacity}`;
     }
 
-    // Check cache
-    if (greyscaleLogoCache.has(cacheKey)) {
-        return greyscaleLogoCache.get(cacheKey);
+    // Check filesystem cache
+    const cached = fsCache.getBuffer('greyscale', cacheKey);
+    if (cached) {
+        const img = await loadImage(cached);
+        const cachedCanvas = createCanvas(img.width, img.height);
+        const cachedCtx = cachedCanvas.getContext('2d');
+        cachedCtx.drawImage(img, 0, 0);
+        return cachedCanvas;
     }
 
     // Load the image if it's a buffer
@@ -404,15 +409,8 @@ async function convertToGreyscale(logoImageOrBuffer, opacity = 0.35) {
 
     ctx.putImageData(imageData, 0, 0);
 
-    // Cache the result (with size limit)
-    if (greyscaleLogoCache.size >= MAX_CACHE_SIZE) {
-        const entriesToRemove = Math.floor(MAX_CACHE_SIZE * 0.2);
-        const keys = Array.from(greyscaleLogoCache.keys());
-        for (let i = 0; i < entriesToRemove; i++) {
-            greyscaleLogoCache.delete(keys[i]);
-        }
-    }
-    greyscaleLogoCache.set(cacheKey, canvas);
+    // Save to filesystem cache
+    fsCache.setBuffer('greyscale', cacheKey, canvas.toBuffer('image/png'));
 
     return canvas;
 }
@@ -556,9 +554,8 @@ async function resolveSingleTeamWithFallback(providerManager, leagueObj, teamIde
                 const feederMatch = feederResults.find(result => result !== null);
                 
                 if (feederMatch) {
-                    // Get the provider that was used
-                    const providers = providerManager.getProvidersForLeague(feederMatch.leagueObj);
-                    const providerId = providers[0]?.getProviderId() || 'unknown';
+                    // Get the provider ID from the resolved team
+                    const providerId = feederMatch.team.providerId || 'unknown';
                     logger.teamResolved(providerId, feederMatch.league, feederMatch.team.fullName || feederMatch.team.name);
                     return { team: feederMatch.team, failed: false };
                 }
@@ -598,20 +595,21 @@ async function resolveSingleTeamWithFallback(providerManager, leagueObj, teamIde
             logger.teamNotFound(teamIdentifier, leagueObj.shortName.toUpperCase());
             return { team: null, failed: true };
         }
-        
         // Team was found with logo in original league - log it
         const { isCustomTeam } = require('./teamUtils');
         const leagueKey = leagueObj.shortName?.toLowerCase() || leagueObj.name?.toLowerCase();
         const teamKey = teamIdentifier.toLowerCase();
         const isCustom = isCustomTeam(leagueKey, teamKey);
-        
-        const providers = providerManager.getProvidersForLeague(leagueObj);
-        const providerId = isCustom ? 'custom' : (providers[0]?.getProviderId() || 'unknown');
+
+        // Get provider ID from the resolved team or fallback to league's first provider
+        const providerId = isCustom ? 'custom' : (resolvedTeam.providerId || 'unknown');
         logger.teamResolved(providerId, leagueObj.shortName, resolvedTeam.fullName || resolvedTeam.name);
         return { team: resolvedTeam, failed: false };
     } catch (error) {
-        if (enableFallback && error.name === 'TeamNotFoundError') {
-            logger.teamNotFound(teamIdentifier, leagueObj.shortName.toUpperCase());
+        if (enableFallback) {
+            if (!leagueObj.skipLogos) {
+                logger.teamNotFound(teamIdentifier, leagueObj.shortName.toUpperCase());
+            }
             return { team: null, failed: true };
         }
         throw error;
@@ -638,12 +636,44 @@ async function resolveTeamsWithFallback(providerManager, leagueObj, team1Identif
     let resolvedTeam1 = result1.team;
     let resolvedTeam2 = result2.team;
     
-    // Special handling for Olympics: if any team fails, create dummy teams with transparent logos
-    const isOlympics = leagueObj.shortName?.toLowerCase() === 'olympics';
-    if (isOlympics && (result1.failed || result2.failed)) {
-        // Use same moody gradient color for all slots (both teams, both color slots)
-        const moodColor = '#1a1d2e';
-        
+    // If any team fails and the league has skipLogos enabled,
+    // create dummy teams that render only colored rectangles with the league logo
+    if ((result1.failed || result2.failed) && leagueObj.skipLogos) {
+        // Extract mood color from the league logo's dominant color, darkened
+        let moodColor = '#1a1d2e';
+        if (leagueLogoUrl) {
+            try {
+                const logoBuffer = await downloadImage(leagueLogoUrl);
+                const logoImage = await loadImage(logoBuffer);
+                const canvas = createCanvas(logoImage.width, logoImage.height);
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(logoImage, 0, 0);
+                const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+                // Tally quantized pixel colors, skipping transparent and near-white
+                const colorMap = new Map();
+                for (let i = 0; i < data.length; i += 20) { // sample every 5th pixel (5*4)
+                    const r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3];
+                    if (a < 128) continue;
+                    if (r > 240 && g > 240 && b > 240) continue;
+                    const key = `${Math.round(r / 10) * 10},${Math.round(g / 10) * 10},${Math.round(b / 10) * 10}`;
+                    colorMap.set(key, (colorMap.get(key) || 0) + 1);
+                }
+
+                if (colorMap.size > 0) {
+                    const [topColor] = [...colorMap.entries()].sort((a, b) => b[1] - a[1])[0];
+                    const [r, g, b] = topColor.split(',').map(Number);
+                    const factor = 0.08;
+                    const dr = Math.round(r * factor);
+                    const dg = Math.round(g * factor);
+                    const db = Math.round(b * factor);
+                    moodColor = `#${[dr, dg, db].map(c => c.toString(16).padStart(2, '0')).join('')}`;
+                }
+            } catch (error) {
+                logger.warn('Failed to extract color from league logo, using default', { error: error.message });
+            }
+        }
+
         const dummyTeam = {
             name: '',
             logo: null,
@@ -653,29 +683,27 @@ async function resolveTeamsWithFallback(providerManager, leagueObj, team1Identif
             isFallback: true,
             skipLogos: true  // Flag to skip logo rendering
         };
-        
+
         return {
             team1: dummyTeam,
             team2: { ...dummyTeam }
         };
     }
-    
-    // If both teams failed and need the same league logo, download and process it once
+
+    // For non-skipLogos leagues, fall back to greyscale league logos
     if (result1.failed && result2.failed) {
         try {
-            // Download and process the league logo once
             const logoBuffer = await downloadImage(leagueLogoUrl);
             if (!logoBuffer || !Buffer.isBuffer(logoBuffer) || logoBuffer.length === 0) {
                 throw new Error('Invalid or empty image buffer received');
             }
-            
+
             const trimmedLogoBuffer = await trimImage(logoBuffer, leagueLogoUrl);
             const logo = await loadImage(trimmedLogoBuffer);
             const greyscaleLogo = await convertToGreyscale(logo, 0.35);
             const greyscaleBuffer = greyscaleLogo.toBuffer('image/png');
             const base64Logo = `data:image/png;base64,${greyscaleBuffer.toString('base64')}`;
-            
-            // Reuse the processed logo for both teams
+
             resolvedTeam1 = {
                 name: team1Identifier,
                 logo: base64Logo,
@@ -700,7 +728,6 @@ async function resolveTeamsWithFallback(providerManager, leagueObj, team1Identif
             throw error;
         }
     } else if (result1.failed || result2.failed) {
-        // Generate fallbacks individually for any failed teams
         const fallbackPromises = [];
         if (result1.failed) {
             fallbackPromises.push(generateFallbackTeamObject(leagueLogoUrl, team1Identifier));
@@ -714,7 +741,7 @@ async function resolveTeamsWithFallback(providerManager, leagueObj, team1Identif
         }
         [resolvedTeam1, resolvedTeam2] = await Promise.all(fallbackPromises);
     }
-    
+
     return {
         team1: resolvedTeam1,
         team2: resolvedTeam2
@@ -784,7 +811,7 @@ async function applyWinnerEffect(
     team2
 ) {
     try {
-        // Skip if teams have skipLogos flag (Olympics case)
+        // Skip if teams have skipLogos flag (fallback case)
         if (team1.skipLogos || team2.skipLogos) {
             return { team1, team2 };
         }
@@ -860,14 +887,23 @@ async function applyWinnerEffect(
 // Image utilities
 // ------------------------------------------------------------------------------
 
-const REQUEST_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '10000', 10); // 10 seconds default
+const { REQUEST_TIMEOUT } = require('./requestConfig');
 
 async function downloadImage(urlOrPath) {
     // Validate URL exists
     if (!urlOrPath || typeof urlOrPath !== 'string') {
         throw new Error(`Invalid URL or path: ${urlOrPath}`);
     }
-    
+
+    // Handle data URLs (base64 embedded images)
+    if (urlOrPath.startsWith('data:image/')) {
+        const matches = urlOrPath.match(/^data:image\/[^;]+;base64,(.+)$/);
+        if (matches && matches[1]) {
+            return Buffer.from(matches[1], 'base64');
+        }
+        throw new Error(`Invalid data URL format: ${urlOrPath.substring(0, 50)}...`);
+    }
+
     // If it's a local file path, load from filesystem
     if (urlOrPath.startsWith('/') || urlOrPath.startsWith('./') || urlOrPath.startsWith('../')) {
         return fs.readFile(path.resolve(urlOrPath));
@@ -939,13 +975,53 @@ async function downloadImage(urlOrPath) {
     }
 }
 
+/**
+ * Download an image, converting SVG to PNG if needed
+ * @param {string} urlOrPath - URL or path to the image
+ * @returns {Promise<Buffer>} Image buffer
+ */
+async function downloadImageWithSvgSupport(urlOrPath) {
+    // Check if it's an SVG by URL extension
+    const isSvgUrl = urlOrPath.toLowerCase().endsWith('.svg');
+
+    if (isSvgUrl) {
+        try {
+            // Download SVG and convert to PNG
+            const { rasterizeLogo } = require('./svgUtils');
+            const response = await axios.get(urlOrPath, {
+                responseType: 'arraybuffer',
+                timeout: REQUEST_TIMEOUT,
+                headers: { 'User-Agent': 'Mozilla/5.0' }
+            });
+
+            const svgBuffer = Buffer.from(response.data);
+            const { pngBuffer } = await rasterizeLogo(svgBuffer);
+            return pngBuffer;
+        } catch (error) {
+            logger.warn('Failed to download/convert SVG', {
+                url: urlOrPath,
+                error: error.message
+            });
+            throw error;
+        }
+    }
+
+    // Not SVG, use regular download
+    return downloadImage(urlOrPath);
+}
+
 async function selectBestLogo(team, backgroundColor) {
     try {
+        // If team has a pre-converted PNG data URL (from SVG conversion), use that
+        if (team._logoPng) {
+            return team._logoPng;
+        }
+
         // Validate that we have a primary logo
         if (!team.logo) {
             throw new Error('No logo available for team');
         }
-        
+
         // If no logoAlt, use the primary logo
         if (!team.logoAlt) {
             return team.logo;
@@ -1269,10 +1345,14 @@ async function addBadgeOverlay(imageBuffer, badgeText, options = {}) {
     // Create cache key based on badge text, scale, and image dimensions
     const cacheKey = `${badgeText}_${badgeScale}_${image.width}x${image.height}`;
     
-    // Check if we have a cached badge canvas
-    let badgeCanvas = badgeCache.get(cacheKey);
+    // Check filesystem cache for pre-rendered badge
+    const cachedBadge = fsCache.getBuffer('badges', cacheKey);
+    let badgeImg;
     
-    if (!badgeCanvas) {
+    if (cachedBadge) {
+        badgeImg = new Image();
+        badgeImg.src = cachedBadge;
+    } else {
         // Calculate badge dimensions based on image size
         const baseSize = Math.min(image.width, image.height);
         const badgeHeight = Math.round(baseSize * badgeScale);
@@ -1299,11 +1379,8 @@ async function addBadgeOverlay(imageBuffer, badgeText, options = {}) {
         // Create a canvas for the badge with extra space for shadow
         const canvasWidth = badgeWidth + (shadowMargin * 2);
         const canvasHeight = badgeHeight + (shadowMargin * 2);
-        badgeCanvas = createCanvas(canvasWidth, canvasHeight);
+        const badgeCanvas = createCanvas(canvasWidth, canvasHeight);
         const badgeCtx = badgeCanvas.getContext('2d');
-        
-        // Store shadow margin on the canvas object for positioning later
-        badgeCanvas.shadowMargin = shadowMargin;
         
         // Offset the drawing position to account for shadow margin
         const drawX = shadowMargin;
@@ -1343,40 +1420,38 @@ async function addBadgeOverlay(imageBuffer, badgeText, options = {}) {
         badgeCtx.textBaseline = 'middle';
         badgeCtx.fillText(badgeText, drawX + badgeWidth / 2, drawY + badgeHeight / 2);
         
-        // Cache the badge canvas (limit cache size)
-        if (badgeCache.size >= MAX_CACHE_SIZE) {
-            const firstKey = badgeCache.keys().next().value;
-            badgeCache.delete(firstKey);
-        }
-        badgeCache.set(cacheKey, badgeCanvas);
+        // Store in filesystem cache (not in memory)
+        const badgeBuffer = badgeCanvas.toBuffer('image/png');
+        fsCache.setBuffer('badges', cacheKey, badgeBuffer);
+        badgeImg = new Image();
+        badgeImg.src = badgeBuffer;
     }
     
     // Calculate badge position based on position parameter
     // Account for shadow margin to position the visible badge correctly
-    const shadowMargin = badgeCanvas.shadowMargin || 0;
     let badgeX, badgeY;
     switch (position) {
         case 'top-left':
-            badgeX = padding - shadowMargin;
-            badgeY = padding - shadowMargin;
+            badgeX = padding - BADGE_SHADOW_MARGIN;
+            badgeY = padding - BADGE_SHADOW_MARGIN;
             break;
         case 'bottom-left':
-            badgeX = padding - shadowMargin;
-            badgeY = image.height - badgeCanvas.height - padding + shadowMargin;
+            badgeX = padding - BADGE_SHADOW_MARGIN;
+            badgeY = image.height - badgeImg.height - padding + BADGE_SHADOW_MARGIN;
             break;
         case 'bottom-right':
-            badgeX = image.width - badgeCanvas.width - padding + shadowMargin;
-            badgeY = image.height - badgeCanvas.height - padding + shadowMargin;
+            badgeX = image.width - badgeImg.width - padding + BADGE_SHADOW_MARGIN;
+            badgeY = image.height - badgeImg.height - padding + BADGE_SHADOW_MARGIN;
             break;
         case 'top-right':
         default:
-            badgeX = image.width - badgeCanvas.width - padding + shadowMargin;
-            badgeY = padding - shadowMargin;
+            badgeX = image.width - badgeImg.width - padding + BADGE_SHADOW_MARGIN;
+            badgeY = padding - BADGE_SHADOW_MARGIN;
             break;
     }
     
-    // Draw the cached badge onto the main canvas
-    ctx.drawImage(badgeCanvas, badgeX, badgeY);
+    // Draw the badge onto the main canvas
+    ctx.drawImage(badgeImg, badgeX, badgeY);
     
     // Return the buffer
     return canvas.toBuffer('image/png');
