@@ -144,9 +144,7 @@ async function generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAl
                     ctx.fillText(title, width/2, height/2, width);
                 }
                 if(subtitle) {
-                    console.log(ctx.font);
                     const titleheight = ctx.font.split(" ")[0].slice(0,-2);
-                    console.log(titleheight);
                     ctx.font = "50px Subtitle";
                     ctx.fillStyle = "white";
                     ctx.textAlign = "center";
@@ -187,9 +185,7 @@ async function generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAl
                     ctx.fillText(title, width/2, height/2, width);
                 }
                 if(subtitle) {
-                    console.log(ctx.font);
                     const titleheight = ctx.font.split(" ")[0].slice(0,-2);
-                    console.log(titleheight);
                     ctx.font = "50px Subtitle";
                     ctx.fillStyle = "white";
                     ctx.textAlign = "center";
@@ -231,9 +227,7 @@ async function generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAl
                 ctx.fillText(title, width/2, height/2, width);
             }
             if(subtitle) {
-                console.log(ctx.font);
                 const titleheight = ctx.font.split(" ")[0].slice(0,-2);
-                console.log(titleheight);
                 ctx.font = "50px Subtitle";
                 ctx.fillStyle = "white";
                 ctx.textAlign = "center";
@@ -290,9 +284,7 @@ async function generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAl
                 ctx.fillText(title, width/2, height/2, width);
             }
             if(subtitle) {
-                console.log(ctx.font);
                 const titleheight = ctx.font.split(" ")[0].slice(0,-2);
-                console.log(titleheight);
                 ctx.font = "50px Subtitle";
                 ctx.fillStyle = "white";
                 ctx.textAlign = "center";
