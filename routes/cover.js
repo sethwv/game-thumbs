@@ -28,7 +28,7 @@ module.exports = {
     method: "get",
     handler: async (req, res) => {
         const { league, team1, team2 } = req.params;
-        const { logo, style, fallback, aspect, variant, badge, winner, title, subtitle } = req.query;
+        const { logo, style, fallback, aspect, variant, badge, winner, title, subtitle, iconurl } = req.query;
 
         // Determine dimensions based on aspect ratio
         let width, height;
@@ -70,7 +70,8 @@ module.exports = {
                     height,
                     leagueLogoUrlAlt: leagueLogoUrlAlt,
                     title,
-                    subtitle
+                    subtitle,
+                    iconurl
                 });
             }
             // Case 2: Single team cover (/:league/:team1/cover)

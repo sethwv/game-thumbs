@@ -31,8 +31,9 @@ async function generateLeagueThumb(leagueLogoUrl, options = {}) {
     const leagueLogoUrlAlt = options.leagueLogoUrlAlt;
     const title = options.title || null;
     const subtitle = options.subtitle || null;
+    const iconurl = options.iconurl || null;
     
-    return generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAlt, title, subtitle);
+    return generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAlt, title, subtitle, iconurl);
 }
 
 async function generateLeagueCover(leagueLogoUrl, options = {}) {
@@ -41,13 +42,14 @@ async function generateLeagueCover(leagueLogoUrl, options = {}) {
     const leagueLogoUrlAlt = options.leagueLogoUrlAlt;
     const title = options.title || null;
     const subtitle = options.subtitle || null;
+    const iconurl = options.iconurl || null;
     
-    return generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAlt, title, subtitle);
+    return generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAlt, title, subtitle, iconurl);
 }
 
 // ------------------------------------------------------------------------------
 
-async function generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAlt, title, subtitle) {
+async function generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAlt, title, subtitle, iconurl) {
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
     
@@ -95,6 +97,11 @@ async function generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAl
         let finalLogoUrl = leagueLogoUrl;
         const logoBuffer = await downloadImageWithSvgSupport(leagueLogoUrl);
         const logo = await loadImage(logoBuffer);
+        let iconBuffer, icon;
+        if (iconurl) {
+            iconBuffer = await downloadImageWithSvgSupport(iconurl);
+            icon = await loadImage(iconBuffer);
+        }
         
         // Check if logo has poor contrast against the background
         // Extract colors from the logo to check against gradient colors
@@ -113,14 +120,14 @@ async function generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAl
                 finalLogoUrl = leagueLogoUrlAlt;
                 
                 let logoSize, logoX, logoY = 0;
-                if(!title && !subtitle) {
+                if(!title && !subtitle && !iconurl) {
                     // Logo takes up about 60% of the smaller dimension
                     logoSize = Math.min(width, height) * 0.6;
                     logoX = (width - logoSize) / 2;
                     logoY = (height - logoSize) / 2;
                 }
                 else {
-                    logoSize = height*0.4;
+                    logoSize = height*0.5;
                     logoX = (width - logoSize) / 2;
                     logoY = (height/2 - logoSize) / 2;
                 }
@@ -133,6 +140,7 @@ async function generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAl
                 ctx.shadowOffsetY = 10;
                 
                 drawLogoMaintainAspect(ctx, altLogo, logoX, logoY, logoSize);
+                if (iconurl) drawLogoMaintainAspect(ctx, icon, logoX, logoY + height/2, logoSize);
 
                 if(title) {
                     ctx.font = `50px Title`;
@@ -155,14 +163,14 @@ async function generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAl
                 ctx.restore();
             } catch (altError) {
                 let logoSize, logoX, logoY = 0;
-                if(!title && !subtitle) {
+                if(!title && !subtitle && !iconurl) {
                     // Logo takes up about 60% of the smaller dimension
                     logoSize = Math.min(width, height) * 0.6;
                     logoX = (width - logoSize) / 2;
                     logoY = (height - logoSize) / 2;
                 }
                 else {
-                    logoSize = height*0.4;
+                    logoSize = height*0.5;
                     logoX = (width - logoSize) / 2;
                     logoY = (height/2 - logoSize) / 2;
                 }
@@ -174,6 +182,7 @@ async function generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAl
                 ctx.shadowOffsetY = 10;
                 
                 drawLogoMaintainAspect(ctx, logo, logoX, logoY, logoSize);
+                if (iconurl) drawLogoMaintainAspect(ctx, icon, logoX, logoY + height/2, logoSize);
 
                 if(title) {
                     ctx.font = `50px Title`;
@@ -197,14 +206,14 @@ async function generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAl
             }
         } else {
             let logoSize, logoX, logoY = 0;
-            if(!title && !subtitle) {
+            if(!title && !subtitle && !iconurl) {
                 // Logo takes up about 60% of the smaller dimension
                 logoSize = Math.min(width, height) * 0.6;
                 logoX = (width - logoSize) / 2;
                 logoY = (height - logoSize) / 2;
             }
             else {
-                logoSize = height*0.4;
+                logoSize = height*0.5;
                 logoX = (width - logoSize) / 2;
                 logoY = (height/2 - logoSize) / 2;
             }
@@ -216,6 +225,7 @@ async function generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAl
             ctx.shadowOffsetY = 10;
             
             drawLogoMaintainAspect(ctx, logo, logoX, logoY, logoSize);
+            if (iconurl) drawLogoMaintainAspect(ctx, icon, logoX, logoY + height/2, logoSize);
 
             if(title) {
                 ctx.font = `50px Title`;
@@ -254,14 +264,14 @@ async function generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAl
             const logoBuffer = await downloadImageWithSvgSupport(leagueLogoUrl);
             const logo = await loadImage(logoBuffer);
             let logoSize, logoX, logoY = 0;
-            if(!title && !subtitle) {
+            if(!title && !subtitle && !iconurl) {
                 // Logo takes up about 60% of the smaller dimension
                 logoSize = Math.min(width, height) * 0.6;
                 logoX = (width - logoSize) / 2;
                 logoY = (height - logoSize) / 2;
             }
             else {
-                logoSize = height*0.4;
+                logoSize = height*0.5;
                 logoX = (width - logoSize) / 2;
                 logoY = (height/2 - logoSize) / 2;
             }
@@ -273,6 +283,7 @@ async function generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAl
             ctx.shadowOffsetY = 10;
             
             drawLogoMaintainAspect(ctx, logo, logoX, logoY, logoSize);
+            if (iconurl) drawLogoMaintainAspect(ctx, icon, logoX, logoY + height/2, logoSize);
 
             if(title) {
                 ctx.font = `50px Title`;

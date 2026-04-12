@@ -38,6 +38,7 @@ nav_order: 7
 | `fallback` | boolean | false | **Single team:** Return league thumb. **Matchup:** Use greyscale league logo for missing teams |
 | `title` | string | - | **League Thumb:** A title to display on the league thumb for sports that are not based on matchups (motorsports, etc.) |
 | `subtitle` | string | - | **League Thumb:** A subtitle to display on the league thumb for sports that are not based on matchups (motorsports, etc.) |
+| `iconurl` | string | - | **League Thumb:** Optional parameter for an image link to be displayed on the league thumb for sports that are not based on matchups (motorsports, etc.)|
 
 ---
 
