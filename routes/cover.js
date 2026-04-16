@@ -71,7 +71,8 @@ module.exports = {
                     leagueLogoUrlAlt: leagueLogoUrlAlt,
                     title,
                     subtitle,
-                    iconurl
+                    iconurl,
+                    league: leagueObj.shortName
                 });
             }
             // Case 2: Single team cover (/:league/:team1/cover)

@@ -3,10 +3,11 @@
 // This helper generates league and team-themed images with gradient backgrounds
 // ------------------------------------------------------------------------------
 
-const { createCanvas, loadImage, registerFont } = require('canvas');
+const { createCanvas, loadImage } = require('canvas');
 const { downloadImage, downloadImageWithSvgSupport, drawLogoMaintainAspect, hexToRgb } = require('../helpers/imageUtils');
 const { extractDominantColors, blendColors, blendColorsWeighted, calculateColorDistance, analyzeColor, adjustVibrancy } = require('../helpers/colorUtils');
 const logger = require('../helpers/logger');
+const { fontRegistry } = require('../helpers/fontRegistry');
 
 module.exports = {
     generateLeagueThumb,
@@ -17,14 +18,6 @@ module.exports = {
 
 // ------------------------------------------------------------------------------
 
-registerFont('./assets/Formula1-Bold-4.ttf', {
-    family: 'Title',
-});
-
-registerFont('./assets/Formula1-Italic.ttf', {
-    family: 'Subtitle',
-});
-
 async function generateLeagueThumb(leagueLogoUrl, options = {}) {
     const width = options.width || 1440;
     const height = options.height || 1080;
@@ -32,8 +25,9 @@ async function generateLeagueThumb(leagueLogoUrl, options = {}) {
     const title = options.title || null;
     const subtitle = options.subtitle || null;
     const iconurl = options.iconurl || null;
+    const league = options.league;
     
-    return generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAlt, title, subtitle, iconurl);
+    return generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAlt, title, subtitle, iconurl, league);
 }
 
 async function generateLeagueCover(leagueLogoUrl, options = {}) {
@@ -43,15 +37,21 @@ async function generateLeagueCover(leagueLogoUrl, options = {}) {
     const title = options.title || null;
     const subtitle = options.subtitle || null;
     const iconurl = options.iconurl || null;
+    const league = options.league;
     
-    return generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAlt, title, subtitle, iconurl);
+    return generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAlt, title, subtitle, iconurl, league);
 }
 
 // ------------------------------------------------------------------------------
 
-async function generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAlt, title, subtitle, iconurl) {
+async function generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAlt, title, subtitle, iconurl, league) {
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
+
+    const titleFont = fontRegistry[`${league}_title`] ? `${league}_title` : 'default_title';
+    const subtitleFont = fontRegistry[`${league}_subtitle`] ? `${league}_subtitle` : 'default_subtitle';
+    const titleFlags = fontRegistry[titleFont];
+    const subtitleFlags = fontRegistry[subtitleFont];
     
     try {
         // Extract dominant colors from the league logo
@@ -127,7 +127,7 @@ async function generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAl
                     logoY = (height - logoSize) / 2;
                 }
                 else {
-                    logoSize = height*0.5;
+                    logoSize = height* 0.4;
                     logoX = (width - logoSize) / 2;
                     logoY = (height/2 - logoSize) / 2;
                 }
@@ -143,21 +143,21 @@ async function generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAl
                 if (iconurl) drawLogoMaintainAspect(ctx, icon, logoX, logoY + height/2, logoSize);
 
                 if(title) {
-                    ctx.font = `50px Title`;
+                    ctx.font = `${titleFlags} 50px ${titleFont}, system`;
                     ctx.fillStyle = "white";
                     ctx.textAlign = "center";
                     ctx.textBaseline = "middle";
                     const textMetrics = ctx.measureText(title);
-                    ctx.font = `${50*(width*0.8)/textMetrics.width}px Title`;
+                    ctx.font = `${titleFlags} ${50*(width*0.8)/textMetrics.width}px ${titleFont}, system`;
                     ctx.fillText(title, width/2, height/2, width);
                 }
                 if(subtitle) {
-                    const titleheight = ctx.font.split(" ")[0].slice(0,-2);
-                    ctx.font = "50px Subtitle";
+                    const titleheight = parseFloat(ctx.font.match(/(\d+\.?\d*)px/)[1]);
+                    ctx.font = `${subtitleFlags} 50px ${subtitleFont}, system`;
                     ctx.fillStyle = "white";
                     ctx.textAlign = "center";
                     ctx.textBaseline = "middle";
-                    ctx.fillText(subtitle, width/2, height/2 + parseFloat(titleheight), width);
+                    ctx.fillText(subtitle, width/2, height/2 + titleheight, width);
                 }
                 
                 ctx.restore();
@@ -170,7 +170,7 @@ async function generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAl
                     logoY = (height - logoSize) / 2;
                 }
                 else {
-                    logoSize = height*0.5;
+                    logoSize = height* 0.4;
                     logoX = (width - logoSize) / 2;
                     logoY = (height/2 - logoSize) / 2;
                 }
@@ -185,21 +185,21 @@ async function generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAl
                 if (iconurl) drawLogoMaintainAspect(ctx, icon, logoX, logoY + height/2, logoSize);
 
                 if(title) {
-                    ctx.font = `50px Title`;
+                    ctx.font = `${titleFlags} 50px ${titleFont}, system`;
                     ctx.fillStyle = "white";
                     ctx.textAlign = "center";
                     ctx.textBaseline = "middle";
                     const textMetrics = ctx.measureText(title);
-                    ctx.font = `${50*(width*0.8)/textMetrics.width}px Title`;
+                    ctx.font = `${titleFlags} ${50*(width*0.8)/textMetrics.width}px ${titleFont}, system`;
                     ctx.fillText(title, width/2, height/2, width);
                 }
                 if(subtitle) {
-                    const titleheight = ctx.font.split(" ")[0].slice(0,-2);
-                    ctx.font = "50px Subtitle";
+                    const titleheight = parseFloat(ctx.font.match(/(\d+\.?\d*)px/)[1]);
+                    ctx.font = `${subtitleFlags} 50px ${subtitleFont}, system`;
                     ctx.fillStyle = "white";
                     ctx.textAlign = "center";
                     ctx.textBaseline = "middle";
-                    ctx.fillText(subtitle, width/2, height/2 + parseFloat(titleheight), width);
+                    ctx.fillText(subtitle, width/2, height/2 + titleheight, width);
                 }
                 
                 ctx.restore();
@@ -213,7 +213,7 @@ async function generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAl
                 logoY = (height - logoSize) / 2;
             }
             else {
-                logoSize = height*0.5;
+                logoSize = height* 0.4;
                 logoX = (width - logoSize) / 2;
                 logoY = (height/2 - logoSize) / 2;
             }
@@ -228,21 +228,21 @@ async function generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAl
             if (iconurl) drawLogoMaintainAspect(ctx, icon, logoX, logoY + height/2, logoSize);
 
             if(title) {
-                ctx.font = `50px Title`;
+                ctx.font = `${titleFlags} 50px ${titleFont}, system`;
                 ctx.fillStyle = "white";
                 ctx.textAlign = "center";
                 ctx.textBaseline = "middle";
                 const textMetrics = ctx.measureText(title);
-                ctx.font = `${50*(width*0.8)/textMetrics.width}px Title`;
+                ctx.font = `${titleFlags} ${50*(width*0.8)/textMetrics.width}px ${titleFont}, system`;
                 ctx.fillText(title, width/2, height/2, width);
             }
             if(subtitle) {
-                const titleheight = ctx.font.split(" ")[0].slice(0,-2);
-                ctx.font = "50px Subtitle";
+                const titleheight = parseFloat(ctx.font.match(/(\d+\.?\d*)px/)[1]);
+                ctx.font = `${subtitleFlags} 50px ${subtitleFont}, system`;
                 ctx.fillStyle = "white";
                 ctx.textAlign = "center";
                 ctx.textBaseline = "middle";
-                ctx.fillText(subtitle, width/2, height/2 + parseFloat(titleheight), width);
+                ctx.fillText(subtitle, width/2, height/2 + titleheight, width);
             }
             
             ctx.restore();
@@ -271,7 +271,7 @@ async function generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAl
                 logoY = (height - logoSize) / 2;
             }
             else {
-                logoSize = height*0.5;
+                logoSize = height* 0.4;
                 logoX = (width - logoSize) / 2;
                 logoY = (height/2 - logoSize) / 2;
             }
@@ -286,21 +286,21 @@ async function generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAl
             if (iconurl) drawLogoMaintainAspect(ctx, icon, logoX, logoY + height/2, logoSize);
 
             if(title) {
-                ctx.font = `50px Title`;
+                ctx.font = `${titleFlags} 50px ${titleFont}, system`;
                 ctx.fillStyle = "white";
                 ctx.textAlign = "center";
                 ctx.textBaseline = "middle";
                 const textMetrics = ctx.measureText(title);
-                ctx.font = `${50*(width*0.8)/textMetrics.width}px Title`;
+                ctx.font = `${titleFlags} ${50*(width*0.8)/textMetrics.width}px ${titleFont}, system`;
                 ctx.fillText(title, width/2, height/2, width);
             }
             if(subtitle) {
-                const titleheight = ctx.font.split(" ")[0].slice(0,-2);
-                ctx.font = "50px Subtitle";
+                const titleheight = parseFloat(ctx.font.match(/(\d+\.?\d*)px/)[1]);
+                ctx.font = `${subtitleFlags} 50px ${subtitleFont}, system`;
                 ctx.fillStyle = "white";
                 ctx.textAlign = "center";
                 ctx.textBaseline = "middle";
-                ctx.fillText(subtitle, width/2, height/2 + parseFloat(titleheight), width);
+                ctx.fillText(subtitle, width/2, height/2 + titleheight, width);
             }
 
             ctx.restore();

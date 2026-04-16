@@ -71,7 +71,8 @@ module.exports = {
                     leagueLogoUrlAlt: leagueLogoUrlAlt,
                     title,
                     subtitle,
-                    iconurl
+                    iconurl,
+                    league: leagueObj.shortName
                 });
             }
             // Case 2: Single team thumbnail (/:league/:team1/thumb)
