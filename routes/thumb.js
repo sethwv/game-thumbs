@@ -28,7 +28,7 @@ module.exports = {
     method: "get",
     handler: async (req, res) => {
         const { league, team1, team2 } = req.params;
-        const { logo, style, fallback, aspect, badge, winner } = req.query;
+        const { logo, style, fallback, aspect, badge, winner, title, subtitle, iconurl } = req.query;
 
         // Determine dimensions based on aspect ratio
         let width, height;
@@ -68,7 +68,11 @@ module.exports = {
                 buffer = await generateLeagueThumb(leagueLogoUrl, {
                     width,
                     height,
-                    leagueLogoUrlAlt: leagueLogoUrlAlt
+                    leagueLogoUrlAlt: leagueLogoUrlAlt,
+                    title,
+                    subtitle,
+                    iconurl,
+                    league: leagueObj.shortName
                 });
             }
             // Case 2: Single team thumbnail (/:league/:team1/thumb)

@@ -36,6 +36,9 @@ nav_order: 8
 | `badge` | string | - | Add quality badge overlay: `ALT`, `4K`, `HD`, `FHD`, or `UHD` (matchup only) |
 | `winner` | string | - | Winning team identifier - displays losing team in greyscale (matchup only) |
 | `fallback` | boolean | false | **Single team:** Return league cover. **Matchup:** Use greyscale league logo for missing teams |
+| `title` | string | - | **League Cover:** An optional title to display on the league cover for sports that are not based on matchups (motorsports, etc.) |
+| `subtitle` | string | - | **League Cover:** An optional subtitle to display on the league cover for sports that are not based on matchups (motorsports, etc.) |
+| `iconurl` | string | - | **League Cover:** Optional parameter for an image link to be displayed on the league cover for sports that are not based on matchups (motorsports, etc.)|
 
 ---
 

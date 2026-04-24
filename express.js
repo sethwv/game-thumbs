@@ -277,6 +277,11 @@ function init(port) {
         res.status(444).json({ error: 'Route not found' });
     });
 
+    // Register default fonts
+    const { loadFont } = require('./helpers/fontRegistry');
+    loadFont('default_title.ttf', 'default_title');
+    loadFont('default_subtitle.ttf', 'default_subtitle');
+
     server = app.listen(port, () => {
         // Initialize provider caches in parallel (non-blocking)
         Promise.all([

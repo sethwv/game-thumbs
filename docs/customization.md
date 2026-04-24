@@ -169,7 +169,9 @@ All `.json` files in the directory will be loaded and merged in alphabetical ord
     "espnConfig": {
       "espnSport": "sport",
       "espnSlug": "slug"
-    }
+    },
+    "titleFont": "fontFileName.ttf",
+    "subtitleFont": "fontFileName.ttf"
   }
 }
 ```
@@ -193,6 +195,8 @@ All `.json` files in the directory will be loaded and merged in alphabetical ord
 | `feederLeagues` | array | Array of league keys to try when team not found (in order) |
 | `fallbackLeague` | string | Legacy fallback league (prefer `feederLeagues` for new configurations) |
 | `skipLogos` | boolean | When `true`, fallback renders colored rectangles with league logo instead of greyscale team logos (see below) |
+| `titleFont` | string | Custom font to use for league thumbs/covers when the title query parameter is specified. Only static TrueType fonts (ttf) are supported. |
+| `subtitleFont` | string | Custom font to use for league thumbs/covers when the subtitle query parameter is specified. Only static TrueType fonts (ttf) are supported. |
 
 #### Example: Adding a New League
 
@@ -335,6 +339,31 @@ To find the correct ESPN slug for a league:
 | MLS | soccer | `usa.1` |
 | UEFA Champions | soccer | `uefa.champions` |
 | UEFA Europa | soccer | `uefa.europa` |
+
+### League Fonts
+
+Custom fonts are supported for the optional text on league thumbs and covers.Defining a custom font requires the definition of a custom league as well to register the added font with a league.
+
+#### Docker Mounts
+
+Mount a directory containing one or more ttf files:
+
+```bash
+docker run -p 3000:3000 \
+  -v /path/to/custom-fonts:/app/assets/fonts/custom:ro \
+  ghcr.io/sethwv/game-thumbs:latest
+```
+#### Example
+Since the league files are additive, the simplest example of this might look like this:
+
+```json
+{
+  "F1": {
+    "titleFont": "fontFile.ttf",
+    "subtitleFont": "fontFile2.ttf"
+  }
+}
+```
 
 ---
 
