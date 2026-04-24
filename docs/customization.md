@@ -342,7 +342,13 @@ To find the correct ESPN slug for a league:
 
 ### League Fonts
 
-Custom fonts are supported for the optional text on league thumbs and covers.Defining a custom font requires the definition of a custom league as well to register the added font with a league.
+Custom fonts are supported for the optional text on league thumbs and covers. Defining a custom font requires the definition of a custom league as well to register the added font with a league.
+
+{: .important }
+> **Feature flag required.** League event overlays (the `title`, `subtitle`, and `iconurl` query parameters along with all custom font loading) are gated behind the `ALLOW_EVENT_OVERLAYS` environment variable. Set `ALLOW_EVENT_OVERLAYS=true` to enable. When disabled, the `titleFont` and `subtitleFont` league fields are ignored at startup.
+
+{: .warning }
+> The `iconurl` query parameter causes the server to fetch a user-supplied URL with no host restrictions. That includes any address the server can reach (loopback, internal network, etc.). Only enable this feature if you trust the clients calling your endpoints.
 
 #### Docker Mounts
 

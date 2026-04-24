@@ -65,6 +65,7 @@ Configure the server behavior using environment variables:
 | `REQUEST_TIMEOUT` | Timeout for external API calls and image downloads (in milliseconds). | `10000` |
 | `ROOT_REDIRECT_URL` | Optional URL to redirect from root path (`/`) with a 301 permanent redirect. Useful for directing users to documentation. | Not set (disabled) |
 | `ALLOW_CUSTOM_BADGES` | Allow custom badge parameter entries on matchup generation endpoints. | `false` |
+| `ALLOW_EVENT_OVERLAYS` | Enable the league event overlay feature on `/:league/thumb` and `/:league/cover`. When `true`, the `title`, `subtitle`, and `iconurl` query parameters are honored, default fonts are loaded at startup, and per-league custom fonts are registered. When disabled, those query parameters are ignored. **Note:** `iconurl` causes the server to fetch a user-supplied URL with no host restrictions, so leave this off unless you trust your clients. | `false` |
 
 ### Caching
 

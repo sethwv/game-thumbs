@@ -27,6 +27,7 @@ test/output/*
 .env
 
 # IDE files
+.claude
 .vscode
 .idea
 *.swp

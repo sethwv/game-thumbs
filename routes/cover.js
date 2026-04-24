@@ -14,6 +14,7 @@ const { resolveTeamsWithFallback, handleTeamNotFoundError, addBadgeOverlay, isVa
 const { sendCachedOrGenerate, handleImageRouteError } = require('../helpers/routeUtils');
 const { getCachedImage, addToCache } = require('../helpers/imageCache');
 const { findLeague } = require('../leagues');
+const { isEventOverlaysEnabled } = require('../helpers/featureFlags');
 const logger = require('../helpers/logger');
 
 module.exports = {
@@ -60,18 +61,20 @@ module.exports = {
             if (!team1 && !team2) {
                 const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj, false);
                 const leagueLogoUrlAlt = await providerManager.getLeagueLogoUrl(leagueObj, true);
-                
+
                 if (!leagueLogoUrl) {
                     return res.status(404).json({ error: 'League logo not found' });
                 }
-                
+
+                const overlaysOn = isEventOverlaysEnabled();
+
                 buffer = await generateLeagueCover(leagueLogoUrl, {
                     width,
                     height,
                     leagueLogoUrlAlt: leagueLogoUrlAlt,
-                    title,
-                    subtitle,
-                    iconurl,
+                    title: overlaysOn ? title : undefined,
+                    subtitle: overlaysOn ? subtitle : undefined,
+                    iconurl: overlaysOn ? iconurl : undefined,
                     league: leagueObj.shortName
                 });
             }

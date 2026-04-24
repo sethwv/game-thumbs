@@ -8,6 +8,9 @@
 const { loadAndMergeJSON } = require('./helpers/jsonMerger');
 const logger = require('./helpers/logger');
 const { loadFont } = require('./helpers/fontRegistry');
+const { isEventOverlaysEnabled } = require('./helpers/featureFlags');
+
+const overlaysEnabled = isEventOverlaysEnabled();
 
 // Load base leagues.json + all files from json/leagues/ directory
 const leaguesRaw = loadAndMergeJSON('leagues.json', 'json/leagues', 'leagues');
@@ -38,12 +41,14 @@ for (const key in leaguesRaw) {
         shortName: league.shortName || key.toUpperCase()
     };
 
-    // Register league specific fonts (if present)
-    if (leagues[key].titleFont) {
-        loadFont(`${leagues[key].titleFont}`, `${key}_title`);
-    }
-    if (leagues[key].subtitleFont) {
-        loadFont(`${leagues[key].subtitleFont}`, `${key}_subtitle`);
+    // Register league specific fonts (if present and feature is enabled)
+    if (overlaysEnabled) {
+        if (leagues[key].titleFont) {
+            loadFont(`${leagues[key].titleFont}`, `${key}_title`);
+        }
+        if (leagues[key].subtitleFont) {
+            loadFont(`${leagues[key].subtitleFont}`, `${key}_subtitle`);
+        }
     }
 
 }
