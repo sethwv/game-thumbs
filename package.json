@@ -35,6 +35,8 @@
     "test:performance": "node test/performance.test.js",
     "test:server": "node test/server-behavior.test.js",
     "test:fallback": "node test/fallback.test.js",
-    "test:espn-fallback": "node test/espn-fallback.test.js"
+    "test:espn-fallback": "node test/espn-fallback.test.js",
+    "test:url-validator": "node test/url-validator.test.js",
+    "test:event-overlays": "node test/event-overlays.test.js"
   }
 }
