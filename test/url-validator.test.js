@@ -4,7 +4,11 @@
 // flag parsing in helpers/featureFlags.js. No server required.
 // ------------------------------------------------------------------------------
 
+const fs = require('fs');
 const path = require('path');
+
+const OUTPUT_DIR = path.join(__dirname, 'output');
+const RESULTS_FILE = path.join(OUTPUT_DIR, 'url-validator-results.json');
 
 const results = {
     suiteName: 'URL Validator Tests',
@@ -212,6 +216,9 @@ if (require.main === module) {
     runValidatorTests();
     runFlagParsingTests();
     printSummary();
+
+    if (!fs.existsSync(OUTPUT_DIR)) fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+    fs.writeFileSync(RESULTS_FILE, JSON.stringify(results, null, 2));
 
     process.exit(results.failed > 0 ? 1 : 0);
 }

@@ -97,6 +97,15 @@ jobs:
             "fallback")
               RESULTS_FILE="test/output/fallback-test-results.json"
               ;;
+            "url-validator")
+              RESULTS_FILE="test/output/url-validator-results.json"
+              ;;
+            "event-overlays")
+              RESULTS_FILE="test/output/event-overlays-results.json"
+              ;;
+            "espn-fallback")
+              RESULTS_FILE="test/output/espn-fallback-test-results.json"
+              ;;
             *)
               # Fallback: try to find any results file
               RESULTS_FILE=$(find test/output -name "*-results.json" -o -name "test-results.json" 2>/dev/null | head -n 1)
