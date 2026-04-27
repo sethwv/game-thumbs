@@ -38,7 +38,7 @@ nav_order: 7
 | `fallback` | boolean | false | **Single team:** Return league thumb. **Matchup:** Use greyscale league logo for missing teams |
 | `title` | string | - | **League Thumb:** A title to display on the league thumb for sports that are not based on matchups (motorsports, etc.). Requires `ALLOW_EVENT_OVERLAYS=true`. |
 | `subtitle` | string | - | **League Thumb:** A subtitle to display on the league thumb for sports that are not based on matchups (motorsports, etc.). Requires `ALLOW_EVENT_OVERLAYS=true`. |
-| `iconurl` | string | - | **League Thumb:** Optional image URL to display on the league thumb for sports that are not based on matchups (motorsports, etc.). Requires `ALLOW_EVENT_OVERLAYS=true`. |
+| `iconurl` | string | - | **League Thumb:** Optional image URL to display on the league thumb for sports that are not based on matchups (motorsports, etc.). Must be an `http://` or `https://` URL with a public hostname; private and loopback targets are rejected unless `ALLOW_INSECURE_OVERLAY_URLS=true`. Requires `ALLOW_EVENT_OVERLAYS=true`. |
 
 ---
 

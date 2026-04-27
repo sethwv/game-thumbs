@@ -14,7 +14,8 @@ const { resolveTeamsWithFallback, handleTeamNotFoundError, addBadgeOverlay, isVa
 const { sendCachedOrGenerate, handleImageRouteError } = require('../helpers/routeUtils');
 const { getCachedImage, addToCache } = require('../helpers/imageCache');
 const { findLeague } = require('../leagues');
-const { isEventOverlaysEnabled } = require('../helpers/featureFlags');
+const { isEventOverlaysEnabled, getInsecureOverlayConfig } = require('../helpers/featureFlags');
+const { validatePublicImageUrl } = require('../helpers/urlValidator');
 const logger = require('../helpers/logger');
 
 module.exports = {
@@ -67,6 +68,21 @@ module.exports = {
                 }
 
                 const overlaysOn = isEventOverlaysEnabled();
+                let safeIconUrl;
+                if (overlaysOn && iconurl) {
+                    const insecure = getInsecureOverlayConfig();
+                    if (insecure === true) {
+                        safeIconUrl = iconurl;
+                    } else {
+                        try {
+                            safeIconUrl = validatePublicImageUrl(iconurl, {
+                                allowedHosts: Array.isArray(insecure) ? insecure : []
+                            });
+                        } catch (err) {
+                            return res.status(400).json({ error: `Invalid iconurl: ${err.message}` });
+                        }
+                    }
+                }
 
                 buffer = await generateLeagueThumb(leagueLogoUrl, {
                     width,
@@ -74,7 +90,7 @@ module.exports = {
                     leagueLogoUrlAlt: leagueLogoUrlAlt,
                     title: overlaysOn ? title : undefined,
                     subtitle: overlaysOn ? subtitle : undefined,
-                    iconurl: overlaysOn ? iconurl : undefined,
+                    iconurl: safeIconUrl,
                     league: leagueObj.shortName
                 });
             }
