@@ -468,7 +468,7 @@ nano teams.json
 nano leagues.json
 
 # Restart the server to reload
-npm start
+yarn start
 ```
 
 ---

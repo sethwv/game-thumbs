@@ -1,3 +1,5 @@
+> **Target branch:** Please open PRs against `dev`, not `main`. PRs targeting `main` directly will be asked to retarget.
+
 ## Description
 
 <!-- Describe what this PR does and why -->

@@ -23,6 +23,10 @@ helpers/test.js
 test/output/*
 !test/output/.gitkeep
 
+# Lock files from other package managers (this project uses yarn)
+package-lock.json
+pnpm-lock.yaml
+
 # Environment files
 .env
 
