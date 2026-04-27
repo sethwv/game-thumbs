@@ -28,6 +28,7 @@ services:
       - ${CACHE_DIR:-./.cache}:/app/.cache
       # - ${CUSTOM_TEAMS_DIR:-./custom-config/teams}:/app/json/teams:ro
       # - ${CUSTOM_LEAGUES_DIR:-./custom-config/leagues}:/app/json/leagues:ro
+      # - ${CUSTOM_FONTS_DIR:-./custom-config/fonts}:/app/assets/fonts/custom:ro
       # - ${LOGS_DIR:-./logs}:/app/logs
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:${PORT:-3000}/health | grep -q '\"status\":\"ok\"'"]

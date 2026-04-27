@@ -23,10 +23,15 @@ helpers/test.js
 test/output/*
 !test/output/.gitkeep
 
+# Lock files from other package managers (this project uses yarn)
+package-lock.json
+pnpm-lock.yaml
+
 # Environment files
 .env
 
 # IDE files
+.claude
 .vscode
 .idea
 *.swp
@@ -36,3 +41,5 @@ test/output/*
 .DS_Store
 Thumbs.db
 .github/copilot-instructions.md
+CHANGELOG.md
+HIGHLIGHTS.md

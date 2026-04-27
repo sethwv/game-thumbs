@@ -782,6 +782,37 @@
       }
     ]
   },
+  "usopen": {
+    "name": "U.S. Open Cup",
+    "aliases": [
+      "usa open cup",
+      "usa open",
+      "us open"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "usa.open",
+          "espnSport": "soccer"
+        }
+      }
+    ]
+  },
+  "usl": {
+    "name": "USL Championship",
+    "aliases": [
+      "usl",
+      "usl championship"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "usa.usl.1",
+          "espnSport": "soccer"
+        }
+      }
+    ]
+  },
   "championship": {
     "name": "EFL Championship",
     "aliases": [

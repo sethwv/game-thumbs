@@ -30,11 +30,11 @@ nav_order: 6
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `variant` | string | `light` | Logo variant: `light` or `dark` (league/team only) |
-| `style` | integer | 1 | Visual style 1-6 (matchup only) |
-| `size` | integer | 1024 | Output size: 256, 512, 1024, or 2048 (matchup only) |
+| `variant` | string | `light` | Logo variant: `light` or `dark` (league/team only, without `style`) |
+| `style` | integer | 1 | Visual style 1-6 (matchup). For league/team logos, `style=1` generates a compact diagonal split image |
+| `size` | integer | 1024 | Output size: 256, 512, 1024, or 2048 (matchup, or league/team with `style=1`) |
 | `logo` | boolean | false | Include league logo (matchup only) |
-| `trim` | boolean | true | Trim whitespace (matchup only) |
+| `trim` | boolean | true | Trim whitespace (matchup, or league/team with `style=1`) |
 | `badge` | string | - | Add quality badge overlay: `ALT`, `4K`, `HD`, `FHD`, or `UHD` (matchup only) |
 | `winner` | string | - | Winning team identifier - displays losing team in greyscale (matchup only) |
 | `fallback` | boolean | false | **Single team:** Return league logo. **Matchup:** Use greyscale league logo for missing teams (or skipLogos mode for configured leagues) |
@@ -63,23 +63,25 @@ nav_order: 6
 
 ### League Logos
 
-Raw league logo from provider.
+Raw league logo from provider. Add `style=1` for a compact diagonal split with mood color derived from the league logo.
 
 | League | Preview | URL |
 |--------|---------|-----|
 | **NHL** | [![NHL Logo](https://game-thumbs.swvn.io/nhl/logo)](https://game-thumbs.swvn.io/nhl/logo) | `/nhl/logo` |
 | **NBA** | [![NBA Logo](https://game-thumbs.swvn.io/nba/logo)](https://game-thumbs.swvn.io/nba/logo) | `/nba/logo` |
 | **MLB (Dark)** | [![MLB Logo](https://game-thumbs.swvn.io/mlb/logo?variant=dark)](https://game-thumbs.swvn.io/mlb/logo?variant=dark) | `/mlb/logo?variant=dark` |
+| **NHL (Style 1)** | [![NHL Style 1](https://game-thumbs.swvn.io/nhl/logo?style=1)](https://game-thumbs.swvn.io/nhl/logo?style=1) | `/nhl/logo?style=1` |
 
 ### Team Logos
 
-Raw team logo from provider.
+Raw team logo from provider. Add `style=1` for a solid rectangle in the team's primary color with the team logo centered.
 
 | Team | Preview | URL |
 |------|---------|-----|
 | **Leafs** | [![Leafs Logo](https://game-thumbs.swvn.io/nhl/leafs/logo)](https://game-thumbs.swvn.io/nhl/leafs/logo) | `/nhl/leafs/logo` |
 | **Raptors** | [![Raptors Logo](https://game-thumbs.swvn.io/nba/raptors/logo)](https://game-thumbs.swvn.io/nba/raptors/logo) | `/nba/raptors/logo` |
 | **Blue Jays** | [![Blue Jays Logo](https://game-thumbs.swvn.io/mlb/bluejays/logo)](https://game-thumbs.swvn.io/mlb/bluejays/logo) | `/mlb/bluejays/logo` |
+| **Leafs (Style 1)** | [![Leafs Style 1](https://game-thumbs.swvn.io/nhl/leafs/logo?style=1)](https://game-thumbs.swvn.io/nhl/leafs/logo?style=1) | `/nhl/leafs/logo?style=1` |
 
 ### Matchup Logos
 

@@ -8,7 +8,7 @@
 
 const providerManager = require('../helpers/ProviderManager');
 const { generateLogo } = require('../generators/logoGenerator');
-const { downloadImage, resolveTeamsWithFallback, handleTeamNotFoundError, addBadgeOverlay, isValidBadge, applyWinnerEffect } = require('../helpers/imageUtils');
+const { downloadImage, buildSkipLogosTeam, resolveTeamsWithFallback, handleTeamNotFoundError, addBadgeOverlay, isValidBadge, applyWinnerEffect } = require('../helpers/imageUtils');
 const { sendCachedOrGenerate, handleImageRouteError } = require('../helpers/routeUtils');
 const { getCachedImage, addToCache } = require('../helpers/imageCache');
 const { findLeague } = require('../leagues');
@@ -43,35 +43,78 @@ module.exports = {
 
             // Case 1: League logo (/:league/logo)
             if (!team1 && !team2) {
-                // Determine which logo variant to fetch
-                const darkLogoPreferred = variant === 'dark';
-                
-                // Validate variant parameter if provided
-                if (variant && variant !== 'light' && variant !== 'dark') {
-                    return res.status(400).json({ 
-                        error: `Invalid variant: ${variant}. Use 'light' or 'dark'` 
-                    });
+                const styleValue = parseInt(style) || 0;
+
+                if (styleValue === 1) {
+                    // Style 1: reuse matchup diagonal split with skipLogos dummy teams
+                    const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj);
+                    const dummyTeam = await buildSkipLogosTeam(leagueLogoUrl);
+                    const logoOptions = {
+                        width: 1024,
+                        height: 1024,
+                        style: 1,
+                        league: { logoUrl: leagueLogoUrl },
+                        trim: trim !== 'false'
+                    };
+                    const validSizes = [256, 512, 1024, 2048];
+                    const sizeValue = parseInt(size);
+                    if (validSizes.includes(sizeValue)) {
+                        logoOptions.width = sizeValue;
+                        logoOptions.height = sizeValue;
+                    }
+                    logoBuffer = await generateLogo(dummyTeam, { ...dummyTeam }, logoOptions);
+                } else {
+                    // Determine which logo variant to fetch
+                    const darkLogoPreferred = variant === 'dark';
+                    
+                    // Validate variant parameter if provided
+                    if (variant && variant !== 'light' && variant !== 'dark') {
+                        return res.status(400).json({ 
+                            error: `Invalid variant: ${variant}. Use 'light' or 'dark'` 
+                        });
+                    }
+
+                    // Get league logo URL
+                    const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj, darkLogoPreferred);
+
+                    if (!leagueLogoUrl) {
+                        return res.status(404).json({ error: 'League logo not found' });
+                    }
+
+                    // Download the image
+                    logoBuffer = await downloadImage(leagueLogoUrl);
                 }
-
-                // Get league logo URL
-                const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj, darkLogoPreferred);
-
-                if (!leagueLogoUrl) {
-                    return res.status(404).json({ error: 'League logo not found' });
-                }
-
-                // Download the image
-                logoBuffer = await downloadImage(leagueLogoUrl);
             }
             // Case 2: Single team logo (/:league/:team1/logo)
             else if (team1 && !team2) {
                 const teamIdentifier = team1;
+                const styleValue = parseInt(style) || 0;
 
                 try {
                     const resolvedTeam = await providerManager.resolveTeam(leagueObj, teamIdentifier);
 
-                    // If team has pre-converted PNG (e.g., from SVG), use that directly
-                    if (resolvedTeam._logoPng) {
+                    if (styleValue === 1) {
+                        // Style 1: reuse matchup diagonal split with skipLogos dummy teams
+                        // Team's primary color as background, team logo as center logo
+                        const teamColor = resolvedTeam.color || '#000000';
+                        const dummyTeam = await buildSkipLogosTeam(null, teamColor);
+                        const logoUrl = resolvedTeam._logoPng || resolvedTeam.logo;
+                        const logoOptions = {
+                            width: 1024,
+                            height: 1024,
+                            style: 1,
+                            league: { logoUrl: logoUrl },
+                            trim: trim !== 'false'
+                        };
+                        const validSizes = [256, 512, 1024, 2048];
+                        const sizeValue = parseInt(size);
+                        if (validSizes.includes(sizeValue)) {
+                            logoOptions.width = sizeValue;
+                            logoOptions.height = sizeValue;
+                        }
+                        logoBuffer = await generateLogo(dummyTeam, { ...dummyTeam }, logoOptions);
+                    } else if (resolvedTeam._logoPng) {
+                        // If team has pre-converted PNG (e.g., from SVG), use that directly
                         // _logoPng is a data URL, downloadImage can handle it
                         logoBuffer = await downloadImage(resolvedTeam._logoPng);
                     } else {

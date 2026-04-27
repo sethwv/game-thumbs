@@ -88,10 +88,10 @@ git clone https://github.com/YOUR-USERNAME/game-thumbs.git
 cd game-thumbs
 
 # Install dependencies
-npm install
+yarn install
 
 # Run locally
-npm start
+yarn dev
 
 # Test your changes
 curl http://localhost:3000/nfl/patriots/chiefs/thumb
@@ -104,7 +104,7 @@ curl http://localhost:3000/nfl/patriots/chiefs/thumb
 3. **Test locally**: Verify endpoints work
 4. **Commit**: `git commit -m "Add team aliases for EPL teams"`
 5. **Push**: `git push origin my-feature`
-6. **Open PR**: Use the pull request template
+6. **Open PR**: Target the `dev` branch, not `main`
 
 ### PR Guidelines
 

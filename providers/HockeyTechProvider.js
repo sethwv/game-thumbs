@@ -221,6 +221,44 @@ class HockeyTechProvider extends BaseProvider {
     // Private helper methods
     // ------------------------------------------------------------------------------
 
+    async fetchStartedSeasonId(clientCode, key) {
+        try {
+            const response = await axios.get(this.BASE_URL, {
+                params: {
+                    feed: 'modulekit',
+                    view: 'seasons',
+                    key,
+                    client_code: clientCode,
+                    lang_code: 'en',
+                    fmt: 'json'
+                },
+                timeout: this.REQUEST_TIMEOUT,
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                    'Accept-Language': 'en-US,en;q=0.5'
+                }
+            });
+
+            const seasons = response.data?.SiteKit?.Seasons || [];
+            const today = new Date().toISOString().slice(0, 10);
+
+            // Filter to seasons that have already started, then pick the most recent one.
+            // This avoids landing on a future/upcoming season with incomplete team data.
+            const started = seasons
+                .filter(s => s.start_date && s.start_date <= today)
+                .sort((a, b) => parseInt(b.season_id) - parseInt(a.season_id));
+
+            return started.length > 0 ? started[0].season_id : null;
+        } catch (error) {
+            logger.warn('Could not fetch seasons list, using API default', {
+                clientCode,
+                error: error.message
+            });
+            return null;
+        }
+    }
+
     async fetchTeamData(league) {
         const cacheKey = `${league.shortName}_teams`;
 
@@ -235,8 +273,9 @@ class HockeyTechProvider extends BaseProvider {
             throw new Error(`League ${league.shortName} is missing HockeyTech configuration`);
         }
 
-        const { clientCode, seasonId, apiKey } = hockeyTechConfig;
-        
+        const { clientCode, apiKey } = hockeyTechConfig;
+        let { seasonId } = hockeyTechConfig;
+
         if (!clientCode) {
             logger.error('Missing clientCode in HockeyTech config', {
                 league: league.shortName,
@@ -244,11 +283,16 @@ class HockeyTechProvider extends BaseProvider {
             });
             throw new Error(`League ${league.shortName} requires clientCode in HockeyTech configuration`);
         }
-        
+
         // Use league-specific API key if configured, otherwise use default
         const key = apiKey || this.API_KEY;
-        
-        // seasonId is optional - API will use current season if not provided
+
+        // When no seasonId is configured, find the most recently started season so we
+        // don't accidentally land on a future/upcoming season that has incomplete team data.
+        if (!seasonId) {
+            seasonId = await this.fetchStartedSeasonId(clientCode, key);
+        }
+
         const params = {
             feed: 'modulekit',
             view: 'teamsbyseason',
@@ -266,9 +310,13 @@ class HockeyTechProvider extends BaseProvider {
             const response = await axios.get(this.BASE_URL, {
                 params,
                 timeout: this.REQUEST_TIMEOUT,
-                headers: { 'User-Agent': 'Mozilla/5.0' }
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                    'Accept-Language': 'en-US,en;q=0.5'
+                }
             });
-            
+
             const teams = response.data?.SiteKit?.Teamsbyseason || [];
             
             if (teams.length === 0) {
@@ -309,7 +357,11 @@ class HockeyTechProvider extends BaseProvider {
         try {
             const response = await axios.get(url, {
                 timeout: this.REQUEST_TIMEOUT,
-                headers: { 'User-Agent': 'Mozilla/5.0' }
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                    'Accept-Language': 'en-US,en;q=0.5'
+                }
             });
 
             const html = response.data;
@@ -393,7 +445,11 @@ class HockeyTechProvider extends BaseProvider {
                 
                 const response = await axios.get(jsUrl, {
                     timeout: this.REQUEST_TIMEOUT,
-                    headers: { 'User-Agent': 'Mozilla/5.0' }
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                        'Accept': '*/*',
+                        'Accept-Language': 'en-US,en;q=0.5'
+                    }
                 });
                 
                 // Look for var appKey = "value" in the external JS
