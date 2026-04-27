@@ -14,6 +14,8 @@ const { resolveTeamsWithFallback, handleTeamNotFoundError, addBadgeOverlay, isVa
 const { sendCachedOrGenerate, handleImageRouteError } = require('../helpers/routeUtils');
 const { getCachedImage, addToCache } = require('../helpers/imageCache');
 const { findLeague } = require('../leagues');
+const { isEventOverlaysEnabled, getInsecureOverlayConfig } = require('../helpers/featureFlags');
+const { validatePublicImageUrl } = require('../helpers/urlValidator');
 const logger = require('../helpers/logger');
 
 module.exports = {
@@ -28,7 +30,7 @@ module.exports = {
     method: "get",
     handler: async (req, res) => {
         const { league, team1, team2 } = req.params;
-        const { logo, style, fallback, aspect, badge, winner } = req.query;
+        const { logo, style, fallback, aspect, badge, winner, title, subtitle, iconurl } = req.query;
 
         // Determine dimensions based on aspect ratio
         let width, height;
@@ -60,15 +62,36 @@ module.exports = {
             if (!team1 && !team2) {
                 const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj, false);
                 const leagueLogoUrlAlt = await providerManager.getLeagueLogoUrl(leagueObj, true);
-                
+
                 if (!leagueLogoUrl) {
                     return res.status(404).json({ error: 'League logo not found' });
                 }
-                
+
+                const overlaysOn = isEventOverlaysEnabled();
+                let safeIconUrl;
+                if (overlaysOn && iconurl) {
+                    const insecure = getInsecureOverlayConfig();
+                    if (insecure === true) {
+                        safeIconUrl = iconurl;
+                    } else {
+                        try {
+                            safeIconUrl = validatePublicImageUrl(iconurl, {
+                                allowedHosts: Array.isArray(insecure) ? insecure : []
+                            });
+                        } catch (err) {
+                            return res.status(400).json({ error: `Invalid iconurl: ${err.message}` });
+                        }
+                    }
+                }
+
                 buffer = await generateLeagueThumb(leagueLogoUrl, {
                     width,
                     height,
-                    leagueLogoUrlAlt: leagueLogoUrlAlt
+                    leagueLogoUrlAlt: leagueLogoUrlAlt,
+                    title: overlaysOn ? title : undefined,
+                    subtitle: overlaysOn ? subtitle : undefined,
+                    iconurl: safeIconUrl,
+                    league: leagueObj.shortName
                 });
             }
             // Case 2: Single team thumbnail (/:league/:team1/thumb)

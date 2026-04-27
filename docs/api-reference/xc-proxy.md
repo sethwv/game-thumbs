@@ -80,7 +80,7 @@ XC_PROXY=true XC_PROXY_UPSTREAM='local=http://example.com:8080' node index.js
 Run only the XC proxy (no image generation or other routes):
 
 ```bash
-npm run xcproxy
+yarn xcproxy
 ```
 
 Or manually:

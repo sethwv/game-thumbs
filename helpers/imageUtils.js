@@ -11,7 +11,7 @@ const fsSync = require('fs');
 const path = require('path');
 const logger = require('./logger');
 const fsCache = require('./fsCache');
-const { rgbToHex: colorUtilsRgbToHex, calculateColorDistance } = require('./colorUtils');
+const { rgbToHex: colorUtilsRgbToHex, calculateColorDistance, extractDominantColors, darkenColor } = require('./colorUtils');
 const { getTeamMatchScore, normalizeCompact } = require('./teamUtils');
 
 // ------------------------------------------------------------------------------
@@ -105,6 +105,7 @@ module.exports = {
     loadTrimmedLogo,
     convertToGreyscale,
     generateFallbackTeamObject,
+    buildSkipLogosTeam,
     resolveTeamsWithFallback,
     handleTeamNotFoundError,
     addBadgeOverlay,
@@ -617,6 +618,38 @@ async function resolveSingleTeamWithFallback(providerManager, leagueObj, teamIde
 }
 
 /**
+ * Build a skipLogos dummy team object with a mood color derived from an image URL.
+ * Used for style-1 renderings where no real team data is needed.
+ * @param {string} imageUrl - URL of an image to extract dominant color from
+ * @param {string} [color] - Optional explicit color to use instead of extracting
+ * @returns {Promise<Object>} A dummy team object with skipLogos: true
+ */
+async function buildSkipLogosTeam(imageUrl, color) {
+    let moodColor = '#1a1d2e';
+    if (color) {
+        moodColor = color;
+    } else if (imageUrl) {
+        try {
+            const colors = await extractDominantColors(imageUrl, 1);
+            if (colors.length > 0) {
+                moodColor = darkenColor(colors[0], 92);
+            }
+        } catch (error) {
+            logger.warn('Failed to extract mood color, using default', { error: error.message });
+        }
+    }
+    return {
+        name: '',
+        logo: null,
+        logoAlt: null,
+        color: moodColor,
+        alternateColor: moodColor,
+        isFallback: true,
+        skipLogos: true
+    };
+}
+
+/**
  * Resolve both teams with fallback support for matchup generation
  * @param {Object} providerManager - The provider manager instance
  * @param {Object} leagueObj - League object
@@ -639,50 +672,7 @@ async function resolveTeamsWithFallback(providerManager, leagueObj, team1Identif
     // If any team fails and the league has skipLogos enabled,
     // create dummy teams that render only colored rectangles with the league logo
     if ((result1.failed || result2.failed) && leagueObj.skipLogos) {
-        // Extract mood color from the league logo's dominant color, darkened
-        let moodColor = '#1a1d2e';
-        if (leagueLogoUrl) {
-            try {
-                const logoBuffer = await downloadImage(leagueLogoUrl);
-                const logoImage = await loadImage(logoBuffer);
-                const canvas = createCanvas(logoImage.width, logoImage.height);
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(logoImage, 0, 0);
-                const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-                // Tally quantized pixel colors, skipping transparent and near-white
-                const colorMap = new Map();
-                for (let i = 0; i < data.length; i += 20) { // sample every 5th pixel (5*4)
-                    const r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3];
-                    if (a < 128) continue;
-                    if (r > 240 && g > 240 && b > 240) continue;
-                    const key = `${Math.round(r / 10) * 10},${Math.round(g / 10) * 10},${Math.round(b / 10) * 10}`;
-                    colorMap.set(key, (colorMap.get(key) || 0) + 1);
-                }
-
-                if (colorMap.size > 0) {
-                    const [topColor] = [...colorMap.entries()].sort((a, b) => b[1] - a[1])[0];
-                    const [r, g, b] = topColor.split(',').map(Number);
-                    const factor = 0.08;
-                    const dr = Math.round(r * factor);
-                    const dg = Math.round(g * factor);
-                    const db = Math.round(b * factor);
-                    moodColor = `#${[dr, dg, db].map(c => c.toString(16).padStart(2, '0')).join('')}`;
-                }
-            } catch (error) {
-                logger.warn('Failed to extract color from league logo, using default', { error: error.message });
-            }
-        }
-
-        const dummyTeam = {
-            name: '',
-            logo: null,
-            logoAlt: null,
-            color: moodColor,
-            alternateColor: moodColor,
-            isFallback: true,
-            skipLogos: true  // Flag to skip logo rendering
-        };
+        const dummyTeam = await buildSkipLogosTeam(leagueLogoUrl);
 
         return {
             team1: dummyTeam,
