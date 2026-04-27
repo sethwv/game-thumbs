@@ -266,9 +266,13 @@ class HockeyTechProvider extends BaseProvider {
             const response = await axios.get(this.BASE_URL, {
                 params,
                 timeout: this.REQUEST_TIMEOUT,
-                headers: { 'User-Agent': 'Mozilla/5.0' }
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                    'Accept-Language': 'en-US,en;q=0.5'
+                }
             });
-            
+
             const teams = response.data?.SiteKit?.Teamsbyseason || [];
             
             if (teams.length === 0) {
@@ -309,7 +313,11 @@ class HockeyTechProvider extends BaseProvider {
         try {
             const response = await axios.get(url, {
                 timeout: this.REQUEST_TIMEOUT,
-                headers: { 'User-Agent': 'Mozilla/5.0' }
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                    'Accept-Language': 'en-US,en;q=0.5'
+                }
             });
 
             const html = response.data;
@@ -393,7 +401,11 @@ class HockeyTechProvider extends BaseProvider {
                 
                 const response = await axios.get(jsUrl, {
                     timeout: this.REQUEST_TIMEOUT,
-                    headers: { 'User-Agent': 'Mozilla/5.0' }
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                        'Accept': '*/*',
+                        'Accept-Language': 'en-US,en;q=0.5'
+                    }
                 });
                 
                 // Look for var appKey = "value" in the external JS
