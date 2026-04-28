@@ -62,56 +62,9 @@ jobs:
       - name: Generate summary for ${{ matrix.test-file }}
         if: always()
         run: |
-          # Determine the expected result file based on test file name
-          TEST_FILE_BASE=$(basename "${{ matrix.test-file }}" .test.js)
-          
-          # Map test file names to their result file names
-          case "$TEST_FILE_BASE" in
-            "endpoints")
-              RESULTS_FILE="test/output/test-results.json"
-              ;;
-            "leagues")
-              RESULTS_FILE="test/output/leagues-results.json"
-              ;;
-            "aliases")
-              RESULTS_FILE="test/output/aliases-results.json"
-              ;;
-            "ncaa")
-              RESULTS_FILE="test/output/ncaa-results.json"
-              ;;
-            "matchups")
-              RESULTS_FILE="test/output/matchups-results.json"
-              ;;
-            "error-handling")
-              RESULTS_FILE="test/output/error-handling-results.json"
-              ;;
-            "providers")
-              RESULTS_FILE="test/output/providers-results.json"
-              ;;
-            "performance")
-              RESULTS_FILE="test/output/performance-results.json"
-              ;;
-            "server-behavior")
-              RESULTS_FILE="test/output/server-behavior-results.json"
-              ;;
-            "fallback")
-              RESULTS_FILE="test/output/fallback-test-results.json"
-              ;;
-            "url-validator")
-              RESULTS_FILE="test/output/url-validator-results.json"
-              ;;
-            "event-overlays")
-              RESULTS_FILE="test/output/event-overlays-results.json"
-              ;;
-            "espn-fallback")
-              RESULTS_FILE="test/output/espn-fallback-test-results.json"
-              ;;
-            *)
-              # Fallback: try to find any results file
-              RESULTS_FILE=$(find test/output -name "*-results.json" -o -name "test-results.json" 2>/dev/null | head -n 1)
-              ;;
-          esac
-          
+          # Since each job starts with a clean checkout, any JSON in test/output was written by this test
+          RESULTS_FILE=$(find test/output -name "*.json" 2>/dev/null | head -n 1)
+
           if [ -z "$RESULTS_FILE" ] || [ ! -f "$RESULTS_FILE" ]; then
             echo "## ❌ Test Results Not Found" >> $GITHUB_STEP_SUMMARY
             echo "Test file: \`${{ matrix.test-file }}\`" >> $GITHUB_STEP_SUMMARY
