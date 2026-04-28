@@ -221,7 +221,7 @@ class HockeyTechProvider extends BaseProvider {
     // Private helper methods
     // ------------------------------------------------------------------------------
 
-    async fetchStartedSeasonId(clientCode, key) {
+    async fetchStartedSeasons(clientCode, key) {
         try {
             const response = await axios.get(this.BASE_URL, {
                 params: {
@@ -243,20 +243,43 @@ class HockeyTechProvider extends BaseProvider {
             const seasons = response.data?.SiteKit?.Seasons || [];
             const today = new Date().toISOString().slice(0, 10);
 
-            // Filter to seasons that have already started, then pick the most recent one.
-            // This avoids landing on a future/upcoming season with incomplete team data.
-            const started = seasons
+            return seasons
                 .filter(s => s.start_date && s.start_date <= today)
                 .sort((a, b) => parseInt(b.season_id) - parseInt(a.season_id));
-
-            return started.length > 0 ? started[0].season_id : null;
         } catch (error) {
             logger.warn('Could not fetch seasons list, using API default', {
                 clientCode,
                 error: error.message
             });
-            return null;
+            return [];
         }
+    }
+
+    async fetchTeamsForSeason(clientCode, key, seasonId) {
+        const params = {
+            feed: 'modulekit',
+            view: 'teamsbyseason',
+            key,
+            client_code: clientCode,
+            lang_code: 'en',
+            fmt: 'json'
+        };
+
+        if (seasonId) {
+            params.season_id = seasonId;
+        }
+
+        const response = await axios.get(this.BASE_URL, {
+            params,
+            timeout: this.REQUEST_TIMEOUT,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.5'
+            }
+        });
+
+        return response.data?.SiteKit?.Teamsbyseason || [];
     }
 
     async fetchTeamData(league) {
@@ -274,7 +297,7 @@ class HockeyTechProvider extends BaseProvider {
         }
 
         const { clientCode, apiKey } = hockeyTechConfig;
-        let { seasonId } = hockeyTechConfig;
+        const { seasonId } = hockeyTechConfig;
 
         if (!clientCode) {
             logger.error('Missing clientCode in HockeyTech config', {
@@ -284,51 +307,43 @@ class HockeyTechProvider extends BaseProvider {
             throw new Error(`League ${league.shortName} requires clientCode in HockeyTech configuration`);
         }
 
-        // Use league-specific API key if configured, otherwise use default
         const key = apiKey || this.API_KEY;
 
-        // When no seasonId is configured, find the most recently started season so we
-        // don't accidentally land on a future/upcoming season that has incomplete team data.
-        if (!seasonId) {
-            seasonId = await this.fetchStartedSeasonId(clientCode, key);
-        }
-
-        const params = {
-            feed: 'modulekit',
-            view: 'teamsbyseason',
-            key: key,
-            client_code: clientCode,
-            lang_code: 'en',
-            fmt: 'json'
-        };
-
-        if (seasonId) {
-            params.season_id = seasonId;
-        }
-
         try {
-            const response = await axios.get(this.BASE_URL, {
-                params,
-                timeout: this.REQUEST_TIMEOUT,
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                    'Accept-Language': 'en-US,en;q=0.5'
-                }
-            });
+            let teams = [];
 
-            const teams = response.data?.SiteKit?.Teamsbyseason || [];
-            
+            if (seasonId) {
+                teams = await this.fetchTeamsForSeason(clientCode, key, seasonId);
+            } else {
+                // Walk seasons from most recently started backward, stopping at the first one
+                // that has a complete roster (no TBD placeholders). This handles leagues that
+                // use a separate playoff-bracket season with fewer/placeholder teams.
+                const seasons = await this.fetchStartedSeasons(clientCode, key);
+                const seasonsToTry = seasons.length > 0 ? seasons : [{ season_id: null }];
+
+                for (const season of seasonsToTry) {
+                    const candidates = await this.fetchTeamsForSeason(clientCode, key, season.season_id);
+                    const hasPlaceholders = candidates.some(t => !t.city || t.city.toUpperCase() === 'TBD' || t.name.toUpperCase() === 'TBD');
+                    if (candidates.length > 0 && !hasPlaceholders) {
+                        teams = candidates;
+                        break;
+                    }
+                    logger.info('HockeyTech season has placeholder teams, trying previous season', {
+                        league: league.shortName,
+                        season_id: season.season_id,
+                        teamCount: candidates.length
+                    });
+                }
+            }
+
             if (teams.length === 0) {
                 throw new Error(`No teams found for league: ${clientCode}`);
             }
-            
-            // Cache to filesystem
+
             fsCache.setJSON('hockeytech', cacheKey, teams);
-            
             return teams;
         } catch (error) {
-            throw this.handleHttpError(error, `Fetching teams for ${clientCode}`)
+            throw this.handleHttpError(error, `Fetching teams for ${clientCode}`);
         }
     }
 
