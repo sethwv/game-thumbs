@@ -1557,15 +1557,15 @@
   },
   "ahl": {
     "name": "American Hockey League",
+    "logoUrl": "https://theahl.com/wp-content/uploads/sites/3/2024/09/cropped-AHL_Primary22.png",
     "aliases": [
       "american ahl",
       "american hockey league"
     ],
     "providers": [
       {
-        "theSportsDB": {
-          "leagueId": "4738",
-          "leagueName": "American AHL"
+        "hockeyTech": {
+          "websiteUrl": "https://theahl.com/"
         }
       }
     ]

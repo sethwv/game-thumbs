@@ -18,6 +18,8 @@ class HockeyTechProvider extends BaseProvider {
         this.refreshTimers = new Map(); // Track scheduled config refreshes
         this.TEAM_CACHE_DURATION = 72 * 60 * 60 * 1000; // 72 hours
         this.CONFIG_CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days
+        this.SEASONS_TO_AGGREGATE = 3;  // combine up to 3 substantive seasons for full roster coverage
+        this.MIN_SEASON_TEAMS = 4;      // skip All-Star/exhibition seasons with fewer real teams
         this.BASE_URL = 'https://lscluster.hockeytech.com/feed/';
         // Use API key from env var if available, otherwise use public key
         this.API_KEY = process.env.HOCKEYTECH_API_KEY || 'f1aa699db3d81487';
@@ -315,24 +317,45 @@ class HockeyTechProvider extends BaseProvider {
             if (seasonId) {
                 teams = await this.fetchTeamsForSeason(clientCode, key, seasonId);
             } else {
-                // Walk seasons from most recently started backward, stopping at the first one
-                // that has a complete roster (no TBD placeholders). This handles leagues that
-                // use a separate playoff-bracket season with fewer/placeholder teams.
+                // Aggregate the most recent substantive seasons so that teams eliminated before
+                // playoffs (or missing from an All-Star bracket) are still resolvable.
+                // Seasons are walked newest-first; first-write-wins keeps the newest team data.
                 const seasons = await this.fetchStartedSeasons(clientCode, key);
-                const seasonsToTry = seasons.length > 0 ? seasons : [{ season_id: null }];
+                const teamMap = new Map();
+                let substantiveCount = 0;
 
-                for (const season of seasonsToTry) {
+                for (const season of seasons) {
+                    if (substantiveCount >= this.SEASONS_TO_AGGREGATE) break;
+
                     const candidates = await this.fetchTeamsForSeason(clientCode, key, season.season_id);
-                    const hasPlaceholders = candidates.some(t => !t.city || t.city.toUpperCase() === 'TBD' || t.name.toUpperCase() === 'TBD');
-                    if (candidates.length > 0 && !hasPlaceholders) {
-                        teams = candidates;
-                        break;
+                    const real = candidates.filter(t =>
+                        t.city && t.city.toUpperCase() !== 'TBD' &&
+                        t.name && t.name.toUpperCase() !== 'TBD'
+                    );
+
+                    if (real.length < this.MIN_SEASON_TEAMS) {
+                        logger.info('HockeyTech: skipping small/exhibition season', {
+                            league: league.shortName,
+                            season_id: season.season_id,
+                            teamCount: real.length
+                        });
+                        continue;
                     }
-                    logger.info('HockeyTech season has placeholder teams, trying previous season', {
-                        league: league.shortName,
-                        season_id: season.season_id,
-                        teamCount: candidates.length
-                    });
+
+                    substantiveCount++;
+                    for (const team of real) {
+                        if (!teamMap.has(team.id)) teamMap.set(team.id, team);
+                    }
+                }
+
+                teams = Array.from(teamMap.values());
+
+                // Last resort: no seasons found at all, let the API pick its default
+                if (teams.length === 0) {
+                    const fallback = await this.fetchTeamsForSeason(clientCode, key, null);
+                    teams = fallback.filter(t =>
+                        t.city?.toUpperCase() !== 'TBD' && t.name?.toUpperCase() !== 'TBD'
+                    );
                 }
             }
 
