@@ -415,10 +415,10 @@ expand-template@^2.0.3:
   resolved "https://registry.yarnpkg.com/expand-template/-/expand-template-2.0.3.tgz#6e14b3fcee0f3a6340ecb57d2e8918692052a47c"
   integrity sha512-XYfuKMvj4O35f/pOXLObndIRvyQ+/+6AhODh+OKWj9S9498pHHn/IMszH+gt0fBCRWMNfk1ZSp5x3AifmnI2vg==
 
-express-rate-limit@^8.2.2:
-  version "8.4.0"
-  resolved "https://registry.yarnpkg.com/express-rate-limit/-/express-rate-limit-8.4.0.tgz#70b0c4bc546370d3801beb62191ab0f8019d63e0"
-  integrity sha512-gDK8yiqKxrGta+3WtON59arrrw6GLmadA1qoFgYXzdcch8fmKDID2XqO8itsi3f1wufXYPT51387dN6cvVBS3Q==
+express-rate-limit@^8.4.1:
+  version "8.4.1"
+  resolved "https://registry.yarnpkg.com/express-rate-limit/-/express-rate-limit-8.4.1.tgz#15a769dbe7b97f94581ed0db2bcead644753574f"
+  integrity sha512-NGVYwQSAyEQgzxX1iCM978PP9AdO/hW93gMcF6ZwQCm+rFvLsBH6w4xcXWTcliS8La5EPRN3p9wzItqBwJrfNw==
   dependencies:
     ip-address "10.1.0"
 
