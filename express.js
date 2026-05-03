@@ -46,6 +46,13 @@ function init(port) {
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
 
+    // Collapse consecutive slashes in paths (e.g. nhl///logo.png → nhl/logo.png)
+    app.use((req, res, next) => {
+        const normalized = req.url.replace(/\/{2,}/g, '/');
+        if (normalized !== req.url) req.url = normalized;
+        next();
+    });
+
     // Request-level timeout to prevent hanging requests
     const OVERALL_REQUEST_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '10000', 10) * 2; // 2x the external request timeout
     app.use((req, res, next) => {
