@@ -91,22 +91,25 @@ class SupabaseProvider extends BaseProvider {
      * @returns {Object} e.g. { BARRIEBAYCATS: "https://cbl.ca/assets/barrie-baycats-Bd8nI9Hd.png" }
      */
     _extractLogoMapFromJs(js, baseUrl) {
-        const vxIdx = js.indexOf('VX={');
-        if (vxIdx < 0) return {};
+        // Variable name changes on every deploy (VX, XX, etc.) — find by structure:
+        // any identifier assigned an object whose first key is an ALL_CAPS team ID.
+        const mapStartRe = /[A-Za-z_$][A-Za-z0-9_$]*=\{(?=[A-Z][A-Z0-9]{4,}:)/;
+        const mapStartMatch = mapStartRe.exec(js);
+        if (!mapStartMatch) return {};
 
-        // Find end of VX object
-        let depth = 0, end = vxIdx + 3;
+        const mapIdx = mapStartMatch.index;
+        const braceStart = mapIdx + mapStartMatch[0].length - 1; // index of '{'
+
+        // Walk forward to find the matching closing brace
+        let depth = 0, end = braceStart;
         for (; end < js.length; end++) {
             if (js[end] === '{') depth++;
-            else if (js[end] === '}') {
-                if (depth === 0) { end++; break; }
-                depth--;
-            }
+            else if (js[end] === '}' && --depth === 0) { end++; break; }
         }
-        const vxContent = js.slice(vxIdx + 4, end - 1);
+        const vxContent = js.slice(braceStart + 1, end - 1);
 
-        // Collect asset path constants defined in the 5000 chars before VX
-        const searchWindow = js.slice(Math.max(0, vxIdx - 5000), vxIdx);
+        // Asset constants appear ~910 chars before the map; use 2000 for safety
+        const searchWindow = js.slice(Math.max(0, mapIdx - 2000), mapIdx);
         const constMap = {};
         const constRe = /(?<![A-Za-z0-9_$])([A-Za-z_$][A-Za-z0-9_$]*)="(\/assets\/[^"]+\.(?:png|jpg|svg|webp))"/g;
         let m;
