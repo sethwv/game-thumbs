@@ -1803,6 +1803,21 @@
       }
     ]
   },
+  "cbl": {
+    "name": "Canadian Baseball League",
+    "aliases": [
+      "canadian baseball",
+      "canadian baseball league"
+    ],
+    "logoUrl": "https://upload.wikimedia.org/wikipedia/en/thumb/1/1e/Canadian_Baseball_League.svg/1280px-Canadian_Baseball_League.svg.png",
+    "providers": [
+      {
+        "supabase": {
+          "websiteUrl": "https://cbl.ca"
+        }
+      }
+    ]
+  },
   "__CRICKET__": "===========================================",
   "the100m": {
     "name": "The Hundred",
