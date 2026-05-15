@@ -2227,6 +2227,7 @@
   },
   "trc": {
     "name": "The Rugby Championship",
+    "logoUrl": "https://upload.wikimedia.org/wikipedia/commons/6/69/The_Rugby_Championship_logo_%28white_background%29.png",
     "aliases": [
       "rugby championship",
       "tri nations",
@@ -2243,6 +2244,7 @@
   },
   "super-rugby": {
     "name": "Super Rugby Pacific",
+    "logoUrl": "https://upload.wikimedia.org/wikipedia/en/2/25/Super_Rugby_Pacific_logo.png",
     "aliases": [
       "super rugby",
       "super rugby pacific"
@@ -2258,6 +2260,7 @@
   },
   "top14": {
     "name": "French Top 14",
+    "logoUrl": "https://upload.wikimedia.org/wikipedia/commons/7/7d/Top_14_Logo.svg",
     "aliases": [
       "top 14",
       "top14",
@@ -2274,6 +2277,7 @@
   },
   "ercc": {
     "name": "European Rugby Champions Cup",
+    "logoUrl": "https://upload.wikimedia.org/wikipedia/en/6/65/InvestecChampionsCupLogo.svg",
     "aliases": [
       "champions cup",
       "heineken cup",
@@ -2291,6 +2295,7 @@
   },
   "cc": {
     "name": "Currie Cup",
+    "logoUrl": "https://upload.wikimedia.org/wikipedia/en/b/bd/Currie_Cup_logo.svg",
     "aliases": [
       "south africa currie cup"
     ],
@@ -2305,6 +2310,7 @@
   },
   "npc": {
     "name": "National Provincial Championship",
+    "logoUrl": "https://upload.wikimedia.org/wikipedia/en/8/8e/NPC-Logo_50_Years.png",
     "aliases": [
       "new zealand npc",
       "nz npc"
@@ -2320,6 +2326,7 @@
   },
   "urba": {
     "name": "URBA Primera A",
+    "logoUrl": "https://upload.wikimedia.org/wikipedia/en/1/1f/Urba_logo.png",
     "aliases": [
       "argentina rugby",
       "urba primera"
@@ -2335,6 +2342,7 @@
   },
   "itm": {
     "name": "International Test Match",
+    "logoUrl": "https://upload.wikimedia.org/wikipedia/en/9/97/World_Rugby_logo.svg",
     "aliases": [
       "rugby test match",
       "international rugby test"
@@ -2350,6 +2358,7 @@
   },
   "lions": {
     "name": "British and Irish Lions Tour",
+    "logoUrl": "https://upload.wikimedia.org/wikipedia/en/9/93/British_%26_Irish_Lions_logo_%282023%29.svg",
     "aliases": [
       "british irish lions",
       "lions tour",
@@ -2366,6 +2375,7 @@
   },
   "nrl": {
     "name": "NRL",
+    "logoUrl": "https://upload.wikimedia.org/wikipedia/en/5/50/National_Rugby_League.svg",
     "aliases": [
       "national rugby league",
       "australian rugby league"
