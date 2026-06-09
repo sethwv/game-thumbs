@@ -6,6 +6,12 @@
 
 A sports matchup thumbnail and logo generation API supporting 30+ professional and NCAA leagues.
 
+## Support
+
+This project is maintained in my spare time. If it's saved you some headaches, a tip is always appreciated.
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/sethwv)
+
 ## Quick Start
 
 ### Docker Compose (Recommended)
