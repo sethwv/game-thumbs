@@ -2030,6 +2030,7 @@
     "aliases": [
       "top 14"
     ],
+    "logoUrl": "./assets/TOP14.png",
     "providers": [
       {
         "espn": {
@@ -2045,6 +2046,7 @@
       "super rugby",
       "super rugby pacific"
     ],
+    "logoUrl": "./assets/SUPER_RUGBY.png",
     "providers": [
       {
         "espn": {
