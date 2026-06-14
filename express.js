@@ -46,10 +46,11 @@ function init(port) {
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
 
-    // Collapse consecutive slashes in paths (e.g. nhl///logo.png → nhl/logo.png)
+    // Reject URLs with consecutive slashes (e.g. //team/logo or /nfl//logo)
     app.use((req, res, next) => {
-        const normalized = req.url.replace(/\/{2,}/g, '/');
-        if (normalized !== req.url) req.url = normalized;
+        if (/\/{2,}/.test(req.path)) {
+            return res.status(444).json({ error: 'Route not found' });
+        }
         next();
     });
 
