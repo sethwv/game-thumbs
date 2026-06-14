@@ -2026,6 +2026,51 @@
     ]
   },
   "__RUGBY__": "===========================================",
+  "nrl": {
+    "name": "National Rugby League",
+    "aliases": [
+      "national rugby league"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "3",
+          "espnSport": "rugby-league"
+        }
+      }
+    ]
+  },
+  "top14": {
+    "name": "Top 14",
+    "aliases": [
+      "top 14"
+    ],
+    "logoUrl": "./assets/TOP14.png",
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "8005",
+          "espnSport": "rugby"
+        }
+      }
+    ]
+  },
+  "super-rugby": {
+    "name": "Super Rugby",
+    "aliases": [
+      "super rugby",
+      "super rugby pacific"
+    ],
+    "logoUrl": "./assets/SUPER_RUGBY.png",
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "8326",
+          "espnSport": "rugby"
+        }
+      }
+    ]
+  },
   "6n": {
     "name": "Six Nations",
     "aliases": [
