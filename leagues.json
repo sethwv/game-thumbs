@@ -1803,6 +1803,21 @@
       }
     ]
   },
+  "cbl": {
+    "name": "Canadian Baseball League",
+    "aliases": [
+      "canadian baseball",
+      "canadian baseball league"
+    ],
+    "logoUrl": "https://upload.wikimedia.org/wikipedia/en/thumb/1/1e/Canadian_Baseball_League.svg/1280px-Canadian_Baseball_League.svg.png",
+    "providers": [
+      {
+        "supabase": {
+          "websiteUrl": "https://cbl.ca"
+        }
+      }
+    ]
+  },
   "__CRICKET__": "===========================================",
   "the100m": {
     "name": "The Hundred",
@@ -2011,6 +2026,51 @@
     ]
   },
   "__RUGBY__": "===========================================",
+  "nrl": {
+    "name": "National Rugby League",
+    "aliases": [
+      "national rugby league"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "3",
+          "espnSport": "rugby-league"
+        }
+      }
+    ]
+  },
+  "top14": {
+    "name": "Top 14",
+    "aliases": [
+      "top 14"
+    ],
+    "logoUrl": "./assets/TOP14.png",
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "8005",
+          "espnSport": "rugby"
+        }
+      }
+    ]
+  },
+  "super-rugby": {
+    "name": "Super Rugby",
+    "aliases": [
+      "super rugby",
+      "super rugby pacific"
+    ],
+    "logoUrl": "./assets/SUPER_RUGBY.png",
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "8326",
+          "espnSport": "rugby"
+        }
+      }
+    ]
+  },
   "6n": {
     "name": "Six Nations",
     "aliases": [
@@ -2024,6 +2084,12 @@
         "theSportsDB": {
           "leagueId": "4714",
           "leagueName": "Six Nations Championship"
+        }
+      },
+      {
+        "espn": {
+          "espnSlug": "180659",
+          "espnSport": "rugby"
         }
       }
     ]
@@ -2045,7 +2111,7 @@
       }
     ]
   },
-  "epr": {
+  "prem": {
     "name": "English Prem Rugby",
     "aliases": [
       "premiership rugby",
@@ -2058,6 +2124,12 @@
         "theSportsDB": {
           "leagueId": "4414",
           "leagueName": "English Prem Rugby"
+        }
+      },
+      {
+        "espn": {
+          "espnSlug": "267979",
+          "espnSport": "rugby"
         }
       }
     ]
@@ -2075,10 +2147,16 @@
           "leagueId": "4446",
           "leagueName": "United Rugby Championship"
         }
+      },
+      {
+        "espn": {
+          "espnSlug": "270557",
+          "espnSport": "rugby"
+        }
       }
     ]
   },
-  "ercc": {
+  "epcr": {
     "name": "European Rugby Challenge Cup",
     "aliases": [
       "epcrcc",
@@ -2089,6 +2167,12 @@
         "theSportsDB": {
           "leagueId": "5418",
           "leagueName": "European Rugby Challenge Cup"
+        }
+      },
+      {
+        "espn": {
+          "espnSlug": "272073",
+          "espnSport": "rugby"
         }
       }
     ]
@@ -2106,6 +2190,12 @@
           "leagueId": "4574",
           "leagueName": "Rugby World Cup"
         }
+      },
+      {
+        "espn": {
+          "espnSlug": "164205",
+          "espnSport": "rugby"
+        }
       }
     ]
   },
@@ -2120,6 +2210,12 @@
         "theSportsDB": {
           "leagueId": "5682",
           "leagueName": "Womens Rugby World Cup"
+        }
+      },
+      {
+        "espn": {
+          "espnSlug": "289237",
+          "espnSport": "rugby"
         }
       }
     ]
@@ -2164,6 +2260,176 @@
         "theSportsDB": {
           "leagueId": "5070",
           "leagueName": "Major League Rugby"
+        }
+      },
+      {
+        "espn": {
+          "espnSlug": "289262",
+          "espnSport": "rugby"
+        }
+      }
+    ]
+  },
+  "trc": {
+    "name": "The Rugby Championship",
+    "logoUrl": "https://upload.wikimedia.org/wikipedia/commons/6/69/The_Rugby_Championship_logo_%28white_background%29.png",
+    "aliases": [
+      "rugby championship",
+      "tri nations",
+      "four nations"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "244293",
+          "espnSport": "rugby"
+        }
+      }
+    ]
+  },
+  "super-rugby": {
+    "name": "Super Rugby Pacific",
+    "logoUrl": "https://upload.wikimedia.org/wikipedia/en/2/25/Super_Rugby_Pacific_logo.png",
+    "aliases": [
+      "super rugby",
+      "super rugby pacific"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "242041",
+          "espnSport": "rugby"
+        }
+      }
+    ]
+  },
+  "top14": {
+    "name": "French Top 14",
+    "logoUrl": "https://upload.wikimedia.org/wikipedia/commons/7/7d/Top_14_Logo.svg",
+    "aliases": [
+      "top 14",
+      "top14",
+      "french rugby top 14"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "270559",
+          "espnSport": "rugby"
+        }
+      }
+    ]
+  },
+  "ercc": {
+    "name": "European Rugby Champions Cup",
+    "logoUrl": "https://upload.wikimedia.org/wikipedia/en/6/65/InvestecChampionsCupLogo.svg",
+    "aliases": [
+      "champions cup",
+      "heineken cup",
+      "investec champions cup",
+      "epcr champions cup"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "271937",
+          "espnSport": "rugby"
+        }
+      }
+    ]
+  },
+  "cc": {
+    "name": "Currie Cup",
+    "logoUrl": "https://upload.wikimedia.org/wikipedia/en/b/bd/Currie_Cup_logo.svg",
+    "aliases": [
+      "south africa currie cup"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "270555",
+          "espnSport": "rugby"
+        }
+      }
+    ]
+  },
+  "npc": {
+    "name": "National Provincial Championship",
+    "logoUrl": "https://upload.wikimedia.org/wikipedia/en/8/8e/NPC-Logo_50_Years.png",
+    "aliases": [
+      "new zealand npc",
+      "nz npc"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "270563",
+          "espnSport": "rugby"
+        }
+      }
+    ]
+  },
+  "urba": {
+    "name": "URBA Primera A",
+    "logoUrl": "https://upload.wikimedia.org/wikipedia/en/1/1f/Urba_logo.png",
+    "aliases": [
+      "argentina rugby",
+      "urba primera"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "2009",
+          "espnSport": "rugby"
+        }
+      }
+    ]
+  },
+  "itm": {
+    "name": "International Test Match",
+    "logoUrl": "https://upload.wikimedia.org/wikipedia/en/9/97/World_Rugby_logo.svg",
+    "aliases": [
+      "rugby test match",
+      "international rugby test"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "289234",
+          "espnSport": "rugby"
+        }
+      }
+    ]
+  },
+  "lions": {
+    "name": "British and Irish Lions Tour",
+    "logoUrl": "https://upload.wikimedia.org/wikipedia/en/9/93/British_%26_Irish_Lions_logo_%282023%29.svg",
+    "aliases": [
+      "british irish lions",
+      "lions tour",
+      "bi lions"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "268565",
+          "espnSport": "rugby"
+        }
+      }
+    ]
+  },
+  "nrl": {
+    "name": "NRL",
+    "logoUrl": "https://upload.wikimedia.org/wikipedia/en/5/50/National_Rugby_League.svg",
+    "aliases": [
+      "national rugby league",
+      "australian rugby league"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "3",
+          "espnSport": "rugby-league"
         }
       }
     ]
