@@ -469,7 +469,7 @@ class SupabaseProvider extends BaseProvider {
 
             try {
                 const extracted = await provider._getConfig(league);
-                const maskedKey = extracted.apiKey ? `${extracted.apiKey.substring(0, 12)}...[redacted]` : 'N/A';
+                const maskedKey = extracted.apiKey ? '[present]' : 'N/A';
                 console.log(`${league.name.padEnd(40)} ${key.toUpperCase().padEnd(8)} ${extracted.supabaseUrl.padEnd(55)} ${maskedKey}`);
             } catch (error) {
                 console.log(`${league.name.padEnd(40)} ${key.toUpperCase().padEnd(8)} ❌ Failed: ${error.message}`);
