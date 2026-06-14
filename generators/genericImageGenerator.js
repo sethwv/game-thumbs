@@ -369,7 +369,7 @@ async function generateTeamImage(teamLogoUrl, teamColor, teamAltColor, width, he
         }
         
         // Download and load the chosen logo
-        const teamLogoBuffer = await downloadImage(finalLogoUrl);
+        const teamLogoBuffer = await downloadImageWithSvgSupport(finalLogoUrl);
         logoToUse = await loadImage(teamLogoBuffer);
         
         // Draw the team logo

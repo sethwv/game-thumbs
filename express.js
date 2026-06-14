@@ -46,6 +46,14 @@ function init(port) {
     app.use(express.json());
     app.use(express.urlencoded({ extended: true }));
 
+    // Reject URLs with consecutive slashes (e.g. //team/logo or /nfl//logo)
+    app.use((req, res, next) => {
+        if (/\/{2,}/.test(req.path)) {
+            return res.status(444).json({ error: 'Route not found' });
+        }
+        next();
+    });
+
     // Request-level timeout to prevent hanging requests
     const OVERALL_REQUEST_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '10000', 10) * 2; // 2x the external request timeout
     app.use((req, res, next) => {
