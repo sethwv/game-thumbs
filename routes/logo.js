@@ -8,7 +8,7 @@
 
 const providerManager = require('../helpers/ProviderManager');
 const { generateLogo } = require('../generators/logoGenerator');
-const { downloadImage, buildSkipLogosTeam, resolveTeamsWithFallback, handleTeamNotFoundError, addBadgeOverlay, isValidBadge, applyWinnerEffect } = require('../helpers/imageUtils');
+const { downloadImage, buildSkipLogosTeam, selectLogoAndColorForSingleTeam, resolveTeamsWithFallback, handleTeamNotFoundError, addBadgeOverlay, isValidBadge, applyWinnerEffect } = require('../helpers/imageUtils');
 const { sendCachedOrGenerate, handleImageRouteError } = require('../helpers/routeUtils');
 const { getCachedImage, addToCache } = require('../helpers/imageCache');
 const { findLeague } = require('../leagues');
@@ -94,11 +94,11 @@ module.exports = {
                     const resolvedTeam = await providerManager.resolveTeam(leagueObj, teamIdentifier);
 
                     if (styleValue === 1) {
-                        // Style 1: reuse matchup diagonal split with skipLogos dummy teams
-                        // Team's primary color as background, team logo as center logo
-                        const teamColor = resolvedTeam.color || '#000000';
-                        const dummyTeam = await buildSkipLogosTeam(null, teamColor);
-                        const logoUrl = resolvedTeam._logoPng || resolvedTeam.logo;
+                        // Style 1: reuse matchup diagonal split with skipLogos dummy teams.
+                        // Pick the logo/background by contrast (alt logo before alt color)
+                        // so e.g. the Yankees get their white alt logo on the navy primary.
+                        const { logoUrl, backgroundColor } = await selectLogoAndColorForSingleTeam(resolvedTeam);
+                        const dummyTeam = await buildSkipLogosTeam(null, backgroundColor);
                         const logoOptions = {
                             width: 1024,
                             height: 1024,
