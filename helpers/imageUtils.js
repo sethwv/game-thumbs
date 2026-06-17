@@ -101,6 +101,7 @@ module.exports = {
     downloadImage,
     downloadImageWithSvgSupport,
     selectBestLogo,
+    selectLogoAndColorForSingleTeam,
     trimImage,
     loadTrimmedLogo,
     convertToGreyscale,
@@ -1081,6 +1082,77 @@ async function selectBestLogo(team, backgroundColor) {
         // Fallback to primary logo on error
         return team.logo;
     }
+}
+
+/**
+ * Choose the logo + background color for a single-team style=1 badge based on contrast.
+ *
+ * The team's primary color is the preferred background. We try the alternate logo
+ * before falling back to the alternate color, so a team like the Yankees ends up with
+ * their white alt logo on their navy primary color rather than a navy logo that
+ * disappears into a navy background.
+ *
+ * Preference order (first combination clearing the contrast threshold wins):
+ *   1. primary color  + primary logo
+ *   2. primary color  + alt logo
+ *   3. alt color      + primary logo
+ *   4. alt color      + alt logo
+ * If none clear the threshold, the combination with the greatest contrast is used.
+ *
+ * @param {Object} team - Resolved team object (color, alternateColor, logo, logoAlt, _logoPng)
+ * @returns {Promise<{logoUrl: string, backgroundColor: string}>}
+ */
+async function selectLogoAndColorForSingleTeam(team) {
+    const primaryColor = team.color || '#000000';
+    const altColor = team.alternateColor || primaryColor;
+
+    const primaryLogoUrl = team._logoPng || team.logo;
+
+    // Load each candidate logo and record its average color. Drop any that fail to load.
+    const logos = [];
+    if (primaryLogoUrl) {
+        try {
+            const img = await loadImage(await downloadImage(primaryLogoUrl));
+            logos.push({ url: primaryLogoUrl, avgHex: rgbToHex(getAverageColor(img)) });
+        } catch (error) {
+            logger.warn('Failed to load primary logo for contrast check', { error: error.message, team: team.name });
+        }
+    }
+    if (team.logoAlt) {
+        try {
+            const img = await loadImage(await downloadImage(team.logoAlt));
+            logos.push({ url: team.logoAlt, avgHex: rgbToHex(getAverageColor(img)) });
+        } catch (error) {
+            logger.warn('Failed to load alt logo for contrast check', { error: error.message, team: team.name });
+        }
+    }
+
+    // Nothing loaded: preserve previous behavior.
+    if (logos.length === 0) {
+        return { logoUrl: primaryLogoUrl, backgroundColor: primaryColor };
+    }
+
+    // Background colors in preference order, skipping the alt color when it matches primary.
+    const backgrounds = [primaryColor];
+    if (altColor !== primaryColor) {
+        backgrounds.push(altColor);
+    }
+
+    // Build combinations: outer loop = background, inner loop = logo (alt logo before alt color).
+    let best = null;
+    for (const backgroundColor of backgrounds) {
+        for (const logo of logos) {
+            const distance = colorDistance(logo.avgHex, backgroundColor);
+            if (distance >= COLOR_SIMILARITY_THRESHOLD) {
+                return { logoUrl: logo.url, backgroundColor };
+            }
+            if (!best || distance > best.distance) {
+                best = { logoUrl: logo.url, backgroundColor, distance };
+            }
+        }
+    }
+
+    return { logoUrl: best.logoUrl, backgroundColor: best.backgroundColor };
 }
 
 /**
