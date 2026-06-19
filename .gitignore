@@ -43,3 +43,9 @@ Thumbs.db
 .github/copilot-instructions.md
 CHANGELOG.md
 HIGHLIGHTS.md
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key
+.beads/proxieddb/
