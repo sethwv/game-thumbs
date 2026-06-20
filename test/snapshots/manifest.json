@@ -1,0 +1,264 @@
+{
+  "generatedAt": "2026-06-20T23:11:58.944Z",
+  "note": "sha256 of each rendered PNG. Regenerate right before a refactor (npm run snapshot:update); upstream logo CDNs drift over time.",
+  "cases": {
+    "thumb-style1": {
+      "url": "/nba/lakers/celtics/thumb?style=1",
+      "status": 200,
+      "hash": "298afaa41741701a350f0febbfbf682504f63ae913872e667ab846fc78081643",
+      "bytes": 217411
+    },
+    "thumb-style2": {
+      "url": "/nba/lakers/celtics/thumb?style=2",
+      "status": 200,
+      "hash": "9ae1f0f5db66e95862125ee7f81d5461bc659002890ddf62b904c2d6e3f9515d",
+      "bytes": 215670
+    },
+    "thumb-style3": {
+      "url": "/nba/lakers/celtics/thumb?style=3",
+      "status": 200,
+      "hash": "3ea4b5fa1eaa7beabbb3096dfb2be8781939a07f750d275a7c0e8879a7b55e4d",
+      "bytes": 122995
+    },
+    "thumb-style4": {
+      "url": "/nba/lakers/celtics/thumb?style=4",
+      "status": 200,
+      "hash": "ebcfd5857dc9bb467cb458593826d89d2d3c10dc10381b5f1e2589d4a1d4fc57",
+      "bytes": 122102
+    },
+    "thumb-style5": {
+      "url": "/nba/lakers/celtics/thumb?style=5",
+      "status": 200,
+      "hash": "866fbdbec64639b0407e5a53fb61883605af7efd063bcf6cca4b63572bf59030",
+      "bytes": 217324
+    },
+    "thumb-style6": {
+      "url": "/nba/lakers/celtics/thumb?style=6",
+      "status": 200,
+      "hash": "2575c740ab7cbea2c0a1008433f80e599312b928b262477d85114b28fd7e739d",
+      "bytes": 247618
+    },
+    "thumb-style98": {
+      "url": "/nba/lakers/celtics/thumb?style=98",
+      "status": 200,
+      "hash": "e0abddba1e10b9016431211e10fe928b191d2e782410e82e9512ea43abf44429",
+      "bytes": 403409
+    },
+    "thumb-style99": {
+      "url": "/nba/lakers/celtics/thumb?style=99",
+      "status": 200,
+      "hash": "853d11a959a413e4e3207429ae72fdedf44cc1351a9b8cbc2a4f9a8f6b3c796e",
+      "bytes": 387857
+    },
+    "thumb-square": {
+      "url": "/nba/lakers/celtics/thumb?style=1&aspect=square",
+      "status": 200,
+      "hash": "17a29e1992e007b4c32ec7dec35a3f388696f0a8e086c01bb9596b588cce8f91",
+      "bytes": 167305
+    },
+    "thumb-16x9": {
+      "url": "/nba/lakers/celtics/thumb?style=1&aspect=16-9",
+      "status": 200,
+      "hash": "d4c29789b3a8c5568552bde57a41063c1b357aebfba0d557485159964967a3ed",
+      "bytes": 286254
+    },
+    "thumb-badge": {
+      "url": "/nba/lakers/celtics/thumb?style=1&badge=HD",
+      "status": 200,
+      "hash": "4f60d668609f6c543d7845c1fbae822d705250086d282039953cc6ed209c111c",
+      "bytes": 221296
+    },
+    "thumb-winner": {
+      "url": "/nba/lakers/celtics/thumb?style=1&winner=lakers",
+      "status": 200,
+      "hash": "73a24cafa93428e3432b48dd3c0b452c9a2ed74eb89d63ccbb8e58a34144129c",
+      "bytes": 199060
+    },
+    "thumb-nologo": {
+      "url": "/nba/lakers/celtics/thumb?style=1&logo=false",
+      "status": 200,
+      "hash": "7ea91b51ecb77b54ddd05d5bb0c71671124f251c3f438a8825257bc5737b730c",
+      "bytes": 199235
+    },
+    "cover-style1": {
+      "url": "/nba/lakers/celtics/cover?style=1",
+      "status": 200,
+      "hash": "2a2d5f49c262788746979cca9582681d6d2c00797f9a5c35599eba1efdab4b03",
+      "bytes": 216664
+    },
+    "cover-style2": {
+      "url": "/nba/lakers/celtics/cover?style=2",
+      "status": 200,
+      "hash": "2e1ce974b78c8c5f2de25c580cd09e9694db3eb8aaa40da595c44258832efa04",
+      "bytes": 222071
+    },
+    "cover-style3": {
+      "url": "/nba/lakers/celtics/cover?style=3",
+      "status": 200,
+      "hash": "93f588031a56543f73723e851f9d78a89bb580f6731b922729e2abb404796576",
+      "bytes": 138376
+    },
+    "cover-style4": {
+      "url": "/nba/lakers/celtics/cover?style=4",
+      "status": 200,
+      "hash": "b400e48de07cbf21b7ce777c4092b4dc446a4c1358c99a4858e67525787f44e5",
+      "bytes": 136403
+    },
+    "cover-style5": {
+      "url": "/nba/lakers/celtics/cover?style=5",
+      "status": 200,
+      "hash": "6a86c3becb68829bbf3b5f21b157e7897e8c737005eef1caa858c66688b26095",
+      "bytes": 231467
+    },
+    "cover-style6": {
+      "url": "/nba/lakers/celtics/cover?style=6",
+      "status": 200,
+      "hash": "efac4d29c0de21a77b4b338ee7a7922c26042be71da3cced250fe407fee8e9b8",
+      "bytes": 260996
+    },
+    "cover-style98": {
+      "url": "/nba/lakers/celtics/cover?style=98",
+      "status": 200,
+      "hash": "878c90cb31de8c2e9eab18c45710e9f0de19183aea1f3cf00dbecb6a185b716f",
+      "bytes": 299613
+    },
+    "cover-style99": {
+      "url": "/nba/lakers/celtics/cover?style=99",
+      "status": 200,
+      "hash": "4d7261a8b6026a4b18010290fce9df4ae003199526bba2a4d2ed6478a8f1b00b",
+      "bytes": 287962
+    },
+    "logo-style1": {
+      "url": "/nba/lakers/celtics/logo?style=1",
+      "status": 200,
+      "hash": "d04f2606912e2877f36617f9ab0b3952033ac5f01b305e569123e95c3b5b227c",
+      "bytes": 108706
+    },
+    "logo-style2": {
+      "url": "/nba/lakers/celtics/logo?style=2",
+      "status": 200,
+      "hash": "75884736246363507055e719c97ad0bc872704e4e42670b0a295c0f745f903ce",
+      "bytes": 198528
+    },
+    "logo-style3": {
+      "url": "/nba/lakers/celtics/logo?style=3",
+      "status": 200,
+      "hash": "af97f4a5f553b0927b68bcaf21c927eec88b2868409171e85124ca939e66859b",
+      "bytes": 114055
+    },
+    "logo-style4": {
+      "url": "/nba/lakers/celtics/logo?style=4",
+      "status": 200,
+      "hash": "78e3542062d08f347484dfd85d5acf8e09e410a50ab188a4e2f1c794c43aedd0",
+      "bytes": 95941
+    },
+    "logo-style5": {
+      "url": "/nba/lakers/celtics/logo?style=5",
+      "status": 200,
+      "hash": "ea394ef27cab403ca4e895859e7c02b7cee1b23a383862bf21ed0236ec921330",
+      "bytes": 91344
+    },
+    "logo-style6": {
+      "url": "/nba/lakers/celtics/logo?style=6",
+      "status": 200,
+      "hash": "1092f8a46dd7cdafe933bf818037399c6580a8789c2cc1f66f75200186f3217c",
+      "bytes": 87309
+    },
+    "logo-light": {
+      "url": "/nba/lakers/celtics/logo?style=1&useLight=true",
+      "status": 200,
+      "hash": "d04f2606912e2877f36617f9ab0b3952033ac5f01b305e569123e95c3b5b227c",
+      "bytes": 108706
+    },
+    "league-thumb": {
+      "url": "/nba/thumb",
+      "status": 200,
+      "hash": "af537b05cea04b4715d3d15201d96bef555caea39faa16e65506c2a0c535b875",
+      "bytes": 95482
+    },
+    "league-cover": {
+      "url": "/nba/cover",
+      "status": 200,
+      "hash": "850f6642c4a9559680fbbad7af4369f367cb8c2dc646b9b89d59e9910fb29090",
+      "bytes": 96841
+    },
+    "league-logo": {
+      "url": "/nba/logo",
+      "status": 200,
+      "hash": "04b2b9dd2a0bda5310227001f9b48af3bb30ad9919d891a39ac723283e1ffbda",
+      "bytes": 19058
+    },
+    "league-leaguethumb": {
+      "url": "/nba/leaguethumb",
+      "status": 200,
+      "hash": "af537b05cea04b4715d3d15201d96bef555caea39faa16e65506c2a0c535b875",
+      "bytes": 95482
+    },
+    "league-leaguecover": {
+      "url": "/nba/leaguecover",
+      "status": 200,
+      "hash": "850f6642c4a9559680fbbad7af4369f367cb8c2dc646b9b89d59e9910fb29090",
+      "bytes": 96841
+    },
+    "league-leaguelogo": {
+      "url": "/nba/leaguelogo",
+      "status": 200,
+      "hash": "04b2b9dd2a0bda5310227001f9b48af3bb30ad9919d891a39ac723283e1ffbda",
+      "bytes": 19058
+    },
+    "league-thumb-overlay": {
+      "url": "/nba/thumb?title=Game%20Night&subtitle=Tonight",
+      "status": 200,
+      "hash": "6f930d7bcdc15c173156d23a75dc705edeeef9ba8c598b38df9d9cd8f4718d04",
+      "bytes": 110755
+    },
+    "team-thumb": {
+      "url": "/nba/lakers/thumb",
+      "status": 200,
+      "hash": "10210e36d49f4ca58789386c6bee3435e944d8ceced8c924de1702faabce8318",
+      "bytes": 185164
+    },
+    "team-cover": {
+      "url": "/nba/lakers/cover",
+      "status": 200,
+      "hash": "722943ecf75c285fba7e692d2695b98a570ee1a926854d89f34a31cfc3e4338b",
+      "bytes": 183512
+    },
+    "team-logo": {
+      "url": "/nba/lakers/logo",
+      "status": 200,
+      "hash": "82fda3df51058c5aad8a52123868f43959017be0c39c886e9aefbb77e6c69c89",
+      "bytes": 64550
+    },
+    "team-teamlogo": {
+      "url": "/nba/lakers/teamlogo",
+      "status": 200,
+      "hash": "82fda3df51058c5aad8a52123868f43959017be0c39c886e9aefbb77e6c69c89",
+      "bytes": 64550
+    },
+    "nfl-thumb": {
+      "url": "/nfl/chiefs/eagles/thumb?style=1",
+      "status": 200,
+      "hash": "fdc94996ae0e60669e05df154cf911491405167898a80c3ce017d1c9be2bd52b",
+      "bytes": 249214
+    },
+    "nfl-logo": {
+      "url": "/nfl/chiefs/eagles/logo?style=3",
+      "status": 200,
+      "hash": "3afeb421b4f9f5cc871162c5c9a6301ef440cdcb9c270c173aa91332204991e9",
+      "bytes": 126350
+    },
+    "nhl-thumb": {
+      "url": "/nhl/bruins/rangers/thumb?style=2",
+      "status": 200,
+      "hash": "14b51847f3656114f6515c492df7be97a4f03ca2bf204c94c8c36f93e2cc08f8",
+      "bytes": 251057
+    },
+    "mlb-cover": {
+      "url": "/mlb/yankees/dodgers/cover?style=1",
+      "status": 200,
+      "hash": "cbb2eb370ebc5b14c1111843eab00ecf1754f7293aedc509b2c760d055279ca8",
+      "bytes": 140851
+    }
+  }
+}
