@@ -982,7 +982,12 @@ async function downloadImageWithSvgSupport(urlOrPath) {
             const response = await axios.get(urlOrPath, {
                 responseType: 'arraybuffer',
                 timeout: REQUEST_TIMEOUT,
-                headers: { 'User-Agent': 'Mozilla/5.0' }
+                maxRedirects: 5,
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept': 'image/svg+xml,image/*,*/*;q=0.8',
+                    'Accept-Encoding': 'gzip, deflate, br'
+                }
             });
 
             const svgBuffer = Buffer.from(response.data);
