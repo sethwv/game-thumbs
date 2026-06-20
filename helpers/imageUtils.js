@@ -978,21 +978,10 @@ async function downloadImageWithSvgSupport(urlOrPath) {
 
     if (isSvgUrl) {
         try {
-            // Download SVG and convert to PNG
+            // Fetch SVG bytes (downloadImage handles local paths, data URIs and
+            // remote URLs uniformly) and convert to PNG.
             const { rasterizeLogo } = require('./svgUtils');
-            const response = await axios.get(urlOrPath, {
-                responseType: 'arraybuffer',
-                timeout: REQUEST_TIMEOUT,
-                maxRedirects: 5,
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                    'Accept': 'image/svg+xml,image/*,*/*;q=0.8',
-                    'Accept-Encoding': 'gzip, deflate, br'
-                },
-                ...getHockeytechAssetProxyConfig(urlOrPath)
-            });
-
-            const svgBuffer = Buffer.from(response.data);
+            const svgBuffer = await downloadImage(urlOrPath);
             const { pngBuffer } = await rasterizeLogo(svgBuffer);
             return pngBuffer;
         } catch (error) {
@@ -1025,16 +1014,20 @@ async function selectBestLogo(team, backgroundColor) {
             return team.logo;
         }
 
-        // Check if this is an athlete (headshot + flag scenario)
-        const isAthlete = team.logo.includes('espncdn.com/i/headshots/');
-        
+        // Check if this is an athlete (headshot + flag scenario, or a
+        // TheSportsDB player cutout). For athletes we always prefer the primary
+        // image (ESPN headshot / TSDB cutout) over the alternate when it loads,
+        // rather than choosing by contrast.
+        const isAthlete = team.logo.includes('espncdn.com/i/headshots/')
+            || team.logo.includes('/player/cutout/');
+
         // Try to load primary logo first
         let primaryBuffer, primaryImage;
         try {
             primaryBuffer = await downloadImage(team.logo);
             primaryImage = await loadImage(primaryBuffer);
-            
-            // For athletes, always prefer headshot if it loads successfully
+
+            // For athletes, always prefer headshot/cutout if it loads successfully
             if (isAthlete) {
                 return team.logo;
             }
