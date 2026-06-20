@@ -14,7 +14,8 @@
     "express-rate-limit": "^8.5.2",
     "fontkit": "^2.0.4",
     "helmet": "^8.2.0",
-    "sharp": "^0.34.5"
+    "sharp": "^0.34.5",
+    "socks-proxy-agent": "^10.1.0"
   },
   "scripts": {
     "start": "NODE_ENV=production SHOW_TIMESTAMP=false node index.js",
