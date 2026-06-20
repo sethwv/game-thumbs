@@ -168,6 +168,23 @@
       }
     ]
   },
+  "boxing": {
+    "name": "Boxing",
+    "logoUrl": "./assets/BOXING.png",
+    "aliases": [
+      "box"
+    ],
+    "providers": [
+      {
+        "thesportsdbathlete": {
+          "sport": "Fighting",
+          "teamFilter": "Boxing",
+          "leagueId": "4445",
+          "leagueName": "Boxing"
+        }
+      }
+    ]
+  },
   "__OTHER_MISC_SPORTS__": "===========================================",
   "tennis": {
     "name": "Tennis",

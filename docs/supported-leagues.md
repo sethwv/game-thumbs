@@ -233,6 +233,33 @@ GET /tennis/ram+salisbury/koolhof+skupski/logo
 - **Doubles support**: Composite images with both players side-by-side
 - Searches both ATP (men's) and WTA (women's) rosters automatically
 
+### Boxing
+
+ESPN does not carry boxing, so boxing is served by the **TheSportsDB Athlete** provider (TheSportsDB league `4445`, sport "Fighting").
+
+{: .important }
+> **No feature flag:** Boxing is enabled by default and does **not** require an environment variable.
+
+| League Name | Code | Provider | Lookup |
+|-------------|------|----------|--------|
+| Boxing | `boxing` (alias `box`) | TheSportsDB Athlete | Search by name |
+
+**Examples:**
+```
+GET /boxing/canelo-alvarez/tyson-fury/thumb
+GET /boxing/oleksandr-usyk/anthony-joshua/cover
+GET /boxing/terence-crawford/logo
+```
+
+{: .warning }
+> **Name matching:** Boxers are resolved per request via TheSportsDB's free name-search endpoint, which returns a single best match with no sport filter. Use the fighter's **full name** for reliable results. Ambiguous or bare surnames are rejected (the provider guards by sport and prefers "not found" over a wrong-sport image) rather than returning, e.g., a footballer named "Garcia".
+
+**Features:**
+- Fighter cutout images (transparent PNG) used as athlete "logos"
+- Dark blue combat-sports color palette
+- Aggressive ~30-day caching of name/link lookups (image assets are not cached here; they load from TheSportsDB's CDN through the normal image pipeline)
+- Custom boxing-glove league logo (`assets/BOXING.png`) used as the matchup divider
+
 ---
 
 ## NCAA
@@ -388,6 +415,27 @@ The provider type is automatically inferred from the config field (`espn` = ESPN
 ```
 
 The provider type is automatically inferred from the config field (`theSportsDB` = TheSportsDB provider).
+
+**TheSportsDB Athlete Provider (individual / combat sports):**
+```javascript
+{
+  "shortName": "boxing",
+  "name": "Boxing",
+  "logoUrl": "./assets/BOXING.png",
+  "providers": [
+    {
+      "thesportsdbathlete": {
+        "sport": "Fighting",
+        "teamFilter": "Boxing",
+        "leagueId": "4445",
+        "leagueName": "Boxing"
+      }
+    }
+  ]
+}
+```
+
+The provider type is automatically inferred from the config field (`thesportsdbathlete` = TheSportsDB Athlete provider). Athletes are resolved per request by name search, filtered to `sport` (and the optional `teamFilter` substring of the athlete's TheSportsDB "team"). `leagueId` supplies the league logo.
 
 **FlagCDN Provider (International):**
 ```javascript
