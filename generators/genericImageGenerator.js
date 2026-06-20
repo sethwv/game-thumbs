@@ -45,10 +45,11 @@ async function generateLeagueCover(leagueLogoUrl, options = {}) {
 // ------------------------------------------------------------------------------
 
 function drawContents(canvas, logo, league, title = null, subtitle = null, icon = null) {
-    const titleFont = fontRegistry[`${league}_title`] ? `${league}_title` : 'default_title';
-    const subtitleFont = fontRegistry[`${league}_subtitle`] ? `${league}_subtitle` : 'default_subtitle';
-    const titleFlags = fontRegistry[titleFont];
-    const subtitleFlags = fontRegistry[subtitleFont];
+    const has = (name) => Object.prototype.hasOwnProperty.call(fontRegistry, name);
+    const titleFont = has(`${league}_title`) ? `${league}_title` : 'default_title';
+    const subtitleFont = has(`${league}_subtitle`) ? `${league}_subtitle` : 'default_subtitle';
+    const titleFlags = fontRegistry[titleFont] || '';
+    const subtitleFlags = fontRegistry[subtitleFont] || '';
 
     const height = Number(canvas.canvas.height);
     const width = Number(canvas.canvas.width);
@@ -258,7 +259,7 @@ async function generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAl
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 10;
 
-            drawContents(ctx, logo, title, league, subtitle, icon);
+            drawContents(ctx, logo, league, title, subtitle, icon);
 
             ctx.restore();
         } catch (logoError) {
