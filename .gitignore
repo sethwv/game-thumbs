@@ -32,6 +32,8 @@ pnpm-lock.yaml
 
 # IDE files
 .claude
+.agents/
+.codex/
 .vscode
 .idea
 *.swp
@@ -45,7 +47,9 @@ CHANGELOG.md
 HIGHLIGHTS.md
 
 # Beads / Dolt files (added by bd init)
+# Only the .jsonl exports belong in the repo; everything else under .beads/ is local.
+.beads/*
+!.beads/*.jsonl
 .dolt/
 *.db
 .beads-credential-key
-.beads/proxieddb/
