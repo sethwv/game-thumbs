@@ -878,7 +878,7 @@ async function applyWinnerEffect(
 // Image utilities
 // ------------------------------------------------------------------------------
 
-const { REQUEST_TIMEOUT } = require('./requestConfig');
+const { REQUEST_TIMEOUT, getHockeytechAssetProxyConfig } = require('./requestConfig');
 
 async function downloadImage(urlOrPath) {
     // Validate URL exists
@@ -911,9 +911,10 @@ async function downloadImage(urlOrPath) {
                 'Accept': 'image/png,image/jpeg,image/jpg,*/*;q=0.8',
                 'Accept-Encoding': 'gzip, deflate, br',
                 'Referer': 'https://www.espn.com/'
-            }
+            },
+            ...getHockeytechAssetProxyConfig(urlOrPath)
         });
-        
+
         const buffer = Buffer.from(response.data);
         
         // Validate image format by checking magic bytes
@@ -987,7 +988,8 @@ async function downloadImageWithSvgSupport(urlOrPath) {
                     'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                     'Accept': 'image/svg+xml,image/*,*/*;q=0.8',
                     'Accept-Encoding': 'gzip, deflate, br'
-                }
+                },
+                ...getHockeytechAssetProxyConfig(urlOrPath)
             });
 
             const svgBuffer = Buffer.from(response.data);
