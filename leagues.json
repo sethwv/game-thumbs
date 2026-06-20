@@ -1809,7 +1809,7 @@
       "canadian baseball",
       "canadian baseball league"
     ],
-    "logoUrl": "https://upload.wikimedia.org/wikipedia/en/thumb/1/1e/Canadian_Baseball_League.svg/1280px-Canadian_Baseball_League.svg.png",
+    "logoUrl": "./assets/CBL.png",
     "providers": [
       {
         "supabase": {
@@ -2272,7 +2272,7 @@
   },
   "trc": {
     "name": "The Rugby Championship",
-    "logoUrl": "https://upload.wikimedia.org/wikipedia/commons/6/69/The_Rugby_Championship_logo_%28white_background%29.png",
+    "logoUrl": "./assets/RUGBY_CHAMPIONSHIP.png",
     "aliases": [
       "rugby championship",
       "tri nations",
@@ -2289,7 +2289,7 @@
   },
   "super-rugby": {
     "name": "Super Rugby Pacific",
-    "logoUrl": "https://upload.wikimedia.org/wikipedia/en/2/25/Super_Rugby_Pacific_logo.png",
+    "logoUrl": "./assets/SUPER_RUGBY.png",
     "aliases": [
       "super rugby",
       "super rugby pacific"
@@ -2305,7 +2305,7 @@
   },
   "top14": {
     "name": "French Top 14",
-    "logoUrl": "https://upload.wikimedia.org/wikipedia/commons/7/7d/Top_14_Logo.svg",
+    "logoUrl": "./assets/TOP14.png",
     "aliases": [
       "top 14",
       "top14",
@@ -2322,7 +2322,7 @@
   },
   "ercc": {
     "name": "European Rugby Champions Cup",
-    "logoUrl": "https://upload.wikimedia.org/wikipedia/en/6/65/InvestecChampionsCupLogo.svg",
+    "logoUrl": "./assets/CHAMPIONS_CUP.png",
     "aliases": [
       "champions cup",
       "heineken cup",
@@ -2340,7 +2340,7 @@
   },
   "cc": {
     "name": "Currie Cup",
-    "logoUrl": "https://upload.wikimedia.org/wikipedia/en/b/bd/Currie_Cup_logo.svg",
+    "logoUrl": "./assets/CURRIE_CUP.png",
     "aliases": [
       "south africa currie cup"
     ],
@@ -2355,7 +2355,7 @@
   },
   "npc": {
     "name": "National Provincial Championship",
-    "logoUrl": "https://upload.wikimedia.org/wikipedia/en/8/8e/NPC-Logo_50_Years.png",
+    "logoUrl": "./assets/NPC.png",
     "aliases": [
       "new zealand npc",
       "nz npc"
@@ -2371,7 +2371,7 @@
   },
   "urba": {
     "name": "URBA Primera A",
-    "logoUrl": "https://upload.wikimedia.org/wikipedia/en/1/1f/Urba_logo.png",
+    "logoUrl": "./assets/URBA.png",
     "aliases": [
       "argentina rugby",
       "urba primera"
@@ -2387,7 +2387,7 @@
   },
   "itm": {
     "name": "International Test Match",
-    "logoUrl": "https://upload.wikimedia.org/wikipedia/en/9/97/World_Rugby_logo.svg",
+    "logoUrl": "./assets/WORLD_RUGBY.png",
     "aliases": [
       "rugby test match",
       "international rugby test"
@@ -2403,7 +2403,7 @@
   },
   "lions": {
     "name": "British and Irish Lions Tour",
-    "logoUrl": "https://upload.wikimedia.org/wikipedia/en/9/93/British_%26_Irish_Lions_logo_%282023%29.svg",
+    "logoUrl": "./assets/BRITISH_IRISH_LIONS.png",
     "aliases": [
       "british irish lions",
       "lions tour",
@@ -2420,7 +2420,7 @@
   },
   "nrl": {
     "name": "NRL",
-    "logoUrl": "https://upload.wikimedia.org/wikipedia/en/5/50/National_Rugby_League.svg",
+    "logoUrl": "./assets/NRL.png",
     "aliases": [
       "national rugby league",
       "australian rugby league"
