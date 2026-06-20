@@ -11,6 +11,11 @@ const { extractDominantColors } = require('../helpers/colorUtils');
 const logger = require('../helpers/logger');
 const fsCache = require('../helpers/fsCache');
 const { TeamNotFoundError } = require('../helpers/errors');
+const { REQUEST_TIMEOUT, BROWSER_HEADERS, getBrowserHeaders, getProxyRequestConfig } = require('../helpers/requestConfig');
+
+// Independent per-path proxy toggles (see helpers/requestConfig.js + SOCKS_PROXY)
+const PROXY_EXTRACT = /^(1|true|yes)$/i.test(process.env.HOCKEYTECH_PROXY_EXTRACT || '');
+const PROXY_FEED = /^(1|true|yes)$/i.test(process.env.HOCKEYTECH_PROXY_FEED || '');
 
 class HockeyTechProvider extends BaseProvider {
     constructor() {
@@ -234,12 +239,9 @@ class HockeyTechProvider extends BaseProvider {
                     lang_code: 'en',
                     fmt: 'json'
                 },
-                timeout: this.REQUEST_TIMEOUT,
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                    'Accept-Language': 'en-US,en;q=0.5'
-                }
+                timeout: REQUEST_TIMEOUT,
+                headers: BROWSER_HEADERS,
+                ...getProxyRequestConfig(PROXY_FEED)
             });
 
             const seasons = response.data?.SiteKit?.Seasons || [];
@@ -273,12 +275,9 @@ class HockeyTechProvider extends BaseProvider {
 
         const response = await axios.get(this.BASE_URL, {
             params,
-            timeout: this.REQUEST_TIMEOUT,
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5'
-            }
+            timeout: REQUEST_TIMEOUT,
+            headers: BROWSER_HEADERS,
+            ...getProxyRequestConfig(PROXY_FEED)
         });
 
         return response.data?.SiteKit?.Teamsbyseason || [];
@@ -394,12 +393,9 @@ class HockeyTechProvider extends BaseProvider {
 
         try {
             const response = await axios.get(url, {
-                timeout: this.REQUEST_TIMEOUT,
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                    'Accept-Language': 'en-US,en;q=0.5'
-                }
+                timeout: REQUEST_TIMEOUT,
+                headers: BROWSER_HEADERS,
+                ...getProxyRequestConfig(PROXY_EXTRACT)
             });
 
             const html = response.data;
@@ -482,12 +478,9 @@ class HockeyTechProvider extends BaseProvider {
                 const jsUrl = jsFileMatch[1];
                 
                 const response = await axios.get(jsUrl, {
-                    timeout: this.REQUEST_TIMEOUT,
-                    headers: {
-                        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-                        'Accept': '*/*',
-                        'Accept-Language': 'en-US,en;q=0.5'
-                    }
+                    timeout: REQUEST_TIMEOUT,
+                    headers: getBrowserHeaders('*/*'),
+                    ...getProxyRequestConfig(PROXY_EXTRACT)
                 });
                 
                 // Look for var appKey = "value" in the external JS
