@@ -36,6 +36,11 @@ RUN apt-get update \
 # Copy application code (after dependencies for better caching)
 COPY . .
 
+# Bundle the post-deploy notification hook at a stable path so orchestrators
+# (e.g. a Komodo post-deploy step) can run it via `docker exec` against this
+# container, without bind-mounting a host file the daemon may not be able to see.
+COPY .github/workflows/deployment/standard-update.hook.sh /deploy/standard-update.hook.sh
+
 # Create directories for configuration and cache
 RUN mkdir -p json/teams json/leagues .cache
 
