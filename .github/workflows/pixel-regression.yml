@@ -1,0 +1,134 @@
+name: Pixel Regression
+
+# Pixel-preserving guard for the image generators. Renders the snapshot matrix
+# from the PR's base commit (fresh baseline) and again from the PR head, then
+# fails only if a case's PNG hash CHANGED. Doing both renders in one run means
+# both fetch the same upstream CDN logo bytes, so the committed manifest's drift
+# is irrelevant and only the PR's own code changes can flip a hash.
+
+on:
+  pull_request:
+    branches:
+      - main
+      - dev
+    paths:
+      - 'generators/**'
+      - 'helpers/**'
+      - 'providers/**'
+      - 'routes/**'
+      - 'assets/**'
+      - 'json/**'
+      - 'leagues.json'
+      - 'package.json'
+      - 'test/snapshots/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pixel-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (PR merge head, full history)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Record head SHA
+        id: head
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      # ---- Baseline: render the matrix from the PR's base commit ----
+      - name: Checkout base commit
+        run: git checkout -f ${{ github.event.pull_request.base.sha }}
+
+      - name: Install dependencies (base)
+        run: npm install
+
+      - name: Render baseline (base commit)
+        run: npm run snapshot:update
+
+      - name: Stash baseline manifest
+        run: cp test/snapshots/manifest.json /tmp/baseline-manifest.json
+
+      # ---- Compare: render the matrix from the PR head against that baseline ----
+      - name: Checkout head commit
+        run: git checkout -f ${{ steps.head.outputs.sha }}
+
+      - name: Install dependencies (head)
+        run: npm install
+
+      - name: Restore baseline manifest
+        run: cp /tmp/baseline-manifest.json test/snapshots/manifest.json
+
+      - name: Snapshot compare (gate on CHANGED only)
+        id: snapshot
+        run: npm run snapshot:ci
+
+      - name: Build job summary
+        if: always()
+        run: |
+          RESULTS=test/snapshots/snapshot-results.json
+          if [ ! -f "$RESULTS" ]; then
+            echo "## ❌ Pixel Regression" >> "$GITHUB_STEP_SUMMARY"
+            echo "No results file was produced; the harness likely failed to boot. Check the logs above." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          PASSED=$(jq -r '.counts.passed' "$RESULTS")
+          CHANGED=$(jq -r '.counts.changed' "$RESULTS")
+          ERRORED=$(jq -r '.counts.errored' "$RESULTS")
+          MISSING=$(jq -r '.counts.missing' "$RESULTS")
+          ADDED=$(jq -r '.counts.added' "$RESULTS")
+          REGRESSION=$(jq -r '.regression' "$RESULTS")
+
+          if [ "$REGRESSION" = "true" ]; then
+            echo "## 🔴 Pixel Regression Detected" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "## ✅ No Pixel Regression" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "**$PASSED** identical • **$CHANGED** changed • $ERRORED errored • $MISSING missing • $ADDED new" >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$CHANGED" -gt 0 ]; then
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "### 🔴 Changed cases (output is NOT pixel-preserving)" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "| case | url | baseline → current |" >> "$GITHUB_STEP_SUMMARY"
+            echo "| --- | --- | --- |" >> "$GITHUB_STEP_SUMMARY"
+            jq -r '.changed[] | "| `\(.id)` | `\(.url)` | `\(.baselineHash[0:12])` → `\(.currentHash[0:12])` |"' "$RESULTS" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          SOFT=$((ERRORED + MISSING + ADDED))
+          if [ "$SOFT" -gt 0 ]; then
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "<details><summary>⚠️ $SOFT non-fatal warning(s) (errored / missing / new)</summary>" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            jq -r '.errored[] | "- **errored** `\(.id)` (\(.url)): \(.error)"' "$RESULTS" >> "$GITHUB_STEP_SUMMARY"
+            jq -r '.missing[] | "- **missing** `\(.id)` (\(.url))"' "$RESULTS" >> "$GITHUB_STEP_SUMMARY"
+            jq -r '.added[]   | "- **new** `\(.id)` (\(.url))"' "$RESULTS" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "</details>" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload rendered PNGs for inspection
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pixel-regression-${{ github.run_id }}
+          path: |
+            test/snapshots/baseline/*.png
+            test/snapshots/current/*.png
+            test/snapshots/snapshot-results.json
+          retention-days: 7
+          if-no-files-found: ignore

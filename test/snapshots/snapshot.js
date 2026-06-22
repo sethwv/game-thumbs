@@ -32,11 +32,16 @@ const PORT = 3199;
 const BASE_URL = `http://localhost:${PORT}`;
 const DIR = __dirname;
 const MANIFEST_FILE = path.join(DIR, 'manifest.json');
+const RESULTS_FILE = path.join(DIR, 'snapshot-results.json');
 const BASELINE_DIR = path.join(DIR, 'baseline');
 const CURRENT_DIR = path.join(DIR, 'current');
 const TIMEOUT = 20000;
 
 const UPDATE = process.argv.includes('--update');
+// --soft (CI mode): gate only on CHANGED cases; treat errored/missing/new as
+// non-fatal warnings (e.g. a CDN blip should not block a PR). Always writes a
+// machine-readable results file for the CI step summary.
+const SOFT = process.argv.includes('--soft');
 
 // ------------------------------------------------------------------------------
 // Request matrix: { id, url }. `id` is the stable key in the manifest and the
@@ -200,6 +205,37 @@ async function runCheck() {
         if (!current[id]) missing.push(id);
     }
 
+    // Soft/CI mode: emit a machine-readable results file for the step summary.
+    if (SOFT) {
+        const results = {
+            generatedAt: new Date().toISOString(),
+            regression: changed.length > 0,
+            counts: {
+                passed: passed.length,
+                changed: changed.length,
+                errored: errored.length,
+                missing: missing.length,
+                added: added.length
+            },
+            changed: changed.map((id) => ({
+                id,
+                url: baseline[id].url,
+                baselineHash: baseline[id].hash,
+                currentHash: current[id].hash
+            })),
+            errored: errored.map((id) => ({
+                id,
+                url: (current[id]?.url || baseline[id]?.url),
+                error: (current[id]?.error || baseline[id]?.error || 'no baseline hash')
+            })),
+            missing: missing.map((id) => ({ id, url: baseline[id].url })),
+            added: added.map((id) => ({ id, url: current[id].url })),
+            passed
+        };
+        fs.writeFileSync(RESULTS_FILE, JSON.stringify(results, null, 2) + '\n');
+        console.log(`\n📝 Results written: ${path.relative(process.cwd(), RESULTS_FILE)}`);
+    }
+
     console.log('\n═══════════════════════════════════════════════');
     console.log('  SNAPSHOT REGRESSION SUMMARY');
     console.log('═══════════════════════════════════════════════');
@@ -221,6 +257,21 @@ async function runCheck() {
     }
     if (missing.length) console.log(`\n? In baseline but not rendered: ${missing.join(', ')}`);
     if (added.length) console.log(`\n+ Rendered but absent from baseline (run --update): ${added.join(', ')}`);
+
+    if (SOFT) {
+        // CI gate: fail only on a real pixel regression (CHANGED). errored/missing/
+        // new are surfaced as warnings but do not block (transient CDN/network).
+        const regression = changed.length > 0;
+        const softNotes = errored.length + missing.length + added.length;
+        if (regression) {
+            console.log('\n❌ Pixel regression detected (CHANGED cases).\n');
+        } else if (softNotes) {
+            console.log(`\n⚠️  No pixel changes, but ${softNotes} non-fatal warning(s) (errored/missing/new). Not failing.\n`);
+        } else {
+            console.log('\n✅ All cases pixel-identical to baseline.\n');
+        }
+        process.exit(regression ? 1 : 0);
+    }
 
     const ok = changed.length === 0 && errored.length === 0 && missing.length === 0 && added.length === 0;
     console.log(ok ? '\n✅ All cases pixel-identical to baseline.\n' : '\n❌ Snapshot regression detected.\n');
