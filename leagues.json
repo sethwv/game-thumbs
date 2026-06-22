@@ -1499,13 +1499,7 @@
       "whl",
       "qmjhl"
     ],
-    "providers": [
-      {
-        "hockeyTech": {
-          "websiteUrl": "https://chl.ca/"
-        }
-      }
-    ]
+    "providers": []
   },
   "ohl": {
     "name": "Ontario Hockey League",
@@ -1525,7 +1519,7 @@
       },
       {
         "hockeyTech": {
-          "websiteUrl": "https://chl.ca/ohl/"
+          "clientCode": "ohl"
         }
       }
     ]
@@ -1546,7 +1540,7 @@
       },
       {
         "hockeyTech": {
-          "websiteUrl": "https://chl.ca/whl/"
+          "clientCode": "whl"
         }
       }
     ]
@@ -1567,7 +1561,7 @@
       },
       {
         "hockeyTech": {
-          "websiteUrl": "https://chl.ca/lhjmq/"
+          "clientCode": "lhjmq"
         }
       }
     ]
