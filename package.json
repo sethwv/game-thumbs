@@ -41,6 +41,7 @@
     "test:url-validator": "node test/url-validator.test.js",
     "test:event-overlays": "node test/event-overlays.test.js",
     "snapshot": "node test/snapshots/snapshot.js",
-    "snapshot:update": "node test/snapshots/snapshot.js --update"
+    "snapshot:update": "node test/snapshots/snapshot.js --update",
+    "snapshot:ci": "node test/snapshots/snapshot.js --soft"
   }
 }

@@ -26,6 +26,7 @@ test/output/*
 # Snapshot regression PNGs (local artifacts; only manifest.json is committed)
 test/snapshots/baseline/
 test/snapshots/current/
+test/snapshots/snapshot-results.json
 
 # Lock files from other package managers (this project uses yarn)
 package-lock.json
