@@ -47,8 +47,10 @@ class HockeyTechProvider extends BaseProvider {
         // Get the provider config
         const syncConfig = this.getLeagueConfig(league);
         
-        // If we have explicit clientCode and apiKey, use them
-        if (syncConfig && syncConfig.clientCode && syncConfig.apiKey) {
+        // If we have an explicit clientCode, use it. apiKey is optional here:
+        // fetchTeamData falls back to the provider's default key (this.API_KEY)
+        // when the config omits one (see fetchTeamData: key = apiKey || this.API_KEY).
+        if (syncConfig && syncConfig.clientCode) {
             return syncConfig;
         }
 
@@ -75,11 +77,11 @@ class HockeyTechProvider extends BaseProvider {
             }
         }
 
-        // Only return config if it has both required fields
-        if (syncConfig && syncConfig.clientCode && syncConfig.apiKey) {
+        // Return any config that supplies a clientCode (apiKey optional, see above)
+        if (syncConfig && syncConfig.clientCode) {
             return syncConfig;
         }
-        
+
         return null; // Don't return incomplete configs
     }
 
