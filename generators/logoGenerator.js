@@ -5,6 +5,7 @@
 
 const { createCanvas, loadImage } = require('canvas');
 const { drawLogoWithShadow, downloadImage, downloadImageWithSvgSupport, selectBestLogo, adjustColors, trimImage } = require('../helpers/imageUtils');
+const { setShadow } = require('../helpers/shadows');
 const logger = require('../helpers/logger');
 
 module.exports = {
@@ -79,10 +80,7 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league, useLig
         
         // Draw shadow for entire rectangle first
         ctx.save();
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-        ctx.shadowBlur = 15;
-        ctx.shadowOffsetX = 3;
-        ctx.shadowOffsetY = 3;
+        setShadow(ctx, 'logoDropStrong');
         ctx.fillStyle = 'rgba(0, 0, 0, 0)';
         ctx.fillRect(thumbX, thumbY, thumbWidth, thumbHeight);
         ctx.restore();
@@ -130,10 +128,7 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league, useLig
                 const leagueLogoY = centerY - (leagueLogoSize / 2);
                 
                 ctx.save();
-                ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-                ctx.shadowBlur = 10;
-                ctx.shadowOffsetX = 2;
-                ctx.shadowOffsetY = 2;
+                setShadow(ctx, 'logoDropSoft');
                 
                 const aspectRatio = leagueLogo.width / leagueLogo.height;
                 let drawWidth, drawHeight;
@@ -189,10 +184,7 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league, useLig
     
     // Draw shadow for entire rectangle first
     ctx.save();
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-    ctx.shadowBlur = 15;
-    ctx.shadowOffsetX = 3;
-    ctx.shadowOffsetY = 3;
+    setShadow(ctx, 'logoDropStrong');
     ctx.fillStyle = 'rgba(0, 0, 0, 0)'; // Transparent fill just for shadow
     ctx.fillRect(thumbX, thumbY, thumbWidth, thumbHeight);
     ctx.restore();
@@ -270,10 +262,7 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league, useLig
             const leagueLogoY = centerY - (leagueLogoSize / 2);
             
             ctx.save();
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-            ctx.shadowBlur = 10;
-            ctx.shadowOffsetX = 2;
-            ctx.shadowOffsetY = 2;
+            setShadow(ctx, 'logoDropSoft');
             
             const aspectRatio = leagueLogo.width / leagueLogo.height;
             let drawWidth, drawHeight;
@@ -338,10 +327,7 @@ async function generateSideBySide(teamA, teamB, width, height, league, useLight)
     
     // Draw teamA logo (left) with aspect ratio maintained
     ctx.save();
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-    ctx.shadowBlur = 15;
-    ctx.shadowOffsetX = 3;
-    ctx.shadowOffsetY = 3;
+    setShadow(ctx, 'panel');
     
     const aspectRatioA = logoA.width / logoA.height;
     let drawWidthA, drawHeightA;
@@ -359,10 +345,7 @@ async function generateSideBySide(teamA, teamB, width, height, league, useLight)
     
     // Draw teamB logo (right) with aspect ratio maintained
     ctx.save();
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-    ctx.shadowBlur = 15;
-    ctx.shadowOffsetX = 3;
-    ctx.shadowOffsetY = 3;
+    setShadow(ctx, 'panel');
     
     const aspectRatioB = logoB.width / logoB.height;
     let drawWidthB, drawHeightB;
@@ -393,10 +376,7 @@ async function generateSideBySide(teamA, teamB, width, height, league, useLight)
             const leagueLogoY = height - leagueLogoSize - (height * 0.05);
             
             // Never add outline to league logo, always use shadow
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-            ctx.shadowBlur = 15;
-            ctx.shadowOffsetX = 3;
-            ctx.shadowOffsetY = 3;
+            setShadow(ctx, 'logoDropStrong');
             
             // Calculate dimensions maintaining aspect ratio
             const aspectRatio = leagueLogo.width / leagueLogo.height;
@@ -469,10 +449,7 @@ async function generateCircleBadges(teamA, teamB, width, height, league, useLigh
     
     // Draw colored circle behind teamA logo with shadow
     ctx.save();
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-    ctx.shadowBlur = 15;
-    ctx.shadowOffsetX = 3;
-    ctx.shadowOffsetY = 3;
+    setShadow(ctx, 'logoDropStrong');
     
     ctx.fillStyle = colorA;
     ctx.beginPath();
@@ -506,10 +483,7 @@ async function generateCircleBadges(teamA, teamB, width, height, league, useLigh
     
     // Draw colored circle behind teamB logo with shadow
     ctx.save();
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-    ctx.shadowBlur = 15;
-    ctx.shadowOffsetX = 3;
-    ctx.shadowOffsetY = 3;
+    setShadow(ctx, 'logoDropStrong');
     
     ctx.fillStyle = colorB;
     ctx.beginPath();
@@ -553,10 +527,7 @@ async function generateCircleBadges(teamA, teamB, width, height, league, useLigh
             const leagueLogoY = circleBottomY - (leagueLogoSize * 0.05);
             
             // Add shadow to league logo
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-            ctx.shadowBlur = 15;
-            ctx.shadowOffsetX = 3;
-            ctx.shadowOffsetY = 3;
+            setShadow(ctx, 'logoDropStrong');
             
             // Calculate dimensions maintaining aspect ratio
             const aspectRatio = leagueLogo.width / leagueLogo.height;
@@ -631,10 +602,7 @@ async function generateSquareBadges(teamA, teamB, width, height, league, useLigh
 
     // Draw a single rectangle with drop shadow underneath both squares
     ctx.save();
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-    ctx.shadowBlur = 15;
-    ctx.shadowOffsetX = 3;
-    ctx.shadowOffsetY = 3;
+    setShadow(ctx, 'logoDropStrong');
     ctx.fillStyle = '#ffffff'; // dummy color, will be covered
     ctx.fillRect(badgeAX, badgeAY, badgeSize * 2, badgeSize);
     ctx.restore();
@@ -703,10 +671,7 @@ async function generateSquareBadges(teamA, teamB, width, height, league, useLigh
             const leagueLogoY = squareBottomY - (leagueLogoSize * 0.25);
             
             // Add shadow to league logo
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-            ctx.shadowBlur = 15;
-            ctx.shadowOffsetX = 3;
-            ctx.shadowOffsetY = 3;
+            setShadow(ctx, 'logoDropStrong');
             
             // Calculate dimensions maintaining aspect ratio
             const aspectRatio = leagueLogo.width / leagueLogo.height;
@@ -829,10 +794,7 @@ async function generateCircleBadgesWithLeague(teamA, teamB, width, height, leagu
         const badgeY = centerY - (badgeSize / 2);
         
         ctx.save();
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-        ctx.shadowBlur = 15;
-        ctx.shadowOffsetX = 3;
-        ctx.shadowOffsetY = 3;
+        setShadow(ctx, 'logoDropStrong');
         
         ctx.fillStyle = badge.bgColor;
         ctx.beginPath();
@@ -926,10 +888,7 @@ async function generateSquareBadgesWithLeague(teamA, teamB, width, height, leagu
     const badgeY = centerY - (badgeSize / 2);
     
     ctx.save();
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-    ctx.shadowBlur = 15;
-    ctx.shadowOffsetX = 3;
-    ctx.shadowOffsetY = 3;
+    setShadow(ctx, 'logoDropStrong');
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(startX, badgeY, badgeSize * 3, badgeSize);
     ctx.restore();

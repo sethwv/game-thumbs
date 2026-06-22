@@ -5,6 +5,7 @@
 
 const { createCanvas, loadImage } = require('canvas');
 const { downloadImage, downloadImageWithSvgSupport, drawLogoMaintainAspect, hexToRgb } = require('../helpers/imageUtils');
+const { setShadow } = require('../helpers/shadows');
 const { extractDominantColors, blendColors, blendColorsWeighted, calculateColorDistance, analyzeColor, adjustVibrancy } = require('../helpers/colorUtils');
 const logger = require('../helpers/logger');
 const { fontRegistry } = require('../helpers/fontRegistry');
@@ -206,20 +207,14 @@ async function generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAl
                 
                 // Add subtle shadow to the logo
                 ctx.save();
-                ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-                ctx.shadowBlur = 30;
-                ctx.shadowOffsetX = 0;
-                ctx.shadowOffsetY = 10;
+                setShadow(ctx, 'leagueLift');
 
                 drawContents(ctx, altLogo, league, title, subtitle, icon);
                 
                 ctx.restore();
             } catch (altError) {
                 ctx.save();
-                ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-                ctx.shadowBlur = 30;
-                ctx.shadowOffsetX = 0;
-                ctx.shadowOffsetY = 10;
+                setShadow(ctx, 'leagueLift');
 
                 drawContents(ctx, logo, league, title, subtitle, icon);
                 
@@ -227,10 +222,7 @@ async function generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAl
             }
         } else {
             ctx.save();
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-            ctx.shadowBlur = 30;
-            ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = 10;
+            setShadow(ctx, 'leagueLift');
 
             drawContents(ctx, logo, league, title, subtitle, icon);
             
@@ -254,10 +246,7 @@ async function generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAl
             const logo = await loadImage(logoBuffer);
             
             ctx.save();
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-            ctx.shadowBlur = 30;
-            ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = 10;
+            setShadow(ctx, 'leagueLiftFallback');
 
             drawContents(ctx, logo, league, title, subtitle, icon);
 
@@ -379,10 +368,7 @@ async function generateTeamImage(teamLogoUrl, teamColor, teamAltColor, width, he
         const logoY = (height - logoSize) / 2;
         
         ctx.save();
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-        ctx.shadowBlur = 30;
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 10;
+        setShadow(ctx, 'leagueLift');
         
         drawLogoMaintainAspect(ctx, logoToUse, logoX, logoY, logoSize);
         
