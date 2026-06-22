@@ -18,6 +18,7 @@ const {
     loadTrimmedLogo,
     trimImage
 } = require('../helpers/imageUtils');
+const { setShadow, resetShadow } = require('../helpers/shadows');
 const logger = require('../helpers/logger');
 
 module.exports = {
@@ -486,9 +487,7 @@ async function generateMinimalist(teamA, teamB, width, height, league, orientati
             ctx.arc(badgeAX + badgeSize / 2, badgeAY + badgeSize / 2, badgeSize * 0.6, 0, Math.PI * 2);
             ctx.fill();
             
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
-            ctx.shadowBlur = 20;
-            ctx.shadowOffsetY = 10;
+            setShadow(ctx, 'minimalBadge');
             
             // Maintain aspect ratio and ensure logo fits within circle
             // Circle radius is badgeSize * 0.6
@@ -507,9 +506,7 @@ async function generateMinimalist(teamA, teamB, width, height, league, orientati
             const logoX = badgeAX + (badgeSize - logoWidth) / 2;
             const logoY = badgeAY + (badgeSize - logoHeight) / 2;
             
-            ctx.shadowColor = 'transparent';
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetY = 0;
+            resetShadow(ctx);
             
             ctx.drawImage(finalLogoImageA, logoX, logoY, logoWidth, logoHeight);
         }
@@ -530,9 +527,7 @@ async function generateMinimalist(teamA, teamB, width, height, league, orientati
             ctx.arc(badgeBX + badgeSize / 2, badgeBY + badgeSize / 2, badgeSize * 0.6, 0, Math.PI * 2);
             ctx.fill();
             
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
-            ctx.shadowBlur = 20;
-            ctx.shadowOffsetY = 10;
+            setShadow(ctx, 'minimalBadge');
             
             // Maintain aspect ratio and ensure logo fits within circle
             // Circle radius is badgeSize * 0.6
@@ -551,9 +546,7 @@ async function generateMinimalist(teamA, teamB, width, height, league, orientati
             const logoX = badgeBX + (badgeSize - logoWidth) / 2;
             const logoY = badgeBY + (badgeSize - logoHeight) / 2;
             
-            ctx.shadowColor = 'transparent';
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetY = 0;
+            resetShadow(ctx);
             
             ctx.drawImage(finalLogoImageB, logoX, logoY, logoWidth, logoHeight);
         }
@@ -757,9 +750,7 @@ async function generate3DEmbossed(teamA, teamB, width, height, league, orientati
             
             // B. Main Logo with Shadow
             ctx.save();
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
-            ctx.shadowBlur = 25;
-            ctx.shadowOffsetY = 15;
+            setShadow(ctx, 'heroLogo');
             ctx.drawImage(logoImg, heroX, heroY, heroWidth, heroHeight);
             ctx.restore();
         } else {
@@ -819,9 +810,7 @@ async function generate3DEmbossed(teamA, teamB, width, height, league, orientati
     ctx.font = `900 ${Math.round(radius * 0.76)}px Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.shadowColor = 'rgba(0,0,0,0.8)';
-    ctx.shadowBlur = 4;
-    ctx.shadowOffsetY = 2;
+    setShadow(ctx, 'vsText');
     ctx.fillText('VS', centerX, centerY + 3);
 
     // Style 98: Add league logo

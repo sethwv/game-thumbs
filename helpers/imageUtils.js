@@ -13,6 +13,7 @@ const logger = require('./logger');
 const fsCache = require('./fsCache');
 const { rgbToHex: colorUtilsRgbToHex, calculateColorDistance, extractDominantColors, darkenColor } = require('./colorUtils');
 const { getTeamMatchScore, normalizeCompact } = require('./teamUtils');
+const { SHADOWS, setShadow, resetShadow } = require('./shadows');
 
 // ------------------------------------------------------------------------------
 // Constants
@@ -148,18 +149,12 @@ function drawLogoWithShadow(ctx, logoImage, x, y, maxSize) {
     const drawY = y + (maxSize - drawHeight) / 2;
     
     // Add drop shadow
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-    ctx.shadowBlur = 20;
-    ctx.shadowOffsetX = 5;
-    ctx.shadowOffsetY = 5;
+    setShadow(ctx, 'logoDrawn');
 
     ctx.drawImage(logoImage, drawX, drawY, drawWidth, drawHeight);
 
     // Reset shadow
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
+    resetShadow(ctx);
 }
 
 function drawLogoMaintainAspect(ctx, logoImage, x, y, maxSize) {
@@ -182,18 +177,12 @@ function drawLogoMaintainAspect(ctx, logoImage, x, y, maxSize) {
     const drawY = y + (maxSize - drawHeight) / 2;
     
     // Add drop shadow
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-    ctx.shadowBlur = 20;
-    ctx.shadowOffsetX = 5;
-    ctx.shadowOffsetY = 5;
+    setShadow(ctx, 'logoDrawn');
 
     ctx.drawImage(logoImage, drawX, drawY, drawWidth, drawHeight);
 
     // Reset shadow
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
+    resetShadow(ctx);
 }
 
 function drawLogoWithOutline(ctx, logoImage, x, y, size) {
@@ -203,17 +192,11 @@ function drawLogoWithOutline(ctx, logoImage, x, y, size) {
     const whiteLogo = getWhiteLogo(logoImage, size);
 
     // First draw shadow
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-    ctx.shadowBlur = 20;
-    ctx.shadowOffsetX = 5;
-    ctx.shadowOffsetY = 5;
+    setShadow(ctx, 'logoDrawn');
     ctx.drawImage(logoImage, x, y, size, size);
 
     // Reset shadow
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
+    resetShadow(ctx);
 
     // Draw white outline with more steps for ultra-smooth angles
     const steps = 32;
@@ -1430,10 +1413,8 @@ async function addBadgeOverlay(imageBuffer, badgeText, options = {}) {
         // Badge width is text width + padding on each side
         const badgeWidth = Math.round(textWidth + (badgeHeight * 0.8));
         
-        // Shadow properties (reduced and softened)
-        const shadowBlur = 4;
-        const shadowOffsetX = 1;
-        const shadowOffsetY = 1;
+        // Shadow properties (reduced and softened); also drive the canvas margin below
+        const { blur: shadowBlur, offsetX: shadowOffsetX, offsetY: shadowOffsetY } = SHADOWS.badge;
         
         // Calculate extra space needed for shadow
         const shadowMargin = shadowBlur + Math.max(Math.abs(shadowOffsetX), Math.abs(shadowOffsetY));
@@ -1449,10 +1430,7 @@ async function addBadgeOverlay(imageBuffer, badgeText, options = {}) {
         const drawY = shadowMargin;
         
         // Add shadow to the rounded rectangle
-        badgeCtx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-        badgeCtx.shadowBlur = shadowBlur;
-        badgeCtx.shadowOffsetX = shadowOffsetX;
-        badgeCtx.shadowOffsetY = shadowOffsetY;
+        setShadow(badgeCtx, 'badge');
         
         // Draw rounded rectangle background (white)
         badgeCtx.fillStyle = 'white';
@@ -1470,10 +1448,7 @@ async function addBadgeOverlay(imageBuffer, badgeText, options = {}) {
         badgeCtx.fill();
         
         // Reset shadow
-        badgeCtx.shadowColor = 'transparent';
-        badgeCtx.shadowBlur = 0;
-        badgeCtx.shadowOffsetX = 0;
-        badgeCtx.shadowOffsetY = 0;
+        resetShadow(badgeCtx);
         
         // Draw text (black, bold)
         badgeCtx.fillStyle = 'black';
