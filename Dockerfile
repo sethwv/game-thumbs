@@ -27,6 +27,7 @@ RUN apt-get update \
     libgif-dev \
     librsvg2-dev \
     fonts-dejavu-core \
+    ca-certificates \
     curl \
     git \
  && yarn install --frozen-lockfile --network-timeout 100000 \
