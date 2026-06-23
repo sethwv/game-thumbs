@@ -93,7 +93,6 @@ function startServer(env = {}) {
                 IMAGE_CACHE_HOURS: '0',
                 LOG_TO_FILE: 'false',
                 SHOW_TIMESTAMP: 'false',
-                XC_PROXY: 'false',
                 ...env
             },
             stdio: 'pipe'

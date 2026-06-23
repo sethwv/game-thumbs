@@ -375,7 +375,6 @@ if (require.main === module) {
     process.env.IMAGE_CACHE_HOURS = '0'; // Disable caching for tests
     process.env.LOG_TO_FILE = 'false'; // Don't clutter logs during tests
     process.env.SHOW_TIMESTAMP = 'false';
-    process.env.XC_PROXY = 'false'; // Explicitly disable XC proxy
     
     // Import and start server
     require('../index');

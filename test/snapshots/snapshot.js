@@ -290,7 +290,6 @@ if (require.main === module) {
     process.env.IMAGE_CACHE_HOURS = '0';   // never serve a cached final render; always re-render
     process.env.LOG_TO_FILE = 'false';
     process.env.SHOW_TIMESTAMP = 'false';
-    process.env.XC_PROXY = 'false';
     process.env.ALLOW_CUSTOM_BADGES = 'true';
     process.env.ALLOW_EVENT_OVERLAYS = 'true';
 
