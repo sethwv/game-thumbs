@@ -10,18 +10,19 @@
 const { generateCover } = require('../generators/thumbnailGenerator');
 const { generateLeagueCover, generateTeamCover } = require('../generators/genericImageGenerator');
 const { createImageRoute } = require('../helpers/routeUtils');
+const { DIMENSIONS } = require('../config/constants');
 
 module.exports = createImageRoute({
     suffix: 'cover',
     errorContext: 'Cover generation failed',
     dimensions: ({ aspect }) => {
         if (aspect === '1-1' || aspect === '1x1' || aspect === 'square') {
-            return { width: 1080, height: 1080 };
+            return { ...DIMENSIONS.SQUARE };
         }
         if (aspect === '9-16' || aspect === '9x16') {
-            return { width: 1080, height: 1920 };
+            return { ...DIMENSIONS.COVER_TALL };
         }
-        return { width: 1080, height: 1440 }; // default 3:4
+        return { ...DIMENSIONS.COVER }; // default 3:4
     },
     generators: {
         league: generateLeagueCover,

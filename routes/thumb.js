@@ -10,18 +10,19 @@
 const { generateThumbnail } = require('../generators/thumbnailGenerator');
 const { generateLeagueThumb, generateTeamThumb } = require('../generators/genericImageGenerator');
 const { createImageRoute } = require('../helpers/routeUtils');
+const { DIMENSIONS } = require('../config/constants');
 
 module.exports = createImageRoute({
     suffix: 'thumb',
     errorContext: 'Thumbnail generation failed',
     dimensions: ({ aspect }) => {
         if (aspect === '1-1' || aspect === '1x1' || aspect === 'square') {
-            return { width: 1080, height: 1080 };
+            return { ...DIMENSIONS.SQUARE };
         }
         if (aspect === '16-9' || aspect === '16x9') {
-            return { width: 1920, height: 1080 };
+            return { ...DIMENSIONS.THUMB_WIDE };
         }
-        return { width: 1440, height: 1080 }; // default 4:3
+        return { ...DIMENSIONS.THUMB }; // default 4:3
     },
     generators: {
         league: generateLeagueThumb,

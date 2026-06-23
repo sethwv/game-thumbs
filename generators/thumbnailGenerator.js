@@ -20,6 +20,7 @@ const {
 } = require('../helpers/imageUtils');
 const { setShadow, resetShadow } = require('../helpers/shadows');
 const logger = require('../helpers/logger');
+const { DIMENSIONS, DIAGONAL_SPLIT, THUMBNAIL } = require('../config/constants');
 
 module.exports = {
     generateThumbnail,
@@ -54,8 +55,8 @@ function blendColors(color1, color2) {
 // ------------------------------------------------------------------------------
 
 async function generateThumbnail(teamA, teamB, options = {}) {
-    const width = options.width || 1440;
-    const height = options.height || 1080;
+    const width = options.width || DIMENSIONS.THUMB.width;
+    const height = options.height || DIMENSIONS.THUMB.height;
     const style = options.style || 1;
     const league = options.league;
     
@@ -63,8 +64,8 @@ async function generateThumbnail(teamA, teamB, options = {}) {
 }
 
 async function generateCover(teamA, teamB, options = {}) {
-    const width = options.width || 1080;
-    const height = options.height || 1440;
+    const width = options.width || DIMENSIONS.COVER.width;
+    const height = options.height || DIMENSIONS.COVER.height;
     const style = options.style || 1;
     const league = options.league;
     
@@ -107,8 +108,8 @@ async function generateSplit(teamA, teamB, width, height, league, orientation) {
     
     if (orientation === 'landscape') {
         // Diagonal split for thumbnails
-        const topDiagonalX = width * 0.66;
-        const bottomDiagonalX = width * 0.33;
+        const topDiagonalX = width * DIAGONAL_SPLIT.THUMBNAIL.TOP;
+        const bottomDiagonalX = width * DIAGONAL_SPLIT.THUMBNAIL.BOTTOM;
         
         // Left side (teamA)
         ctx.fillStyle = colorA;
@@ -142,8 +143,8 @@ async function generateSplit(teamA, teamB, width, height, league, orientation) {
     
     // Load and draw logos
     const logoMaxSize = orientation === 'landscape' 
-        ? Math.min(width * 0.325, height * 0.52)
-        : Math.min(width * 0.5, height * 0.32);
+        ? Math.min(width * THUMBNAIL.LOGO_MAX_W_SCALE_LANDSCAPE, height * THUMBNAIL.LOGO_MAX_H_SCALE_LANDSCAPE)
+        : Math.min(width * THUMBNAIL.LOGO_MAX_W_SCALE_PORTRAIT, height * THUMBNAIL.LOGO_MAX_H_SCALE_PORTRAIT);
     
     // Load teamA logo independently
     if (teamA.logo && !teamA.skipLogos) {
@@ -151,11 +152,11 @@ async function generateSplit(teamA, teamB, width, height, league, orientation) {
             const finalLogoImageA = await loadTrimmedLogo(teamA, colorA);
             
             const logoAX = orientation === 'landscape'
-                ? (width * 0.2) - (logoMaxSize / 2)
+                ? (width * THUMBNAIL.LOGO_ANCHOR_NEAR) - (logoMaxSize / 2)
                 : (width - logoMaxSize) / 2;
             const logoAY = orientation === 'landscape'
                 ? (height / 2) - (logoMaxSize / 2)
-                : (height * 0.2) - (logoMaxSize / 2);
+                : (height * THUMBNAIL.LOGO_ANCHOR_NEAR) - (logoMaxSize / 2);
             
             drawLogoWithShadow(ctx, finalLogoImageA, logoAX, logoAY, logoMaxSize);
         } catch (error) {
@@ -172,11 +173,11 @@ async function generateSplit(teamA, teamB, width, height, league, orientation) {
             const finalLogoImageB = await loadTrimmedLogo(teamB, colorB);
             
             const logoBX = orientation === 'landscape'
-                ? (width * 0.8) - (logoMaxSize / 2)
+                ? (width * THUMBNAIL.LOGO_ANCHOR_FAR) - (logoMaxSize / 2)
                 : (width - logoMaxSize) / 2;
             const logoBY = orientation === 'landscape'
                 ? (height / 2) - (logoMaxSize / 2)
-                : (height * 0.8) - (logoMaxSize / 2);
+                : (height * THUMBNAIL.LOGO_ANCHOR_FAR) - (logoMaxSize / 2);
             
             drawLogoWithShadow(ctx, finalLogoImageB, logoBX, logoBY, logoMaxSize);
         } catch (error) {
@@ -191,7 +192,7 @@ async function generateSplit(teamA, teamB, width, height, league, orientation) {
     if (league && league.logoUrl) {
         try {
             const leagueLogo = await loadProcessedLogo(league.logoUrl, { svgSupport: true });
-            const leagueLogoSize = Math.min(width, height) * 0.25;
+            const leagueLogoSize = Math.min(width, height) * THUMBNAIL.LEAGUE_LOGO_SCALE;
             const leagueLogoX = (width - leagueLogoSize) / 2;
             const leagueLogoY = (height - leagueLogoSize) / 2;
             drawLogoMaintainAspect(ctx, leagueLogo, leagueLogoX, leagueLogoY, leagueLogoSize);
@@ -229,18 +230,18 @@ async function generateGradient(teamA, teamB, width, height, league, orientation
     // Load and draw logos
     try {
         const logoMaxSize = orientation === 'landscape'
-            ? Math.min(width * 0.325, height * 0.52)
-            : Math.min(width * 0.5, height * 0.32);
+            ? Math.min(width * THUMBNAIL.LOGO_MAX_W_SCALE_LANDSCAPE, height * THUMBNAIL.LOGO_MAX_H_SCALE_LANDSCAPE)
+            : Math.min(width * THUMBNAIL.LOGO_MAX_W_SCALE_PORTRAIT, height * THUMBNAIL.LOGO_MAX_H_SCALE_PORTRAIT);
         
         if (teamA.logo && !teamA.skipLogos) {
             const finalLogoImageA = await loadTrimmedLogo(teamA, colorA);
             
             const logoAX = orientation === 'landscape'
-                ? (width * 0.2) - (logoMaxSize / 2)
+                ? (width * THUMBNAIL.LOGO_ANCHOR_NEAR) - (logoMaxSize / 2)
                 : (width - logoMaxSize) / 2;
             const logoAY = orientation === 'landscape'
                 ? (height / 2) - (logoMaxSize / 2)
-                : (height * 0.2) - (logoMaxSize / 2);
+                : (height * THUMBNAIL.LOGO_ANCHOR_NEAR) - (logoMaxSize / 2);
             
             drawLogoWithShadow(ctx, finalLogoImageA, logoAX, logoAY, logoMaxSize);
         }
@@ -249,11 +250,11 @@ async function generateGradient(teamA, teamB, width, height, league, orientation
             const finalLogoImageB = await loadTrimmedLogo(teamB, colorB);
             
             const logoBX = orientation === 'landscape'
-                ? (width * 0.8) - (logoMaxSize / 2)
+                ? (width * THUMBNAIL.LOGO_ANCHOR_FAR) - (logoMaxSize / 2)
                 : (width - logoMaxSize) / 2;
             const logoBY = orientation === 'landscape'
                 ? (height / 2) - (logoMaxSize / 2)
-                : (height * 0.8) - (logoMaxSize / 2);
+                : (height * THUMBNAIL.LOGO_ANCHOR_FAR) - (logoMaxSize / 2);
             
             drawLogoWithShadow(ctx, finalLogoImageB, logoBX, logoBY, logoMaxSize);
         }
@@ -265,7 +266,7 @@ async function generateGradient(teamA, teamB, width, height, league, orientation
     if (league && league.logoUrl) {
         try {
             const leagueLogo = await loadProcessedLogo(league.logoUrl, { svgSupport: true });
-            const leagueLogoSize = Math.min(width, height) * 0.25;
+            const leagueLogoSize = Math.min(width, height) * THUMBNAIL.LEAGUE_LOGO_SCALE;
             const leagueLogoX = (width - leagueLogoSize) / 2;
             const leagueLogoY = (height - leagueLogoSize) / 2;
             drawLogoMaintainAspect(ctx, leagueLogo, leagueLogoX, leagueLogoY, leagueLogoSize);
@@ -360,18 +361,18 @@ async function generateGrid(teamA, teamB, width, height, league, orientation, us
     const darkBackground = '#0a0a0a';
     try {
         const logoMaxSize = orientation === 'landscape'
-            ? Math.min(width * 0.325, height * 0.52)
-            : Math.min(width * 0.5, height * 0.32);
+            ? Math.min(width * THUMBNAIL.LOGO_MAX_W_SCALE_LANDSCAPE, height * THUMBNAIL.LOGO_MAX_H_SCALE_LANDSCAPE)
+            : Math.min(width * THUMBNAIL.LOGO_MAX_W_SCALE_PORTRAIT, height * THUMBNAIL.LOGO_MAX_H_SCALE_PORTRAIT);
         
         if (teamA.logo && !teamA.skipLogos) {
             const finalLogoImageA = await loadTrimmedLogo(teamA, darkBackground);
             
             const logoAX = orientation === 'landscape'
-                ? (width * 0.2) - (logoMaxSize / 2)
+                ? (width * THUMBNAIL.LOGO_ANCHOR_NEAR) - (logoMaxSize / 2)
                 : (width - logoMaxSize) / 2;
             const logoAY = orientation === 'landscape'
                 ? (height / 2) - (logoMaxSize / 2)
-                : (height * 0.2) - (logoMaxSize / 2);
+                : (height * THUMBNAIL.LOGO_ANCHOR_NEAR) - (logoMaxSize / 2);
             
             drawLogoWithShadow(ctx, finalLogoImageA, logoAX, logoAY, logoMaxSize);
         }
@@ -380,11 +381,11 @@ async function generateGrid(teamA, teamB, width, height, league, orientation, us
             const finalLogoImageB = await loadTrimmedLogo(teamB, darkBackground);
             
             const logoBX = orientation === 'landscape'
-                ? (width * 0.8) - (logoMaxSize / 2)
+                ? (width * THUMBNAIL.LOGO_ANCHOR_FAR) - (logoMaxSize / 2)
                 : (width - logoMaxSize) / 2;
             const logoBY = orientation === 'landscape'
                 ? (height / 2) - (logoMaxSize / 2)
-                : (height * 0.8) - (logoMaxSize / 2);
+                : (height * THUMBNAIL.LOGO_ANCHOR_FAR) - (logoMaxSize / 2);
             
             drawLogoWithShadow(ctx, finalLogoImageB, logoBX, logoBY, logoMaxSize);
         }
@@ -396,7 +397,7 @@ async function generateGrid(teamA, teamB, width, height, league, orientation, us
     if (league && league.logoUrl) {
         try {
             const leagueLogo = await loadProcessedLogo(league.logoUrl, { svgSupport: true });
-            const leagueLogoSize = Math.min(width, height) * 0.25;
+            const leagueLogoSize = Math.min(width, height) * THUMBNAIL.LEAGUE_LOGO_SCALE;
             const leagueLogoX = (width - leagueLogoSize) / 2;
             const leagueLogoY = (height - leagueLogoSize) / 2;
             drawLogoMaintainAspect(ctx, leagueLogo, leagueLogoX, leagueLogoY, leagueLogoSize);
