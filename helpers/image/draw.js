@@ -38,6 +38,29 @@ function calculateCenteredDimensions(containerSize, aspectRatio) {
     return { drawWidth, drawHeight, offsetX, offsetY };
 }
 
+/**
+ * Fit a logo into a square box (aspect-preserving), center it, and draw it,
+ * optionally wrapped in a named shadow profile.
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {Image} logoImage
+ * @param {number} x - box top-left X
+ * @param {number} y - box top-left Y
+ * @param {number} boxSize - square box side length
+ * @param {string|null} shadowProfile - shadow profile name, or null for no shadow
+ */
+function drawCenteredLogo(ctx, logoImage, x, y, boxSize, shadowProfile = null) {
+    const { drawWidth, drawHeight, offsetX, offsetY } =
+        calculateCenteredDimensions(boxSize, logoImage.width / logoImage.height);
+    if (shadowProfile) {
+        ctx.save();
+        setShadow(ctx, shadowProfile);
+    }
+    ctx.drawImage(logoImage, x + offsetX, y + offsetY, drawWidth, drawHeight);
+    if (shadowProfile) {
+        ctx.restore();
+    }
+}
+
 function drawLogoWithShadow(ctx, logoImage, x, y, maxSize) {
     // Calculate dimensions maintaining aspect ratio
     const aspectRatio = logoImage.width / logoImage.height;
@@ -406,6 +429,7 @@ function getAverageColor(image) {
 
 module.exports = {
     calculateCenteredDimensions,
+    drawCenteredLogo,
     drawLogoWithShadow,
     drawLogoMaintainAspect,
     drawLogoWithOutline,

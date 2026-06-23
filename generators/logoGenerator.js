@@ -4,7 +4,7 @@
 // ------------------------------------------------------------------------------
 
 const { createCanvas } = require('canvas');
-const { drawLogoWithShadow, loadProcessedLogo, calculateCenteredDimensions, selectBestLogo, adjustColors, trimImage } = require('../helpers/imageUtils');
+const { drawLogoWithShadow, drawCenteredLogo, loadProcessedLogo, selectBestLogo, adjustColors, trimImage } = require('../helpers/imageUtils');
 const { setShadow } = require('../helpers/shadows');
 const logger = require('../helpers/logger');
 
@@ -125,16 +125,7 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league, useLig
                 const leagueLogoX = centerX - (leagueLogoSize / 2);
                 const leagueLogoY = centerY - (leagueLogoSize / 2);
                 
-                ctx.save();
-                setShadow(ctx, 'logoDropSoft');
-                
-                const aspectRatio = leagueLogo.width / leagueLogo.height;
-                const { drawWidth, drawHeight, offsetX, offsetY } = calculateCenteredDimensions(leagueLogoSize, aspectRatio);
-                const adjustedX = leagueLogoX + offsetX;
-                const adjustedY = leagueLogoY + offsetY;
-                
-                ctx.drawImage(leagueLogo, adjustedX, adjustedY, drawWidth, drawHeight);
-                ctx.restore();
+                drawCenteredLogo(ctx, leagueLogo, leagueLogoX, leagueLogoY, leagueLogoSize, 'logoDropSoft');
             } catch (error) {
                 logger.warn('Error loading league logo', { error: error.message });
             }
@@ -244,16 +235,7 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league, useLig
             const leagueLogoX = centerX - (leagueLogoSize / 2);
             const leagueLogoY = centerY - (leagueLogoSize / 2);
             
-            ctx.save();
-            setShadow(ctx, 'logoDropSoft');
-            
-            const aspectRatio = leagueLogo.width / leagueLogo.height;
-            const { drawWidth, drawHeight, offsetX, offsetY } = calculateCenteredDimensions(leagueLogoSize, aspectRatio);
-            const adjustedX = leagueLogoX + offsetX;
-            const adjustedY = leagueLogoY + offsetY;
-            
-            ctx.drawImage(leagueLogo, adjustedX, adjustedY, drawWidth, drawHeight);
-            ctx.restore();
+            drawCenteredLogo(ctx, leagueLogo, leagueLogoX, leagueLogoY, leagueLogoSize, 'logoDropSoft');
         } catch (error) {
             logger.warn('Error loading league logo', { error: error.message });
         }
@@ -296,51 +278,23 @@ async function generateSideBySide(teamA, teamB, width, height, league, useLight)
     const logoBY = (height - logoSize) / 2;
     
     // Draw teamA logo (left) with aspect ratio maintained
-    ctx.save();
-    setShadow(ctx, 'panel');
-    
-    const aspectRatioA = logoA.width / logoA.height;
-    const { drawWidth: drawWidthA, drawHeight: drawHeightA, offsetX: offsetAX, offsetY: offsetAY } = calculateCenteredDimensions(logoSize, aspectRatioA);
-    const adjustedAX = logoAX + offsetAX;
-    const adjustedAY = logoAY + offsetAY;
-    ctx.drawImage(logoA, adjustedAX, adjustedAY, drawWidthA, drawHeightA);
-    ctx.restore();
-    
+    drawCenteredLogo(ctx, logoA, logoAX, logoAY, logoSize, 'panel');
+
     // Draw teamB logo (right) with aspect ratio maintained
-    ctx.save();
-    setShadow(ctx, 'panel');
-    
-    const aspectRatioB = logoB.width / logoB.height;
-    const { drawWidth: drawWidthB, drawHeight: drawHeightB, offsetX: offsetBX, offsetY: offsetBY } = calculateCenteredDimensions(logoSize, aspectRatioB);
-    const adjustedBX = logoBX + offsetBX;
-    const adjustedBY = logoBY + offsetBY;
-    ctx.drawImage(logoB, adjustedBX, adjustedBY, drawWidthB, drawHeightB);
-    ctx.restore();
+    drawCenteredLogo(ctx, logoB, logoBX, logoBY, logoSize, 'panel');
     
     // Draw league logo as a badge in the bottom center if league logo URL is provided
     if (league && league.logoUrl) {
         try {
             const leagueLogo = await loadProcessedLogo(league.logoUrl, { svgSupport: true });
-            
-            ctx.save();
-            
+
             // League logo is smaller (15% of canvas size)
             const leagueLogoSize = Math.min(width, height) * 0.15;
             const leagueLogoX = (width - leagueLogoSize) / 2;
             const leagueLogoY = height - leagueLogoSize - (height * 0.05);
-            
+
             // Never add outline to league logo, always use shadow
-            setShadow(ctx, 'logoDropStrong');
-            
-            // Calculate dimensions maintaining aspect ratio, centered in the league logo box
-            const aspectRatio = leagueLogo.width / leagueLogo.height;
-            const { drawWidth, drawHeight, offsetX, offsetY } = calculateCenteredDimensions(leagueLogoSize, aspectRatio);
-            const adjustedX = leagueLogoX + offsetX;
-            const adjustedY = leagueLogoY + offsetY;
-            
-            ctx.drawImage(leagueLogo, adjustedX, adjustedY, drawWidth, drawHeight);
-            
-            ctx.restore();
+            drawCenteredLogo(ctx, leagueLogo, leagueLogoX, leagueLogoY, leagueLogoSize, 'logoDropStrong');
         } catch (error) {
             logger.warn('Error loading league logo', { error: error.message });
         }
@@ -400,13 +354,7 @@ async function generateCircleBadges(teamA, teamB, width, height, league, useLigh
     const logoContainerX = badgeAX + (badgeSize - logoSize) / 2;
     const logoContainerY = badgeAY + (badgeSize - logoSize) / 2;
     
-    const aspectRatioA = logoA.width / logoA.height;
-    const { drawWidth: drawWidthA, drawHeight: drawHeightA } = calculateCenteredDimensions(logoSize, aspectRatioA);
-    
-    const logoAX = logoContainerX + (logoSize - drawWidthA) / 2;
-    const logoAY = logoContainerY + (logoSize - drawHeightA) / 2;
-    
-    ctx.drawImage(logoA, logoAX, logoAY, drawWidthA, drawHeightA);
+    drawCenteredLogo(ctx, logoA, logoContainerX, logoContainerY, logoSize);
     
     // Position for teamB (right)
     const badgeBX = centerX + spacing;
@@ -423,43 +371,25 @@ async function generateCircleBadges(teamA, teamB, width, height, league, useLigh
     ctx.restore();
     
     // Draw teamB logo with aspect ratio maintained
-    const aspectRatioB = logoB.width / logoB.height;
-    const { drawWidth: drawWidthB, drawHeight: drawHeightB } = calculateCenteredDimensions(logoSize, aspectRatioB);
-    
-    const logoBX = badgeBX + (badgeSize - drawWidthB) / 2;
-    const logoBY = badgeBY + (badgeSize - drawHeightB) / 2;
-    
-    ctx.drawImage(logoB, logoBX, logoBY, drawWidthB, drawHeightB);
+    const logoContainerBX = badgeBX + (badgeSize - logoSize) / 2;
+    const logoContainerBY = badgeBY + (badgeSize - logoSize) / 2;
+    drawCenteredLogo(ctx, logoB, logoContainerBX, logoContainerBY, logoSize);
     
     // Draw league logo at bottom center if league logo URL is provided
     if (league && league.logoUrl) {
         try {
             const leagueLogo = await loadProcessedLogo(league.logoUrl, { svgSupport: true });
-            
-            ctx.save();
-            
+
             // League logo size (20% of canvas)
             const leagueLogoSize = Math.min(width, height) * 0.2;
             const leagueLogoX = (width - leagueLogoSize) / 2;
-            
-            // Calculate bottom edge of square badges
+
             // Calculate bottom edge of circle badges
             const circleBottomY = badgeAY + badgeSize;
             // Position league logo to overlap the bottom line by 5% of its height
             const leagueLogoY = circleBottomY - (leagueLogoSize * 0.05);
-            
-            // Add shadow to league logo
-            setShadow(ctx, 'logoDropStrong');
-            
-            // Calculate dimensions maintaining aspect ratio, centered in the league logo box
-            const aspectRatio = leagueLogo.width / leagueLogo.height;
-            const { drawWidth, drawHeight, offsetX, offsetY } = calculateCenteredDimensions(leagueLogoSize, aspectRatio);
-            const adjustedX = leagueLogoX + offsetX;
-            const adjustedY = leagueLogoY + offsetY;
-            
-            ctx.drawImage(leagueLogo, adjustedX, adjustedY, drawWidth, drawHeight);
-            
-            ctx.restore();
+
+            drawCenteredLogo(ctx, leagueLogo, leagueLogoX, leagueLogoY, leagueLogoSize, 'logoDropStrong');
         } catch (error) {
             logger.warn('Error loading league logo', { error: error.message });
         }
@@ -526,52 +456,29 @@ async function generateSquareBadges(teamA, teamB, width, height, league, useLigh
     const logoContainerX = badgeAX + (badgeSize - logoSize) / 2;
     const logoContainerY = badgeAY + (badgeSize - logoSize) / 2;
     
-    const aspectRatioA = logoA.width / logoA.height;
-    const { drawWidth: drawWidthA, drawHeight: drawHeightA } = calculateCenteredDimensions(logoSize, aspectRatioA);
-    
-    const logoAX = logoContainerX + (logoSize - drawWidthA) / 2;
-    const logoAY = logoContainerY + (logoSize - drawHeightA) / 2;
-    ctx.drawImage(logoA, logoAX, logoAY, drawWidthA, drawHeightA);
+    drawCenteredLogo(ctx, logoA, logoContainerX, logoContainerY, logoSize);
 
     // Draw teamB logo with aspect ratio maintained
     const logoContainerBX = badgeBX + (badgeSize - logoSize) / 2;
     const logoContainerBY = badgeBY + (badgeSize - logoSize) / 2;
     
-    const aspectRatioB = logoB.width / logoB.height;
-    const { drawWidth: drawWidthB, drawHeight: drawHeightB } = calculateCenteredDimensions(logoSize, aspectRatioB);
-    
-    const logoBX = logoContainerBX + (logoSize - drawWidthB) / 2;
-    const logoBY = logoContainerBY + (logoSize - drawHeightB) / 2;
-    ctx.drawImage(logoB, logoBX, logoBY, drawWidthB, drawHeightB);
+    drawCenteredLogo(ctx, logoB, logoContainerBX, logoContainerBY, logoSize);
     
     // Draw league logo at bottom center if league logo URL is provided
     if (league && league.logoUrl) {
         try {
             const leagueLogo = await loadProcessedLogo(league.logoUrl, { svgSupport: true });
-            
-            ctx.save();
-            
+
             // League logo size (20% of canvas)
             const leagueLogoSize = Math.min(width, height) * 0.2;
             const leagueLogoX = (width - leagueLogoSize) / 2;
-            
+
             // Calculate bottom edge of square badges
             const squareBottomY = badgeAY + badgeSize;
             // Position league logo to overlap the bottom line by 25% of its height
             const leagueLogoY = squareBottomY - (leagueLogoSize * 0.25);
-            
-            // Add shadow to league logo
-            setShadow(ctx, 'logoDropStrong');
-            
-            // Calculate dimensions maintaining aspect ratio, centered in the league logo box
-            const aspectRatio = leagueLogo.width / leagueLogo.height;
-            const { drawWidth, drawHeight, offsetX, offsetY } = calculateCenteredDimensions(leagueLogoSize, aspectRatio);
-            const adjustedX = leagueLogoX + offsetX;
-            const adjustedY = leagueLogoY + offsetY;
-            
-            ctx.drawImage(leagueLogo, adjustedX, adjustedY, drawWidth, drawHeight);
-            
-            ctx.restore();
+
+            drawCenteredLogo(ctx, leagueLogo, leagueLogoX, leagueLogoY, leagueLogoSize, 'logoDropStrong');
         } catch (error) {
             logger.warn('Error loading league logo', { error: error.message });
         }
@@ -678,13 +585,7 @@ async function generateCircleBadgesWithLeague(teamA, teamB, width, height, leagu
         const logoContainerX = badgeX + (badgeSize - logoMaxSize) / 2;
         const logoContainerY = badgeY + (badgeSize - logoMaxSize) / 2;
         
-        const aspectRatio = badge.logo.width / badge.logo.height;
-        const { drawWidth, drawHeight } = calculateCenteredDimensions(logoMaxSize, aspectRatio);
-        
-        const logoX = logoContainerX + (logoMaxSize - drawWidth) / 2;
-        const logoY = logoContainerY + (logoMaxSize - drawHeight) / 2;
-        
-        ctx.drawImage(badge.logo, logoX, logoY, drawWidth, drawHeight);
+        drawCenteredLogo(ctx, badge.logo, logoContainerX, logoContainerY, logoMaxSize);
     });
     
     return canvas.toBuffer('image/png');
@@ -759,13 +660,7 @@ async function generateSquareBadgesWithLeague(teamA, teamB, width, height, leagu
         const logoContainerX = badge.x + (badgeSize - logoMaxSize) / 2;
         const logoContainerY = badgeY + (badgeSize - logoMaxSize) / 2;
         
-        const aspectRatio = badge.logo.width / badge.logo.height;
-        const { drawWidth, drawHeight } = calculateCenteredDimensions(logoMaxSize, aspectRatio);
-        
-        const logoX = logoContainerX + (logoMaxSize - drawWidth) / 2;
-        const logoY = logoContainerY + (logoMaxSize - drawHeight) / 2;
-        
-        ctx.drawImage(badge.logo, logoX, logoY, drawWidth, drawHeight);
+        drawCenteredLogo(ctx, badge.logo, logoContainerX, logoContainerY, logoMaxSize);
     });
     
     return canvas.toBuffer('image/png');
