@@ -157,8 +157,7 @@ async function renderMatchupLogo(ctx) {
             // For styles 5 and 6, fetch both default and dark logos for contrast checking.
             // Default logo is primary (colored, for light bg); dark logo is alternate (for dark bg).
             if (styleValue === 5 || styleValue === 6) {
-                const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj, false);
-                const leagueLogoUrlAlt = await providerManager.getLeagueLogoUrl(leagueObj, true);
+                const { logoUrl: leagueLogoUrl, logoUrlAlt: leagueLogoUrlAlt } = await providerManager.getLeagueLogoPair(leagueObj);
                 return {
                     logoUrl: leagueLogoUrl,
                     logoUrlAlt: leagueLogoUrlAlt !== leagueLogoUrl ? leagueLogoUrlAlt : null
