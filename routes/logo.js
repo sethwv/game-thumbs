@@ -19,7 +19,7 @@ const {
     selectLogoAndColorForSingleTeam,
     handleTeamNotFoundError
 } = require('../helpers/imageUtils');
-const { createImageRoute, renderMatchup } = require('../helpers/routeUtils');
+const { createImageRoute, renderMatchup, applyBadgeWithCaching } = require('../helpers/routeUtils');
 const { DIMENSIONS } = require('../config/constants');
 
 const VALID_SIZES = DIMENSIONS.LOGO_VALID_SIZES;
@@ -35,8 +35,8 @@ function applySizeOverride(logoOptions, size) {
 
 // Case 1: League logo (/:league/logo)
 async function renderLeagueLogo(ctx) {
-    const { res, leagueObj, query } = ctx;
-    const { size, style, trim, variant } = query;
+    const { req, res, leagueObj, query } = ctx;
+    const { size, style, trim, variant, badge } = query;
     const styleValue = parseInt(style) || 0;
 
     if (styleValue === 1) {
@@ -51,7 +51,11 @@ async function renderLeagueLogo(ctx) {
             trim: trim !== 'false'
         };
         applySizeOverride(logoOptions, size);
-        return { buffer: await generateLogo(dummyTeam, { ...dummyTeam }, logoOptions) };
+        const buffer = await applyBadgeWithCaching({
+            req, res, badge, badgeScale: 0.18,
+            generate: () => generateLogo(dummyTeam, { ...dummyTeam }, logoOptions)
+        });
+        return { buffer };
     }
 
     // Validate variant parameter if provided
@@ -73,8 +77,8 @@ async function renderLeagueLogo(ctx) {
 
 // Case 2: Single team logo (/:league/:team1/logo)
 async function renderTeamLogo(ctx) {
-    const { res, leagueObj, team1, query } = ctx;
-    const { size, style, trim, variant, fallback } = query;
+    const { req, res, leagueObj, team1, query } = ctx;
+    const { size, style, trim, variant, fallback, badge } = query;
     const styleValue = parseInt(style) || 0;
 
     let logoBuffer;
@@ -95,7 +99,10 @@ async function renderTeamLogo(ctx) {
                 trim: trim !== 'false'
             };
             applySizeOverride(logoOptions, size);
-            logoBuffer = await generateLogo(dummyTeam, { ...dummyTeam }, logoOptions);
+            logoBuffer = await applyBadgeWithCaching({
+                req, res, badge, badgeScale: 0.18,
+                generate: () => generateLogo(dummyTeam, { ...dummyTeam }, logoOptions)
+            });
         } else if (resolvedTeam._logoPng) {
             // If team has pre-converted PNG (e.g., from SVG), use that directly
             // _logoPng is a data URL, downloadImage can handle it

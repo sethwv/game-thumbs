@@ -77,6 +77,35 @@ function handleImageRouteError(error, req, res, context) {
 }
 
 // ------------------------------------------------------------------------------
+// Badge overlay with base-image caching. If `badge` is a valid keyword, the
+// un-badged base image is cached under the badge-stripped URL (so repeat
+// requests with different badges reuse one render), then the badge is overlaid.
+// If `badge` is absent/invalid, just returns the generated buffer.
+//   generate() -> Promise<Buffer>   (renders the un-badged image)
+//   returns Promise<Buffer>
+// ------------------------------------------------------------------------------
+async function applyBadgeWithCaching({ req, res, badge, badgeScale, generate }) {
+    if (!isValidBadge(badge)) {
+        return await generate();
+    }
+
+    // Remove badge parameter from URL to get the base (un-badged) cache key
+    const baseImageUrl = req.originalUrl.replace(/[?&]badge=[^&]*/i, '').replace(/\?$/, '');
+    const cachedBase = getCachedImage(baseImageUrl);
+    if (cachedBase) {
+        return await addBadgeOverlay(cachedBase, badge.toUpperCase(), { badgeScale });
+    }
+
+    const buffer = await generate();
+    try {
+        addToCache({ originalUrl: baseImageUrl }, res, buffer);
+    } catch (cacheError) {
+        logger.error('Failed to cache base image', { Error: cacheError.message });
+    }
+    return await addBadgeOverlay(buffer, badge.toUpperCase(), { badgeScale });
+}
+
+// ------------------------------------------------------------------------------
 // Shared matchup tail: resolve teams (with fallback), normalize/serve skipLogos
 // cache, apply the winner effect, build league info, then generate (with badge
 // caching). Used by every matchup case (thumb/cover/logo).
@@ -133,31 +162,11 @@ async function renderMatchup({
 
     const leagueInfo = buildLeagueInfo ? await buildLeagueInfo() : null;
 
-    // If badge is requested, check if we have the base image cached
-    if (isValidBadge(badge)) {
-        // Remove badge parameter from URL to get base image URL
-        const baseImageUrl = req.originalUrl.replace(/[?&]badge=[^&]*/i, '').replace(/\?$/, '');
-        const cachedBase = getCachedImage(baseImageUrl);
-
-        if (cachedBase) {
-            // Use cached base and just add badge
-            return { buffer: await addBadgeOverlay(cachedBase, badge.toUpperCase(), { badgeScale }) };
-        }
-
-        // Generate image and cache base version (without badge)
-        let buffer = await generate(resolvedTeam1, resolvedTeam2, leagueInfo);
-        try {
-            addToCache({ originalUrl: baseImageUrl }, res, buffer);
-        } catch (cacheError) {
-            logger.error('Failed to cache base image', { Error: cacheError.message });
-        }
-        // Add badge to generated image
-        buffer = await addBadgeOverlay(buffer, badge.toUpperCase(), { badgeScale });
-        return { buffer };
-    }
-
-    // No badge, generate normally
-    return { buffer: await generate(resolvedTeam1, resolvedTeam2, leagueInfo) };
+    const buffer = await applyBadgeWithCaching({
+        req, res, badge, badgeScale,
+        generate: () => generate(resolvedTeam1, resolvedTeam2, leagueInfo)
+    });
+    return { buffer };
 }
 
 // ------------------------------------------------------------------------------
@@ -170,9 +179,9 @@ async function renderMatchup({
 // Case 1: league image (/:league/<suffix>)
 function makeDefaultLeagueHandler(generators) {
     return async function defaultLeagueHandler(ctx) {
-        const { res, leagueObj, query, dimensions } = ctx;
+        const { req, res, leagueObj, query, dimensions } = ctx;
         const { width, height } = dimensions;
-        const { title, subtitle, iconurl } = query;
+        const { title, subtitle, iconurl, badge } = query;
 
         const { logoUrl: leagueLogoUrl, logoUrlAlt: leagueLogoUrlAlt } = await providerManager.getLeagueLogoPair(leagueObj);
 
@@ -199,14 +208,17 @@ function makeDefaultLeagueHandler(generators) {
             }
         }
 
-        const buffer = await generators.league(leagueLogoUrl, {
-            width,
-            height,
-            leagueLogoUrlAlt,
-            title: overlaysOn ? title : undefined,
-            subtitle: overlaysOn ? subtitle : undefined,
-            iconurl: safeIconUrl,
-            league: leagueObj.shortName
+        const buffer = await applyBadgeWithCaching({
+            req, res, badge,
+            generate: () => generators.league(leagueLogoUrl, {
+                width,
+                height,
+                leagueLogoUrlAlt,
+                title: overlaysOn ? title : undefined,
+                subtitle: overlaysOn ? subtitle : undefined,
+                iconurl: safeIconUrl,
+                league: leagueObj.shortName
+            })
         });
         return { buffer };
     };
@@ -215,11 +227,13 @@ function makeDefaultLeagueHandler(generators) {
 // Case 2: single-team image (/:league/:team1/<suffix>)
 function makeDefaultTeamHandler(generators) {
     return async function defaultTeamHandler(ctx) {
-        const { res, leagueObj, team1, query, dimensions } = ctx;
+        const { req, res, leagueObj, team1, query, dimensions } = ctx;
         const { width, height } = dimensions;
-        const { fallback } = query;
+        const { fallback, badge } = query;
 
-        let buffer;
+        // Resolve the team (or set up the league-logo fallback) into a renderer,
+        // then badge it via the shared base-image-caching path.
+        let render;
         try {
             const resolvedTeam = await providerManager.resolveTeam(leagueObj, team1);
 
@@ -232,7 +246,7 @@ function makeDefaultTeamHandler(generators) {
             const primaryLogo = resolvedTeam.logoAlt || resolvedTeam.logo;
             const altLogo = resolvedTeam.logo;
 
-            buffer = await generators.team(
+            render = () => generators.team(
                 primaryLogo,
                 resolvedTeam.color || '#1a1d2e',
                 resolvedTeam.alternateColor || '#0f1419',
@@ -241,9 +255,11 @@ function makeDefaultTeamHandler(generators) {
         } catch (teamError) {
             await handleTeamNotFoundError(teamError, fallback === 'true', async () => {
                 const { logoUrl: leagueLogoUrl, logoUrlAlt: leagueLogoUrlAlt } = await providerManager.getLeagueLogoPair(leagueObj);
-                buffer = await generators.league(leagueLogoUrl, { width, height, leagueLogoUrlAlt });
+                render = () => generators.league(leagueLogoUrl, { width, height, leagueLogoUrlAlt });
             });
         }
+
+        const buffer = await applyBadgeWithCaching({ req, res, badge, generate: render });
         return { buffer };
     };
 }
@@ -344,4 +360,4 @@ function createImageRoute(config) {
     };
 }
 
-module.exports = { sendCachedOrGenerate, handleImageRouteError, renderMatchup, createImageRoute };
+module.exports = { sendCachedOrGenerate, handleImageRouteError, renderMatchup, createImageRoute, applyBadgeWithCaching };
