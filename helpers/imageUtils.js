@@ -42,9 +42,7 @@ if (CACHE_ENABLED) {
 module.exports = {
     // Drawing functions
     drawLogoWithShadow: draw.drawLogoWithShadow,
-    drawLogoWithOutline: draw.drawLogoWithOutline,
     drawLogoMaintainAspect: draw.drawLogoMaintainAspect,
-    hasLightOutline: draw.hasLightOutline,
     calculateCenteredDimensions: draw.calculateCenteredDimensions,
     drawCenteredLogo: draw.drawCenteredLogo,
     convertToGreyscale: draw.convertToGreyscale,
