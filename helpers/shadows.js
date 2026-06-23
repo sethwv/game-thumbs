@@ -21,7 +21,7 @@ const SHADOWS = {
     // logoGenerator.js: panel/background shadow at lower alpha
     panel: { color: 'rgba(0, 0, 0, 0.3)', blur: 15, offsetX: 3, offsetY: 3 },
 
-    // imageUtils.js: drawLogoWithShadow / drawLogoMaintainAspect / drawLogoWithOutline
+    // imageUtils.js: drawLogoWithShadow / drawLogoMaintainAspect
     logoDrawn: { color: 'rgba(0, 0, 0, 0.5)', blur: 20, offsetX: 5, offsetY: 5 },
 
     // genericImageGenerator.js: centered league logo lift
