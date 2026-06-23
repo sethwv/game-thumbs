@@ -174,8 +174,7 @@ function makeDefaultLeagueHandler(generators) {
         const { width, height } = dimensions;
         const { title, subtitle, iconurl } = query;
 
-        const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj, false);
-        const leagueLogoUrlAlt = await providerManager.getLeagueLogoUrl(leagueObj, true);
+        const { logoUrl: leagueLogoUrl, logoUrlAlt: leagueLogoUrlAlt } = await providerManager.getLeagueLogoPair(leagueObj);
 
         if (!leagueLogoUrl) {
             res.status(404).json({ error: 'League logo not found' });
@@ -241,8 +240,7 @@ function makeDefaultTeamHandler(generators) {
             );
         } catch (teamError) {
             await handleTeamNotFoundError(teamError, fallback === 'true', async () => {
-                const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj, false);
-                const leagueLogoUrlAlt = await providerManager.getLeagueLogoUrl(leagueObj, true);
+                const { logoUrl: leagueLogoUrl, logoUrlAlt: leagueLogoUrlAlt } = await providerManager.getLeagueLogoPair(leagueObj);
                 buffer = await generators.league(leagueLogoUrl, { width, height, leagueLogoUrlAlt });
             });
         }

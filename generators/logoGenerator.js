@@ -189,29 +189,6 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league, useLig
     ctx.closePath();
     ctx.fill();
     
-    // Draw white diagonal line with clipping to rectangle bounds
-    ctx.save();
-    // Clip to rectangle
-    ctx.beginPath();
-    ctx.rect(thumbX, thumbY, thumbWidth, thumbHeight);
-    ctx.clip();
-    
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0)'; // Transparent (hidden but can be restored)
-    ctx.lineWidth = Math.max(2, thumbHeight * 0.015);
-    ctx.lineCap = 'butt';
-    ctx.lineJoin = 'miter';
-    ctx.beginPath();
-    const dx = bottomDiagonalX - topDiagonalX;
-    const dy = thumbHeight;
-    const length = Math.sqrt(dx * dx + dy * dy);
-    const unitX = dx / length;
-    const unitY = dy / length;
-    const extension = 100;
-    ctx.moveTo(topDiagonalX - unitX * extension, thumbY - unitY * extension);
-    ctx.lineTo(bottomDiagonalX + unitX * extension, thumbY + thumbHeight + unitY * extension);
-    ctx.stroke();
-    ctx.restore();
-    
     // Draw logos (same size as style 6)
     const logoMaxSize = badgeSize * 0.8;
     
