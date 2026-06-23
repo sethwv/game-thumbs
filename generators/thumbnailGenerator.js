@@ -7,6 +7,7 @@ const { createCanvas } = require('canvas');
 const {
     drawLogoWithShadow,
     drawLogoMaintainAspect,
+    drawCenteredLogo,
     loadProcessedLogo,
     calculateCenteredDimensions,
     selectBestLogo,
@@ -563,13 +564,7 @@ async function generateMinimalist(teamA, teamB, width, height, league, orientati
                 ? height - leagueLogoSize - (height * 0.08)
                 : height - leagueLogoSize - (height * 0.02);
             
-            // Calculate dimensions maintaining aspect ratio, centered in the league logo box
-            const aspectRatio = leagueLogo.width / leagueLogo.height;
-            const { drawWidth, drawHeight, offsetX, offsetY } = calculateCenteredDimensions(leagueLogoSize, aspectRatio);
-            const adjustedX = leagueLogoX + offsetX;
-            const adjustedY = leagueLogoY + offsetY;
-
-            ctx.drawImage(leagueLogo, adjustedX, adjustedY, drawWidth, drawHeight);
+            drawCenteredLogo(ctx, leagueLogo, leagueLogoX, leagueLogoY, leagueLogoSize);
         } catch (error) {
             logger.warn('Failed to load league logo for minimalist style', { error: error.message });
         }

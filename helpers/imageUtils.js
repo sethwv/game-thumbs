@@ -46,6 +46,7 @@ module.exports = {
     drawLogoMaintainAspect: draw.drawLogoMaintainAspect,
     hasLightOutline: draw.hasLightOutline,
     calculateCenteredDimensions: draw.calculateCenteredDimensions,
+    drawCenteredLogo: draw.drawCenteredLogo,
     convertToGreyscale: draw.convertToGreyscale,
 
     // Image utilities
