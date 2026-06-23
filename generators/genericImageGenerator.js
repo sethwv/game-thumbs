@@ -3,8 +3,8 @@
 // This helper generates league and team-themed images with gradient backgrounds
 // ------------------------------------------------------------------------------
 
-const { createCanvas, loadImage } = require('canvas');
-const { downloadImage, downloadImageWithSvgSupport, drawLogoMaintainAspect, hexToRgb } = require('../helpers/imageUtils');
+const { createCanvas } = require('canvas');
+const { loadProcessedLogo, drawLogoMaintainAspect, hexToRgb } = require('../helpers/imageUtils');
 const { setShadow } = require('../helpers/shadows');
 const { extractDominantColors, blendColors, blendColorsWeighted, calculateColorDistance, analyzeColor, adjustVibrancy } = require('../helpers/colorUtils');
 const logger = require('../helpers/logger');
@@ -179,14 +179,12 @@ async function generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAl
         
         // Load the league logo
         let finalLogoUrl = leagueLogoUrl;
-        const logoBuffer = await downloadImageWithSvgSupport(leagueLogoUrl);
-        const logo = await loadImage(logoBuffer);
+        const logo = await loadProcessedLogo(leagueLogoUrl, { svgSupport: true, trim: false });
 
         // Load optional Icon
-        let iconBuffer, icon;
+        let icon;
         if (iconurl) {
-            iconBuffer = await downloadImageWithSvgSupport(iconurl);
-            icon = await loadImage(iconBuffer);
+            icon = await loadProcessedLogo(iconurl, { svgSupport: true, trim: false });
         }
         
         // Check if logo has poor contrast against the background
@@ -201,8 +199,7 @@ async function generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAl
         // If contrast is too low and we have an alternate logo, use it
         if (contrast < 100 && leagueLogoUrlAlt && leagueLogoUrlAlt !== leagueLogoUrl) {
             try {
-                const altLogoBuffer = await downloadImageWithSvgSupport(leagueLogoUrlAlt);
-                const altLogo = await loadImage(altLogoBuffer);
+                const altLogo = await loadProcessedLogo(leagueLogoUrlAlt, { svgSupport: true, trim: false });
                 finalLogoUrl = leagueLogoUrlAlt;
                 
                 // Add subtle shadow to the logo
@@ -242,9 +239,8 @@ async function generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAl
         
         // Try to at least draw the logo
         try {
-            const logoBuffer = await downloadImageWithSvgSupport(leagueLogoUrl);
-            const logo = await loadImage(logoBuffer);
-            
+            const logo = await loadProcessedLogo(leagueLogoUrl, { svgSupport: true, trim: false });
+
             ctx.save();
             setShadow(ctx, 'leagueLiftFallback');
 
@@ -359,8 +355,7 @@ async function generateTeamImage(teamLogoUrl, teamColor, teamAltColor, width, he
         }
         
         // Download and load the chosen logo
-        const teamLogoBuffer = await downloadImageWithSvgSupport(finalLogoUrl);
-        logoToUse = await loadImage(teamLogoBuffer);
+        logoToUse = await loadProcessedLogo(finalLogoUrl, { svgSupport: true, trim: false });
         
         // Draw the team logo
         const logoSize = Math.min(width, height) * 0.6;
