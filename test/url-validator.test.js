@@ -48,8 +48,8 @@ function recordTest(name, fn) {
 
 // Reload featureFlags fresh so env var changes take effect.
 function freshFeatureFlags() {
-    delete require.cache[require.resolve('../helpers/featureFlags')];
-    return require('../helpers/featureFlags');
+    delete require.cache[require.resolve('../src/helpers/featureFlags')];
+    return require('../src/helpers/featureFlags');
 }
 
 // ------------------------------------------------------------------------------
@@ -57,7 +57,7 @@ function freshFeatureFlags() {
 // ------------------------------------------------------------------------------
 
 function runValidatorTests() {
-    const { validatePublicImageUrl } = require('../helpers/urlValidator');
+    const { validatePublicImageUrl } = require('../src/helpers/urlValidator');
 
     console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('  validatePublicImageUrl — allowed URLs');

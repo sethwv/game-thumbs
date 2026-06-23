@@ -60,4 +60,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD curl -sf http://localhost:${PORT}/health | grep -q '"status":"ok"'
 
 # Start the application
-CMD ["node", "index.js"]
+CMD ["node", "src/index.js"]

@@ -5,7 +5,7 @@
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
-const { rasterizeLogo } = require('../helpers/svgUtils');
+const { rasterizeLogo } = require('../src/helpers/svgUtils');
 
 const ASSETS_DIR = path.join(__dirname, '..', 'assets');
 

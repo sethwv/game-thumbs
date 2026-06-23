@@ -576,7 +576,7 @@ if (require.main === module) {
     process.env.SHOW_TIMESTAMP = 'false';
     
     // Import and start server
-    require('../index');
+    require('../src/index');
     
     // Give server a moment to initialize
     setTimeout(() => {

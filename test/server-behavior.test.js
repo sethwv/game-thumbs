@@ -156,7 +156,7 @@ function startServer(config) {
         const { spawn } = require('child_process');
         
         // Start server as child process with specific environment
-        serverProcess = spawn('node', [path.join(__dirname, '..', 'index.js')], {
+        serverProcess = spawn('node', [path.join(__dirname, '..', 'src', 'index.js')], {
             env: {
                 ...process.env,
                 PORT: PORT.toString(),

@@ -293,7 +293,7 @@ if (require.main === module) {
     process.env.ALLOW_CUSTOM_BADGES = 'true';
     process.env.ALLOW_EVENT_OVERLAYS = 'true';
 
-    require('../../index');
+    require('../../src/index');
 
     setTimeout(async () => {
         try {

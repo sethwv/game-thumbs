@@ -30,7 +30,7 @@ function ensureDirectoryExists(dirPath) {
  * @returns {object} Merged JSON object
  */
 function loadAndMergeJSON(baseFileName, directoryName, mergeType = 'teams') {
-    const basePath = path.join(__dirname, '..');
+    const basePath = path.join(__dirname, '..', '..');
     const baseFilePath = path.join(basePath, baseFileName);
     const directoryPath = path.join(basePath, directoryName);
     

@@ -23,7 +23,6 @@ if (!fs.existsSync(OUTPUT_DIR)) {
     fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 }
 
-let server;
 let testResults = {
     passed: 0,
     failed: 0,
@@ -161,8 +160,7 @@ async function runTests() {
 
 // Start server and run tests
 console.log('Starting server on port', PORT, '...');
-const { init } = require('../express');
-server = init(PORT);
+require('../src/index');
 
 // Wait for server to start, then run tests
 setTimeout(runTests, 2000);

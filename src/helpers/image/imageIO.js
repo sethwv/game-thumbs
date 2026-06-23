@@ -20,7 +20,7 @@ const CACHE_ENABLED = CACHE_HOURS > 0;
 // Cache directory for trimmed logos (project root /.cache/trimmed). Ensure it
 // exists so trimImage can write to it; startup clearing happens in the
 // imageUtils shim so the one-time reset stays in one place.
-const TRIMMED_CACHE_DIR = path.join(__dirname, '..', '..', '.cache', 'trimmed');
+const TRIMMED_CACHE_DIR = path.join(__dirname, '..', '..', '..', '.cache', 'trimmed');
 if (!fsSync.existsSync(TRIMMED_CACHE_DIR)) {
     fsSync.mkdirSync(TRIMMED_CACHE_DIR, { recursive: true });
 }

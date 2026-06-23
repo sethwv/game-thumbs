@@ -553,7 +553,7 @@ if (require.main === module) {
     process.env.LOG_TO_FILE = 'false';
     process.env.SHOW_TIMESTAMP = 'false';
     
-    require('../index');
+    require('../src/index');
     
     setTimeout(() => {
         runAllTests().catch(error => {

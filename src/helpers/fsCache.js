@@ -9,7 +9,7 @@ const path = require('path');
 const crypto = require('crypto');
 const logger = require('./logger');
 
-const CACHE_BASE = path.join(__dirname, '..', '.cache');
+const CACHE_BASE = path.join(__dirname, '..', '..', '.cache');
 
 // Ensure the base cache directory exists
 if (!fsSync.existsSync(CACHE_BASE)) {
