@@ -49,7 +49,6 @@ Browse detailed documentation for each endpoint:
 - [NCAA Shorthand](/ncaa-route.html) - Convenience route for NCAA sports
 - [Raw Team Data](/raw-data.html) - JSON team data
 - [Server Info](/server-info.html) - Server version info
-- [XC API Proxy](/xc-proxy.html) - Proxy XC API with EPG logo replacement (Dev only)
 
 ---
 

@@ -27,8 +27,7 @@
     
     "extract:hockeytech": "node -e \"require('./providers/HockeyTechProvider').HockeyTechProvider.displayAllCredentials()\"",
     "extract:supabase": "node -e \"require('./providers/SupabaseProvider').SupabaseProvider.displayAllCredentials()\"",
-    "xcproxy": "NODE_ENV=production SHOW_TIMESTAMP=false APP_MODE=xcproxy XC_PROXY_UPSTREAM='local=http://127.0.0.1:9191' node index.js",
-    
+
     "test": "for file in test/*.test.js; do [ -f \"$file\" ] && node \"$file\" || exit 1; done",
     "test:endpoints": "node test/endpoints.test.js",
     "test:leagues": "node test/leagues.test.js",
