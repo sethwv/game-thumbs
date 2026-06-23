@@ -23,7 +23,7 @@ const forceColor = process.env.FORCE_COLOR === '1' || process.env.FORCE_COLOR ==
 
 // File logging configuration
 const LOG_TO_FILE = process.env.LOG_TO_FILE === 'true' || process.env.LOG_TO_FILE === '1';
-const LOG_DIR = process.env.LOG_DIR || path.join(__dirname, '..', 'logs');
+const LOG_DIR = process.env.LOG_DIR || path.join(__dirname, '..', '..', 'logs');
 const LOG_ROTATION_SIZE = parseInt(process.env.LOG_ROTATION_SIZE || '102400', 10); // 100KB default
 const MAX_LOG_FILES = parseInt(process.env.MAX_LOG_FILES || '10', 10); // Keep last 10 files
 

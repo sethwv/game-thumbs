@@ -2,7 +2,7 @@
   "name": "game-thumbs",
   "version": "v0.0.1",
   "description": "A simple API that generates and serves various sports' matchup thumbnails and logos.",
-  "main": "index.js",
+  "main": "src/index.js",
   "author": "Seth",
   "license": "MIT",
   "dependencies": {
@@ -18,15 +18,15 @@
     "socks-proxy-agent": "^10.1.0"
   },
   "scripts": {
-    "start": "NODE_ENV=production SHOW_TIMESTAMP=false node index.js",
+    "start": "NODE_ENV=production SHOW_TIMESTAMP=false node src/index.js",
     
-    "dev": "NODE_ENV=development TRUST_PROXY=0 IMAGE_CACHE_HOURS=0 RATE_LIMIT_PER_MINUTE=0 SHOW_TIMESTAMP=false LOG_TO_FILE=true ALLOW_CUSTOM_BADGES=true ALLOW_EVENT_OVERLAYS=true node index.js",
-    "dev:mma": "NODE_ENV=development TRUST_PROXY=0 IMAGE_CACHE_HOURS=0 RATE_LIMIT_PER_MINUTE=0 SHOW_TIMESTAMP=false LOG_TO_FILE=true ALLOW_EVENT_OVERLAYS=true LEAGUES_ENABLE_MMA=true node index.js",
-    "dev:tennis": "NODE_ENV=development TRUST_PROXY=0 IMAGE_CACHE_HOURS=0 RATE_LIMIT_PER_MINUTE=0 SHOW_TIMESTAMP=false LOG_TO_FILE=true ALLOW_EVENT_OVERLAYS=true LEAGUES_ENABLE_TENNIS=true node index.js",
-    "dev:mma+tennis": "NODE_ENV=development TRUST_PROXY=0 IMAGE_CACHE_HOURS=0 RATE_LIMIT_PER_MINUTE=0 SHOW_TIMESTAMP=false LOG_TO_FILE=true ALLOW_EVENT_OVERLAYS=true LEAGUES_ENABLE_MMA=true LEAGUES_ENABLE_TENNIS=true node index.js",
+    "dev": "NODE_ENV=development TRUST_PROXY=0 IMAGE_CACHE_HOURS=0 RATE_LIMIT_PER_MINUTE=0 SHOW_TIMESTAMP=false LOG_TO_FILE=true ALLOW_CUSTOM_BADGES=true ALLOW_EVENT_OVERLAYS=true node src/index.js",
+    "dev:mma": "NODE_ENV=development TRUST_PROXY=0 IMAGE_CACHE_HOURS=0 RATE_LIMIT_PER_MINUTE=0 SHOW_TIMESTAMP=false LOG_TO_FILE=true ALLOW_EVENT_OVERLAYS=true LEAGUES_ENABLE_MMA=true node src/index.js",
+    "dev:tennis": "NODE_ENV=development TRUST_PROXY=0 IMAGE_CACHE_HOURS=0 RATE_LIMIT_PER_MINUTE=0 SHOW_TIMESTAMP=false LOG_TO_FILE=true ALLOW_EVENT_OVERLAYS=true LEAGUES_ENABLE_TENNIS=true node src/index.js",
+    "dev:mma+tennis": "NODE_ENV=development TRUST_PROXY=0 IMAGE_CACHE_HOURS=0 RATE_LIMIT_PER_MINUTE=0 SHOW_TIMESTAMP=false LOG_TO_FILE=true ALLOW_EVENT_OVERLAYS=true LEAGUES_ENABLE_MMA=true LEAGUES_ENABLE_TENNIS=true node src/index.js",
     
-    "extract:hockeytech": "node -e \"require('./providers/HockeyTechProvider').HockeyTechProvider.displayAllCredentials()\"",
-    "extract:supabase": "node -e \"require('./providers/SupabaseProvider').SupabaseProvider.displayAllCredentials()\"",
+    "extract:hockeytech": "node -e \"require('./src/providers/HockeyTechProvider').HockeyTechProvider.displayAllCredentials()\"",
+    "extract:supabase": "node -e \"require('./src/providers/SupabaseProvider').SupabaseProvider.displayAllCredentials()\"",
 
     "test": "for file in test/*.test.js; do [ -f \"$file\" ] && node \"$file\" || exit 1; done",
     "test:endpoints": "node test/endpoints.test.js",

@@ -10,7 +10,7 @@ const path = require('path');
 const crypto = require('crypto');
 const logger = require('./logger');
 
-const CACHE_DIR = path.join(__dirname, '..', '.cache');
+const CACHE_DIR = path.join(__dirname, '..', '..', '.cache');
 
 // Get cache duration from environment variable (in hours), default to 24 hours
 // Set to 0 to disable caching

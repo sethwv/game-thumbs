@@ -1,7 +1,9 @@
 // ------------------------------------------------------------------------------
-// express.js
-// Thin orchestrator: builds the Express app and wires together the focused setup
-// modules under app/ (middleware, route loader, server lifecycle).
+// index.js
+// Application entry point: builds the Express app, wires the focused setup
+// modules under app/ (middleware, route loader, server lifecycle), and starts
+// the server. Requiring this module boots the server (used by the test suite);
+// running it directly (node src/index.js) does the same.
 // ------------------------------------------------------------------------------
 
 const express = require('express');
@@ -11,10 +13,6 @@ const { registerRoutes } = require('./app/routeLoader');
 const { startServer } = require('./app/lifecycle');
 
 const app = express();
-
-module.exports = { init };
-
-// ------------------------------------------------------------------------------
 
 function init(port) {
     logger.startup('Game Thumbs API - Starting Server');
@@ -31,8 +29,6 @@ function init(port) {
     startServer(app, port);
 }
 
-// ------------------------------------------------------------------------------
-
 // Register default fonts (only when event overlays are enabled)
 function registerDefaultFonts() {
     const { isEventOverlaysEnabled } = require('./helpers/featureFlags');
@@ -42,3 +38,6 @@ function registerDefaultFonts() {
         loadFont('default_subtitle.ttf', 'default_subtitle');
     }
 }
+
+const PORT = process.env.PORT || 3000;
+init(PORT);

@@ -34,7 +34,7 @@ module.exports = {
 function getGitInfo() {
     try {
         // Check if we're in a git repository
-        const isGitRepo = fs.existsSync(path.join(__dirname, '..', '.git'));
+        const isGitRepo = fs.existsSync(path.join(__dirname, '..', '..', '.git'));
         
         if (!isGitRepo) {
             return null;

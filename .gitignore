@@ -35,6 +35,10 @@ pnpm-lock.yaml
 # Environment files
 .env
 
+# Agent instruction files (kept local, not tracked)
+AGENTS.md
+CLAUDE.md
+
 # IDE files
 .claude
 .agents/
