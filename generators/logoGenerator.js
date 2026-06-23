@@ -7,6 +7,7 @@ const { createCanvas } = require('canvas');
 const { drawLogoWithShadow, drawCenteredLogo, loadProcessedLogo, selectBestLogo, adjustColors, trimImage } = require('../helpers/imageUtils');
 const { setShadow } = require('../helpers/shadows');
 const logger = require('../helpers/logger');
+const { DIAGONAL_SPLIT, LOGO } = require('../config/constants');
 
 module.exports = {
     generateLogo
@@ -71,7 +72,7 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league, useLig
         // Just draw the colored rectangle without team logos
         const centerX = width / 2;
         const centerY = height / 2;
-        const availableWidth = width * 0.95;
+        const availableWidth = width * LOGO.BADGE_ROW_WIDTH_SCALE;
         const badgeSize = availableWidth / 3;
         const thumbWidth = badgeSize * 3;
         const thumbHeight = badgeSize;
@@ -91,8 +92,8 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league, useLig
             ctx.fillRect(thumbX, thumbY, thumbWidth, thumbHeight);
         } else {
             // Diagonal split points
-            const topDiagonalX = thumbX + (thumbWidth * 0.5825);
-            const bottomDiagonalX = thumbX + (thumbWidth * 0.4175);
+            const topDiagonalX = thumbX + (thumbWidth * DIAGONAL_SPLIT.LOGO.TOP);
+            const bottomDiagonalX = thumbX + (thumbWidth * DIAGONAL_SPLIT.LOGO.BOTTOM);
             
             // Left side (teamA)
             ctx.fillStyle = colorA;
@@ -121,7 +122,7 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league, useLig
                 const leagueLogoUrl = league.logoUrl || league.logoUrlAlt;
                 const leagueLogo = await loadProcessedLogo(leagueLogoUrl, { svgSupport: true });
                 
-                const leagueLogoSize = badgeSize * 0.6;
+                const leagueLogoSize = badgeSize * LOGO.DIAGONAL_CENTER_LEAGUE_SCALE;
                 const leagueLogoX = centerX - (leagueLogoSize / 2);
                 const leagueLogoY = centerY - (leagueLogoSize / 2);
                 
@@ -148,7 +149,7 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league, useLig
     // Calculate thumbnail dimensions (same size as style 6 badge area)
     const centerX = width / 2;
     const centerY = height / 2;
-    const availableWidth = width * 0.95;
+    const availableWidth = width * LOGO.BADGE_ROW_WIDTH_SCALE;
     const badgeSize = availableWidth / 3;
     
     // Use the same dimensions as style 6: 3 badges wide, 1 badge tall
@@ -166,8 +167,8 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league, useLig
     ctx.restore();
     
     // Diagonal split points (50% less horizontal than thumbnail style 1)
-    const topDiagonalX = thumbX + (thumbWidth * 0.5825);
-    const bottomDiagonalX = thumbX + (thumbWidth * 0.4175);
+    const topDiagonalX = thumbX + (thumbWidth * DIAGONAL_SPLIT.LOGO.TOP);
+    const bottomDiagonalX = thumbX + (thumbWidth * DIAGONAL_SPLIT.LOGO.BOTTOM);
     
     // Left side (teamA) - no shadow
     ctx.fillStyle = colorA;
@@ -190,7 +191,7 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league, useLig
     ctx.fill();
     
     // Draw logos (same size as style 6)
-    const logoMaxSize = badgeSize * 0.8;
+    const logoMaxSize = badgeSize * LOGO.BADGE_LOGO_SCALE;
     
     // Team A logo (left side)
     const logoAX = thumbX + (thumbWidth * 0.2) - (logoMaxSize / 2);
@@ -208,7 +209,7 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league, useLig
             const leagueLogoUrl = league.logoUrl || league.logoUrlAlt;
             const leagueLogo = await loadProcessedLogo(leagueLogoUrl, { svgSupport: true });
             
-            const leagueLogoSize = badgeSize * 0.6;
+            const leagueLogoSize = badgeSize * LOGO.DIAGONAL_CENTER_LEAGUE_SCALE;
             const leagueLogoX = centerX - (leagueLogoSize / 2);
             const leagueLogoY = centerY - (leagueLogoSize / 2);
             
@@ -244,7 +245,7 @@ async function generateSideBySide(teamA, teamB, width, height, league, useLight)
     const logoB = await loadProcessedLogo(teamBLogoUrl);
     
     // Calculate logo size (50% of canvas for each logo)
-    const logoSize = Math.min(width, height) * 0.50;
+    const logoSize = Math.min(width, height) * LOGO.SIDEBYSIDE_LOGO_SCALE;
     const spacing = width * 0.005; // 0.5% spacing between logos
     
     // Position logos side by side
@@ -266,7 +267,7 @@ async function generateSideBySide(teamA, teamB, width, height, league, useLight)
             const leagueLogo = await loadProcessedLogo(league.logoUrl, { svgSupport: true });
 
             // League logo is smaller (15% of canvas size)
-            const leagueLogoSize = Math.min(width, height) * 0.15;
+            const leagueLogoSize = Math.min(width, height) * LOGO.SIDEBYSIDE_LEAGUE_SCALE;
             const leagueLogoX = (width - leagueLogoSize) / 2;
             const leagueLogoY = height - leagueLogoSize - (height * 0.05);
 
@@ -307,7 +308,7 @@ async function generateCircleBadges(teamA, teamB, width, height, league, useLigh
     const logoB = await loadProcessedLogo(teamBLogoUrl);
     
     // Calculate sizes - circles positioned closer together to avoid overflow
-    const badgeSize = Math.min(width, height) * 0.35;
+    const badgeSize = Math.min(width, height) * LOGO.CIRCLE_BADGE_SCALE;
     const spacing = width * 0.05; // Reduced from 0.1 to bring circles closer
     const centerX = width / 2;
     const centerY = height / 2;
@@ -322,12 +323,12 @@ async function generateCircleBadges(teamA, teamB, width, height, league, useLigh
     
     ctx.fillStyle = colorA;
     ctx.beginPath();
-    ctx.arc(badgeAX + badgeSize / 2, badgeAY + badgeSize / 2, badgeSize * 0.6, 0, Math.PI * 2);
+    ctx.arc(badgeAX + badgeSize / 2, badgeAY + badgeSize / 2, badgeSize * LOGO.CIRCLE_RADIUS_SCALE, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
     
     // Draw teamA logo (80% to fit within circle) with aspect ratio maintained
-    const logoSize = badgeSize * 0.80;
+    const logoSize = badgeSize * LOGO.BADGE_LOGO_SCALE;
     const logoContainerX = badgeAX + (badgeSize - logoSize) / 2;
     const logoContainerY = badgeAY + (badgeSize - logoSize) / 2;
     
@@ -343,7 +344,7 @@ async function generateCircleBadges(teamA, teamB, width, height, league, useLigh
     
     ctx.fillStyle = colorB;
     ctx.beginPath();
-    ctx.arc(badgeBX + badgeSize / 2, badgeBY + badgeSize / 2, badgeSize * 0.6, 0, Math.PI * 2);
+    ctx.arc(badgeBX + badgeSize / 2, badgeBY + badgeSize / 2, badgeSize * LOGO.CIRCLE_RADIUS_SCALE, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
     
@@ -358,7 +359,7 @@ async function generateCircleBadges(teamA, teamB, width, height, league, useLigh
             const leagueLogo = await loadProcessedLogo(league.logoUrl, { svgSupport: true });
 
             // League logo size (20% of canvas)
-            const leagueLogoSize = Math.min(width, height) * 0.2;
+            const leagueLogoSize = Math.min(width, height) * LOGO.LEAGUE_LOGO_SCALE;
             const leagueLogoX = (width - leagueLogoSize) / 2;
 
             // Calculate bottom edge of circle badges
@@ -402,7 +403,7 @@ async function generateSquareBadges(teamA, teamB, width, height, league, useLigh
     const logoB = await loadProcessedLogo(teamBLogoUrl);
     
     // Calculate sizes - two squares that join in the middle to form a rectangle
-    const badgeSize = Math.min(width, height) * 0.4;
+    const badgeSize = Math.min(width, height) * LOGO.SQUARE_BADGE_SCALE;
     const centerX = width / 2;
     const centerY = height / 2;
     
@@ -429,7 +430,7 @@ async function generateSquareBadges(teamA, teamB, width, height, league, useLigh
     ctx.fillRect(badgeBX, badgeBY, badgeSize, badgeSize);
 
     // Draw teamA logo with aspect ratio maintained
-    const logoSize = badgeSize * 0.8;
+    const logoSize = badgeSize * LOGO.BADGE_LOGO_SCALE;
     const logoContainerX = badgeAX + (badgeSize - logoSize) / 2;
     const logoContainerY = badgeAY + (badgeSize - logoSize) / 2;
     
@@ -447,7 +448,7 @@ async function generateSquareBadges(teamA, teamB, width, height, league, useLigh
             const leagueLogo = await loadProcessedLogo(league.logoUrl, { svgSupport: true });
 
             // League logo size (20% of canvas)
-            const leagueLogoSize = Math.min(width, height) * 0.2;
+            const leagueLogoSize = Math.min(width, height) * LOGO.LEAGUE_LOGO_SCALE;
             const leagueLogoX = (width - leagueLogoSize) / 2;
 
             // Calculate bottom edge of square badges
@@ -504,8 +505,8 @@ async function generateCircleBadgesWithLeague(teamA, teamB, width, height, leagu
     
     // Calculate badge size and circle radius
     // Start with 35% of canvas size for badge
-    let badgeSize = Math.min(width, height) * 0.35;
-    const circleRadius = badgeSize * 0.6;
+    let badgeSize = Math.min(width, height) * LOGO.CIRCLE_BADGE_SCALE;
+    const circleRadius = badgeSize * LOGO.CIRCLE_RADIUS_SCALE;
     
     // Calculate spacing to allow up to 5% overlap
     // With 5% overlap: spacing = badgeSize - (badgeSize * 0.05)
@@ -531,7 +532,7 @@ async function generateCircleBadgesWithLeague(teamA, teamB, width, height, leagu
     }
     
     // Recalculate with final badge size
-    const finalCircleRadius = badgeSize * 0.6;
+    const finalCircleRadius = badgeSize * LOGO.CIRCLE_RADIUS_SCALE;
     const finalSpacing = badgeSize - (badgeSize * 0.05);
     const finalTotalWidth = finalSpacing * 2 + badgeSize;
     const startX = centerX - (finalTotalWidth / 2);
@@ -558,7 +559,7 @@ async function generateCircleBadgesWithLeague(teamA, teamB, width, height, leagu
         ctx.fill();
         ctx.restore();
         
-        const logoMaxSize = badgeSize * 0.80;
+        const logoMaxSize = badgeSize * LOGO.BADGE_LOGO_SCALE;
         const logoContainerX = badgeX + (badgeSize - logoMaxSize) / 2;
         const logoContainerY = badgeY + (badgeSize - logoMaxSize) / 2;
         
@@ -606,7 +607,7 @@ async function generateSquareBadgesWithLeague(teamA, teamB, width, height, leagu
     const centerY = height / 2;
     
     // Calculate badge size to ensure all 3 fit with some padding
-    const availableWidth = width * 0.95; // Use 95% of width to leave padding
+    const availableWidth = width * LOGO.BADGE_ROW_WIDTH_SCALE; // Use 95% of width to leave padding
     const badgeSize = availableWidth / 3;
     
     const totalWidth = badgeSize * 3;
@@ -633,7 +634,7 @@ async function generateSquareBadgesWithLeague(teamA, teamB, width, height, leagu
         ctx.fillStyle = badge.bgColor;
         ctx.fillRect(badge.x, badgeY, badgeSize, badgeSize);
         
-        const logoMaxSize = badgeSize * 0.8;
+        const logoMaxSize = badgeSize * LOGO.BADGE_LOGO_SCALE;
         const logoContainerX = badge.x + (badgeSize - logoMaxSize) / 2;
         const logoContainerY = badgeY + (badgeSize - logoMaxSize) / 2;
         

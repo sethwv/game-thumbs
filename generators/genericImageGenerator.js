@@ -5,6 +5,7 @@
 
 const { createCanvas } = require('canvas');
 const { loadProcessedLogo, drawLogoMaintainAspect, hexToRgb } = require('../helpers/imageUtils');
+const { DIMENSIONS } = require('../config/constants');
 const { setShadow } = require('../helpers/shadows');
 const { extractDominantColors, blendColors, blendColorsWeighted, calculateColorDistance, analyzeColor, adjustVibrancy } = require('../helpers/colorUtils');
 const logger = require('../helpers/logger');
@@ -20,8 +21,8 @@ module.exports = {
 // ------------------------------------------------------------------------------
 
 async function generateLeagueThumb(leagueLogoUrl, options = {}) {
-    const width = options.width || 1440;
-    const height = options.height || 1080;
+    const width = options.width || DIMENSIONS.THUMB.width;
+    const height = options.height || DIMENSIONS.THUMB.height;
     const leagueLogoUrlAlt = options.leagueLogoUrlAlt;
     const title = options.title || null;
     const subtitle = options.subtitle || null;
@@ -32,8 +33,8 @@ async function generateLeagueThumb(leagueLogoUrl, options = {}) {
 }
 
 async function generateLeagueCover(leagueLogoUrl, options = {}) {
-    const width = options.width || 1080;
-    const height = options.height || 1440;
+    const width = options.width || DIMENSIONS.COVER.width;
+    const height = options.height || DIMENSIONS.COVER.height;
     const leagueLogoUrlAlt = options.leagueLogoUrlAlt;
     const title = options.title || null;
     const subtitle = options.subtitle || null;
@@ -260,16 +261,16 @@ async function generateLeagueImage(leagueLogoUrl, width, height, leagueLogoUrlAl
 // ------------------------------------------------------------------------------
 
 async function generateTeamThumb(teamLogoUrl, teamColor, teamAltColor, options = {}) {
-    const width = options.width || 1440;
-    const height = options.height || 1080;
+    const width = options.width || DIMENSIONS.THUMB.width;
+    const height = options.height || DIMENSIONS.THUMB.height;
     const teamLogoUrlAlt = options.teamLogoUrlAlt;
     
     return generateTeamImage(teamLogoUrl, teamColor, teamAltColor, width, height, teamLogoUrlAlt);
 }
 
 async function generateTeamCover(teamLogoUrl, teamColor, teamAltColor, options = {}) {
-    const width = options.width || 1080;
-    const height = options.height || 1440;
+    const width = options.width || DIMENSIONS.COVER.width;
+    const height = options.height || DIMENSIONS.COVER.height;
     const teamLogoUrlAlt = options.teamLogoUrlAlt;
     
     return generateTeamImage(teamLogoUrl, teamColor, teamAltColor, width, height, teamLogoUrlAlt);
