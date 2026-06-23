@@ -20,8 +20,9 @@ const {
     handleTeamNotFoundError
 } = require('../helpers/imageUtils');
 const { createImageRoute, renderMatchup } = require('../helpers/routeUtils');
+const { DIMENSIONS } = require('../config/constants');
 
-const VALID_SIZES = [256, 512, 1024, 2048];
+const VALID_SIZES = DIMENSIONS.LOGO_VALID_SIZES;
 
 // Apply a valid `size` override (256/512/1024/2048) to square logo options.
 function applySizeOverride(logoOptions, size) {
@@ -43,8 +44,8 @@ async function renderLeagueLogo(ctx) {
         const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj);
         const dummyTeam = await buildSkipLogosTeam(leagueLogoUrl);
         const logoOptions = {
-            width: 1024,
-            height: 1024,
+            width: DIMENSIONS.LOGO_DEFAULT,
+            height: DIMENSIONS.LOGO_DEFAULT,
             style: 1,
             league: { logoUrl: leagueLogoUrl },
             trim: trim !== 'false'
@@ -87,8 +88,8 @@ async function renderTeamLogo(ctx) {
             const { logoUrl, backgroundColor } = await selectLogoAndColorForSingleTeam(resolvedTeam);
             const dummyTeam = await buildSkipLogosTeam(null, backgroundColor);
             const logoOptions = {
-                width: 1024,
-                height: 1024,
+                width: DIMENSIONS.LOGO_DEFAULT,
+                height: DIMENSIONS.LOGO_DEFAULT,
                 style: 1,
                 league: { logoUrl },
                 trim: trim !== 'false'
@@ -139,8 +140,8 @@ async function renderMatchupLogo(ctx) {
     const hasLeagueLogoByDefault = styleValue === 1 || styleValue === 5 || styleValue === 6;
 
     const logoOptions = {
-        width: 1024,
-        height: 1024,
+        width: DIMENSIONS.LOGO_DEFAULT,
+        height: DIMENSIONS.LOGO_DEFAULT,
         style: styleValue,
         league: (logo === 'true' || (logo !== 'false' && hasLeagueLogoByDefault)) ? league : null,
         useLight: useLight === 'true',
