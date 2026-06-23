@@ -31,7 +31,6 @@ module.exports = {
 // ------------------------------------------------------------------------------
 
 const COLOR_SIMILARITY_THRESHOLD = 120; // Colors closer than this need an outline
-const DIAGONAL_LINE_EXTENSION = 100; // Pixels to extend diagonal line beyond canvas
 
 // ------------------------------------------------------------------------------
 // Helper Functions
@@ -130,21 +129,6 @@ async function generateSplit(teamA, teamB, width, height, league, orientation) {
         ctx.lineTo(bottomDiagonalX, height);
         ctx.closePath();
         ctx.fill();
-        
-        // Draw white diagonal line
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0)'; // Transparent (hidden but can be restored)
-        ctx.lineWidth = 16;
-        ctx.lineCap = 'butt';
-        ctx.lineJoin = 'miter';
-        ctx.beginPath();
-        const dx = bottomDiagonalX - topDiagonalX;
-        const dy = height;
-        const length = Math.sqrt(dx * dx + dy * dy);
-        const unitX = dx / length;
-        const unitY = dy / length;
-        ctx.moveTo(topDiagonalX + 1 - unitX * DIAGONAL_LINE_EXTENSION, 0 - unitY * DIAGONAL_LINE_EXTENSION);
-        ctx.lineTo(bottomDiagonalX + 1 + unitX * DIAGONAL_LINE_EXTENSION, height + unitY * DIAGONAL_LINE_EXTENSION);
-        ctx.stroke();
     } else {
         // Horizontal split for covers
         const midpointY = height / 2;
@@ -154,15 +138,6 @@ async function generateSplit(teamA, teamB, width, height, league, orientation) {
         
         ctx.fillStyle = colorB;
         ctx.fillRect(0, midpointY, width, height - midpointY);
-        
-        // Draw white horizontal line
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0)'; // Transparent (hidden but can be restored)
-        ctx.lineWidth = 16;
-        ctx.lineCap = 'butt';
-        ctx.beginPath();
-        ctx.moveTo(0, midpointY);
-        ctx.lineTo(width, midpointY);
-        ctx.stroke();
     }
     
     // Load and draw logos

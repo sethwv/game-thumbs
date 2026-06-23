@@ -31,8 +31,7 @@ module.exports = {
             }
 
             // Get both league logo URLs (light and dark variants for contrast checking)
-            const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj, false);
-            const leagueLogoUrlAlt = await providerManager.getLeagueLogoUrl(leagueObj, true);
+            const { logoUrl: leagueLogoUrl, logoUrlAlt: leagueLogoUrlAlt } = await providerManager.getLeagueLogoPair(leagueObj);
 
             if (!leagueLogoUrl) {
                 return res.status(404).json({ error: 'League logo not found' });

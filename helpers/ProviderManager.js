@@ -565,6 +565,17 @@ class ProviderManager {
     }
 
     /**
+     * Fetch both league logo variants (default + dark) for contrast checking.
+     * @param {Object} league - League object
+     * @returns {Promise<{logoUrl: string, logoUrlAlt: string}>}
+     */
+    async getLeagueLogoPair(league) {
+        const logoUrl = await this.getLeagueLogoUrl(league, false);
+        const logoUrlAlt = await this.getLeagueLogoUrl(league, true);
+        return { logoUrl, logoUrlAlt };
+    }
+
+    /**
      * Clear caches for all providers
      */
     clearAllCaches() {
