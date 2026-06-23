@@ -26,24 +26,10 @@ function registerRoutes(app) {
     });
 
     const routesPath = path.join(__dirname, '..', 'routes');
-    const APP_MODE = process.env.APP_MODE || 'standard';
-
-    if (APP_MODE === 'xcproxy') {
-        logger.info('XC Proxy mode - loading only xcproxy route');
-        // Auto-enable XC_PROXY when in xcproxy mode
-        process.env.XC_PROXY = 'true';
-    }
 
     // Load route files and sort by priority (lower numbers first), then alphabetically
     const routeFiles = fs.readdirSync(routesPath)
         .filter(file => file.endsWith('.js'))
-        .filter(file => {
-            // In xcproxy mode, only load xcproxy.js
-            if (APP_MODE === 'xcproxy' && file !== 'xcproxy.js') {
-                return false;
-            }
-            return true;
-        })
         .map(file => ({
             file,
             route: require(path.join(routesPath, file))

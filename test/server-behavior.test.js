@@ -165,8 +165,7 @@ function startServer(config) {
                 RATE_LIMIT_PER_MINUTE: config.rateLimitPerMinute || '0',
                 IMAGE_CACHE_HOURS: config.imageCacheHours || '0',
                 LOG_TO_FILE: 'false',
-                SHOW_TIMESTAMP: 'false',
-                XC_PROXY: 'false'
+                SHOW_TIMESTAMP: 'false'
             },
             stdio: 'pipe'
         });
