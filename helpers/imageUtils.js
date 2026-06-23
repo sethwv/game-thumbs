@@ -101,6 +101,8 @@ module.exports = {
     // Image utilities
     downloadImage,
     downloadImageWithSvgSupport,
+    loadProcessedLogo,
+    calculateCenteredDimensions,
     selectBestLogo,
     selectLogoAndColorForSingleTeam,
     trimImage,
@@ -128,6 +130,48 @@ module.exports = {
 // ------------------------------------------------------------------------------
 // Functions
 // ------------------------------------------------------------------------------
+
+/**
+ * Download a logo, optionally trim transparent padding, and load it into an Image.
+ * Collapses the download -> trim -> loadImage triple repeated across the generators.
+ *
+ * @param {string} url - logo URL or data URI
+ * @param {object} [opts]
+ * @param {boolean} [opts.svgSupport=false] - use the SVG-aware download path (league/icon logos)
+ * @param {boolean} [opts.trim=true] - trim transparent padding before loading
+ * @returns {Promise<Image>} canvas Image ready to draw
+ */
+async function loadProcessedLogo(url, { svgSupport = false, trim = true } = {}) {
+    let buffer = svgSupport ? await downloadImageWithSvgSupport(url) : await downloadImage(url);
+    if (trim) {
+        buffer = await trimImage(buffer, true);
+    }
+    return loadImage(buffer);
+}
+
+/**
+ * Compute aspect-ratio-preserving draw dimensions for a logo fit inside a square
+ * container, plus the offsets to center it. Replaces the repeated
+ * `if (aspectRatio > 1) { ... } else { ... }` blocks in the generators.
+ *
+ * @param {number} containerSize - side length of the square container
+ * @param {number} aspectRatio - image.width / image.height
+ * @returns {{ drawWidth: number, drawHeight: number, offsetX: number, offsetY: number }}
+ *   offsets are relative to the container's top-left corner.
+ */
+function calculateCenteredDimensions(containerSize, aspectRatio) {
+    let drawWidth, drawHeight;
+    if (aspectRatio > 1) {
+        drawWidth = containerSize;
+        drawHeight = containerSize / aspectRatio;
+    } else {
+        drawHeight = containerSize;
+        drawWidth = containerSize * aspectRatio;
+    }
+    const offsetX = (containerSize - drawWidth) / 2;
+    const offsetY = (containerSize - drawHeight) / 2;
+    return { drawWidth, drawHeight, offsetX, offsetY };
+}
 
 function drawLogoWithShadow(ctx, logoImage, x, y, maxSize) {
     // Calculate dimensions maintaining aspect ratio

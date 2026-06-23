@@ -3,20 +3,19 @@
 // This helper generates game thumbnail images with team logos and colors
 // ------------------------------------------------------------------------------
 
-const { createCanvas, loadImage } = require('canvas');
-const { 
-    drawLogoWithShadow, 
+const { createCanvas } = require('canvas');
+const {
+    drawLogoWithShadow,
     drawLogoMaintainAspect,
-    downloadImage,
-    downloadImageWithSvgSupport, 
+    loadProcessedLogo,
+    calculateCenteredDimensions,
     selectBestLogo,
     adjustColors,
     colorDistance,
     hexToRgb,
     rgbToHex,
     getAverageColor,
-    loadTrimmedLogo,
-    trimImage
+    loadTrimmedLogo
 } = require('../helpers/imageUtils');
 const { setShadow, resetShadow } = require('../helpers/shadows');
 const logger = require('../helpers/logger');
@@ -215,9 +214,7 @@ async function generateSplit(teamA, teamB, width, height, league, orientation) {
     // Draw league logo in bottom right corner if league logo URL is provided
     if (league && league.logoUrl) {
         try {
-            let leagueLogoBuffer = await downloadImageWithSvgSupport(league.logoUrl);
-            leagueLogoBuffer = await trimImage(leagueLogoBuffer, league.logoUrl);
-            const leagueLogo = await loadImage(leagueLogoBuffer);
+            const leagueLogo = await loadProcessedLogo(league.logoUrl, { svgSupport: true });
             const leagueLogoSize = Math.min(width, height) * 0.25;
             const leagueLogoX = (width - leagueLogoSize) / 2;
             const leagueLogoY = (height - leagueLogoSize) / 2;
@@ -291,9 +288,7 @@ async function generateGradient(teamA, teamB, width, height, league, orientation
     // Draw league logo in the center if league logo URL is provided
     if (league && league.logoUrl) {
         try {
-            let leagueLogoBuffer = await downloadImageWithSvgSupport(league.logoUrl);
-            leagueLogoBuffer = await trimImage(leagueLogoBuffer, league.logoUrl);
-            const leagueLogo = await loadImage(leagueLogoBuffer);
+            const leagueLogo = await loadProcessedLogo(league.logoUrl, { svgSupport: true });
             const leagueLogoSize = Math.min(width, height) * 0.25;
             const leagueLogoX = (width - leagueLogoSize) / 2;
             const leagueLogoY = (height - leagueLogoSize) / 2;
@@ -424,9 +419,7 @@ async function generateGrid(teamA, teamB, width, height, league, orientation, us
     // Draw league logo in the center if league logo URL is provided
     if (league && league.logoUrl) {
         try {
-            let leagueLogoBuffer = await downloadImageWithSvgSupport(league.logoUrl);
-            leagueLogoBuffer = await trimImage(leagueLogoBuffer, league.logoUrl);
-            const leagueLogo = await loadImage(leagueLogoBuffer);
+            const leagueLogo = await loadProcessedLogo(league.logoUrl, { svgSupport: true });
             const leagueLogoSize = Math.min(width, height) * 0.25;
             const leagueLogoX = (width - leagueLogoSize) / 2;
             const leagueLogoY = (height - leagueLogoSize) / 2;
@@ -495,14 +488,7 @@ async function generateMinimalist(teamA, teamB, width, height, league, orientati
             const aspectA = finalLogoImageA.width / finalLogoImageA.height;
             const circleRadius = badgeSize * 0.6;
             const logoMaxSize = circleRadius * Math.sqrt(2) * 0.95; // 95% of max to leave small margin
-            let logoWidth, logoHeight;
-            if (aspectA > 1) {
-                logoWidth = logoMaxSize;
-                logoHeight = logoMaxSize / aspectA;
-            } else {
-                logoHeight = logoMaxSize;
-                logoWidth = logoMaxSize * aspectA;
-            }
+            const { drawWidth: logoWidth, drawHeight: logoHeight } = calculateCenteredDimensions(logoMaxSize, aspectA);
             const logoX = badgeAX + (badgeSize - logoWidth) / 2;
             const logoY = badgeAY + (badgeSize - logoHeight) / 2;
             
@@ -535,14 +521,7 @@ async function generateMinimalist(teamA, teamB, width, height, league, orientati
             const aspectB = finalLogoImageB.width / finalLogoImageB.height;
             const circleRadius = badgeSize * 0.6;
             const logoMaxSize = circleRadius * Math.sqrt(2) * 0.95; // 95% of max to leave small margin
-            let logoWidth, logoHeight;
-            if (aspectB > 1) {
-                logoWidth = logoMaxSize;
-                logoHeight = logoMaxSize / aspectB;
-            } else {
-                logoHeight = logoMaxSize;
-                logoWidth = logoMaxSize * aspectB;
-            }
+            const { drawWidth: logoWidth, drawHeight: logoHeight } = calculateCenteredDimensions(logoMaxSize, aspectB);
             const logoX = badgeBX + (badgeSize - logoWidth) / 2;
             const logoY = badgeBY + (badgeSize - logoHeight) / 2;
             
@@ -571,9 +550,7 @@ async function generateMinimalist(teamA, teamB, width, height, league, orientati
     // Draw league logo at bottom if league logo URL is provided
     if (league && league.logoUrl) {
         try {
-            let leagueLogoBuffer = await downloadImageWithSvgSupport(league.logoUrl);
-            leagueLogoBuffer = await trimImage(leagueLogoBuffer, league.logoUrl);
-            const leagueLogo = await loadImage(leagueLogoBuffer);
+            const leagueLogo = await loadProcessedLogo(league.logoUrl, { svgSupport: true });
             // Smaller logo for portrait orientation
             const leagueLogoSize = orientation === 'landscape' 
                 ? Math.min(width, height) * 0.25
@@ -586,24 +563,12 @@ async function generateMinimalist(teamA, teamB, width, height, league, orientati
                 ? height - leagueLogoSize - (height * 0.08)
                 : height - leagueLogoSize - (height * 0.02);
             
-            // Calculate dimensions maintaining aspect ratio
+            // Calculate dimensions maintaining aspect ratio, centered in the league logo box
             const aspectRatio = leagueLogo.width / leagueLogo.height;
-            let drawWidth, drawHeight;
-            
-            if (aspectRatio > 1) {
-                // Wider than tall
-                drawWidth = leagueLogoSize;
-                drawHeight = leagueLogoSize / aspectRatio;
-            } else {
-                // Taller than wide or square
-                drawHeight = leagueLogoSize;
-                drawWidth = leagueLogoSize * aspectRatio;
-            }
-            
-            // Adjust position to maintain centering
-            const adjustedX = leagueLogoX + (leagueLogoSize - drawWidth) / 2;
-            const adjustedY = leagueLogoY + (leagueLogoSize - drawHeight) / 2;
-            
+            const { drawWidth, drawHeight, offsetX, offsetY } = calculateCenteredDimensions(leagueLogoSize, aspectRatio);
+            const adjustedX = leagueLogoX + offsetX;
+            const adjustedY = leagueLogoY + offsetY;
+
             ctx.drawImage(leagueLogo, adjustedX, adjustedY, drawWidth, drawHeight);
         } catch (error) {
             logger.warn('Failed to load league logo for minimalist style', { error: error.message });
@@ -684,14 +649,7 @@ async function generate3DEmbossed(teamA, teamB, width, height, league, orientati
             
             // 3. 3D Embossed Texture Effect (large background texture)
             const texMaxSize = Math.min(panelW, panelH) * TEXTURE_SCALE;
-            let texWidth, texHeight;
-            if (logoAspect > 1) {
-                texWidth = texMaxSize;
-                texHeight = texMaxSize / logoAspect;
-            } else {
-                texHeight = texMaxSize;
-                texWidth = texMaxSize * logoAspect;
-            }
+            const { drawWidth: texWidth, drawHeight: texHeight } = calculateCenteredDimensions(texMaxSize, logoAspect);
             const texX = xOffset + (panelW - texWidth) / 2;
             const texY = (panelH - texHeight) / 2;
             
@@ -712,14 +670,7 @@ async function generate3DEmbossed(teamA, teamB, width, height, league, orientati
             
             // 4. Hero Logo with Reflection
             const heroMaxSize = Math.min(panelW, panelH) * 0.5;
-            let heroWidth, heroHeight;
-            if (logoAspect > 1) {
-                heroWidth = heroMaxSize;
-                heroHeight = heroMaxSize / logoAspect;
-            } else {
-                heroHeight = heroMaxSize;
-                heroWidth = heroMaxSize * logoAspect;
-            }
+            const { drawWidth: heroWidth, drawHeight: heroHeight } = calculateCenteredDimensions(heroMaxSize, logoAspect);
             const heroX = xOffset + (panelW - heroWidth) / 2;
             const heroY = (panelH - heroHeight) / 2;
 
@@ -816,20 +767,11 @@ async function generate3DEmbossed(teamA, teamB, width, height, league, orientati
     // Style 98: Add league logo
     if (showLeagueLogo && league && league.logoUrl) {
         try {
-            let leagueLogoBuffer = await downloadImageWithSvgSupport(league.logoUrl);
-            leagueLogoBuffer = await trimImage(leagueLogoBuffer, league.logoUrl);
-            const leagueLogoImg = await loadImage(leagueLogoBuffer);
+            const leagueLogoImg = await loadProcessedLogo(league.logoUrl, { svgSupport: true });
 
             const logoSize = Math.min(width, height) * 0.20; // ~20% of min dimension (doubled)
             const aspect = leagueLogoImg.width / leagueLogoImg.height;
-            let drawW, drawH;
-            if (aspect > 1) {
-                drawW = logoSize;
-                drawH = logoSize / aspect;
-            } else {
-                drawH = logoSize;
-                drawW = logoSize * aspect;
-            }
+            const { drawWidth: drawW, drawHeight: drawH } = calculateCenteredDimensions(logoSize, aspect);
 
             const x = (width - drawW) / 2;
             const y = Math.max(12, Math.round(height * 0.03)); // ~3% from top, at least 12px
