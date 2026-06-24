@@ -12,10 +12,7 @@ on:
       - main
       - dev
     paths:
-      - 'generators/**'
-      - 'helpers/**'
-      - 'providers/**'
-      - 'routes/**'
+      - 'src/**'
       - 'assets/**'
       - 'json/**'
       - 'leagues.json'
@@ -57,7 +54,7 @@ jobs:
         run: npm install
 
       - name: Render baseline (base commit)
-        run: npm run snapshot:update
+        run: node test/snapshots/snapshot.js --update
 
       - name: Stash baseline manifest
         run: cp test/snapshots/manifest.json /tmp/baseline-manifest.json
