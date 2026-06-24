@@ -15,6 +15,7 @@ const providerManager = require('../helpers/ProviderManager');
 const { generateLogo } = require('../generators/logoGenerator');
 const {
     downloadImage,
+    downloadImageWithSvgSupport,
     buildSkipLogosTeam,
     selectLogoAndColorForSingleTeam,
     handleTeamNotFoundError
@@ -72,7 +73,7 @@ async function renderLeagueLogo(ctx) {
         return { servedEarly: true };
     }
 
-    return { buffer: await downloadImage(leagueLogoUrl) };
+    return { buffer: await downloadImageWithSvgSupport(leagueLogoUrl) };
 }
 
 // Case 2: Single team logo (/:league/:team1/logo)
@@ -124,13 +125,13 @@ async function renderTeamLogo(ctx) {
                 return { servedEarly: true };
             }
 
-            logoBuffer = await downloadImage(logoUrl);
+            logoBuffer = await downloadImageWithSvgSupport(logoUrl);
         }
     } catch (teamError) {
         await handleTeamNotFoundError(teamError, fallback === 'true', async () => {
             const darkLogoPreferred = variant === 'dark';
             const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj, darkLogoPreferred);
-            logoBuffer = await downloadImage(leagueLogoUrl);
+            logoBuffer = await downloadImageWithSvgSupport(leagueLogoUrl);
         });
     }
 

@@ -8,7 +8,7 @@ const { createCanvas, loadImage } = require('canvas');
 const logger = require('../logger');
 const { getTeamMatchScore, normalizeCompact } = require('../teamUtils');
 const { extractDominantColors, darkenColor } = require('../colorUtils');
-const { downloadImage, trimImage } = require('./imageIO');
+const { downloadImageWithSvgSupport, trimImage } = require('./imageIO');
 const { convertToGreyscale, getAverageColor, hexToRgb, rgbToHex, colorDistance } = require('./draw');
 
 const COLOR_SIMILARITY_THRESHOLD = 120; // Colors closer than this need special handling
@@ -38,7 +38,7 @@ async function handleTeamNotFoundError(error, enableFallback, fallbackFn) {
 async function generateFallbackTeamObject(leagueLogoUrl, teamName = 'Unknown Team') {
     try {
         // Download and process the league logo to greyscale
-        const logoBuffer = await downloadImage(leagueLogoUrl);
+        const logoBuffer = await downloadImageWithSvgSupport(leagueLogoUrl);
 
         // Validate the buffer before processing
         if (!logoBuffer || !Buffer.isBuffer(logoBuffer) || logoBuffer.length === 0) {
@@ -280,7 +280,7 @@ async function resolveTeamsWithFallback(providerManager, leagueObj, team1Identif
     // For non-skipLogos leagues, fall back to greyscale league logos
     if (result1.failed && result2.failed) {
         try {
-            const logoBuffer = await downloadImage(leagueLogoUrl);
+            const logoBuffer = await downloadImageWithSvgSupport(leagueLogoUrl);
             if (!logoBuffer || !Buffer.isBuffer(logoBuffer) || logoBuffer.length === 0) {
                 throw new Error('Invalid or empty image buffer received');
             }
@@ -343,7 +343,7 @@ async function resolveTeamsWithFallback(providerManager, leagueObj, team1Identif
 async function convertTeamToGreyscaleLoser(team) {
     try {
         // Download and convert primary logo to greyscale
-        const logoBuffer = await downloadImage(team.logo);
+        const logoBuffer = await downloadImageWithSvgSupport(team.logo);
         const logoImage = await loadImage(logoBuffer);
         const greyscaleCanvas = await convertToGreyscale(logoImage, 0.35);
         const greyscaleBuffer = greyscaleCanvas.toBuffer('image/png');
@@ -353,7 +353,7 @@ async function convertTeamToGreyscaleLoser(team) {
         let base64LogoAlt = base64Logo;
         if (team.logoAlt && team.logoAlt !== team.logo) {
             try {
-                const logoAltBuffer = await downloadImage(team.logoAlt);
+                const logoAltBuffer = await downloadImageWithSvgSupport(team.logoAlt);
                 const logoAltImage = await loadImage(logoAltBuffer);
                 const greyscaleAltCanvas = await convertToGreyscale(logoAltImage, 0.35);
                 const greyscaleAltBuffer = greyscaleAltCanvas.toBuffer('image/png');
@@ -497,7 +497,7 @@ async function selectBestLogo(team, backgroundColor) {
         // Try to load primary logo first
         let primaryBuffer, primaryImage;
         try {
-            primaryBuffer = await downloadImage(team.logo);
+            primaryBuffer = await downloadImageWithSvgSupport(team.logo);
             primaryImage = await loadImage(primaryBuffer);
 
             // For athletes, always prefer headshot/cutout if it loads successfully
@@ -512,7 +512,7 @@ async function selectBestLogo(team, backgroundColor) {
         // For non-athletes (teams), try to load alternate logo and choose based on contrast
         let altBuffer, altImage;
         try {
-            altBuffer = await downloadImage(team.logoAlt);
+            altBuffer = await downloadImageWithSvgSupport(team.logoAlt);
             altImage = await loadImage(altBuffer);
         } catch (error) {
             // Alt logo failed, use primary
@@ -585,7 +585,7 @@ async function selectLogoAndColorForSingleTeam(team) {
     const logos = [];
     if (primaryLogoUrl) {
         try {
-            const img = await loadImage(await downloadImage(primaryLogoUrl));
+            const img = await loadImage(await downloadImageWithSvgSupport(primaryLogoUrl));
             logos.push({ url: primaryLogoUrl, avgHex: rgbToHex(getAverageColor(img)) });
         } catch (error) {
             logger.warn('Failed to load primary logo for contrast check', { error: error.message, team: team.name });
@@ -593,7 +593,7 @@ async function selectLogoAndColorForSingleTeam(team) {
     }
     if (team.logoAlt) {
         try {
-            const img = await loadImage(await downloadImage(team.logoAlt));
+            const img = await loadImage(await downloadImageWithSvgSupport(team.logoAlt));
             logos.push({ url: team.logoAlt, avgHex: rgbToHex(getAverageColor(img)) });
         } catch (error) {
             logger.warn('Failed to load alt logo for contrast check', { error: error.message, team: team.name });
@@ -641,7 +641,7 @@ async function loadTrimmedLogo(team, backgroundColor) {
         const logoUrl = await selectBestLogo(team, backgroundColor);
 
         // Download and trim the logo (with URL as cache key)
-        let logoBuffer = await downloadImage(logoUrl);
+        let logoBuffer = await downloadImageWithSvgSupport(logoUrl);
         logoBuffer = await trimImage(logoBuffer, logoUrl);
 
         // Load and return the image

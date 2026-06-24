@@ -25,7 +25,7 @@ if (!fsSync.existsSync(TRIMMED_CACHE_DIR)) {
     fsSync.mkdirSync(TRIMMED_CACHE_DIR, { recursive: true });
 }
 
-async function downloadImage(urlOrPath) {
+async function downloadImage(urlOrPath, { allowSvg = false } = {}) {
     // Validate URL exists
     if (!urlOrPath || typeof urlOrPath !== 'string') {
         throw new Error(`Invalid URL or path: ${urlOrPath}`);
@@ -83,8 +83,8 @@ async function downloadImage(urlOrPath) {
             throw new Error(`Unsupported image format for URL: ${urlOrPath}`);
         }
 
-        // SVG is not supported by node-canvas, reject it
-        if (isSVG) {
+        // SVG is not supported by node-canvas directly; reject unless caller opts in
+        if (isSVG && !allowSvg) {
             throw new Error(`SVG format not supported by canvas: ${urlOrPath}`);
         }
 
@@ -126,7 +126,7 @@ async function downloadImageWithSvgSupport(urlOrPath) {
             // Fetch SVG bytes (downloadImage handles local paths, data URIs and
             // remote URLs uniformly) and convert to PNG.
             const { rasterizeLogo } = require('../svgUtils');
-            const svgBuffer = await downloadImage(urlOrPath);
+            const svgBuffer = await downloadImage(urlOrPath, { allowSvg: true });
             const { pngBuffer } = await rasterizeLogo(svgBuffer);
             return pngBuffer;
         } catch (error) {
