@@ -29,6 +29,7 @@ Complete documentation for all API endpoints.
 | **Other Endpoints** | | | |
 | Raw Data | `/:league/:team/raw` | JSON | Team data from provider |
 | Server Info | `/info` | JSON | Version and git info |
+| Health Check | `/health` | JSON | Server health and uptime |
 | **Deprecated** | | | |
 | ~~Team Logo~~ | `/:league/:team/teamlogo[.png]` | Original | Use `/:league/:team/logo` |
 | ~~League Logo~~ | `/:league/leaguelogo[.png]` | Original | Use `/:league/logo` |
@@ -49,6 +50,7 @@ Browse detailed documentation for each endpoint:
 - [NCAA Shorthand](/ncaa-route.html) - Convenience route for NCAA sports
 - [Raw Team Data](/raw-data.html) - JSON team data
 - [Server Info](/server-info.html) - Server version info
+- [Health Check](/health.html) - Server health and uptime
 
 ---
 

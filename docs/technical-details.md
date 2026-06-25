@@ -40,7 +40,7 @@ Game Thumbs uses a modular provider architecture to fetch team and athlete data 
 **Type**: Team-based sports  
 **Features**:
 - Fetches team rosters, logos, and colors from ESPN's public APIs
-- Supports 30+ professional and NCAA leagues
+- Supports 100+ professional and NCAA leagues
 - 24-hour team data caching
 - Automatic logo and color extraction
 
@@ -369,29 +369,15 @@ This ensures that even obscure NCAA teams can be found if they participate in ba
 
 ### Feeder Leagues
 
-Leagues can configure feeder leagues that are automatically searched:
+Leagues can configure feeder leagues searched automatically when a team isn't found in the primary league:
 
-**Example - English Premier League**:
 ```json
 {
-  "epl": {
-    "feederLeagues": ["championship", "league1", "league2"]
-  }
+  "epl": { "feederLeagues": ["championship", "league1", "league2"] }
 }
 ```
 
-This enables finding promoted/relegated teams without changing the league code.
-
-**Example - Tennis**:
-```json
-{
-  "tennis": {
-    "feederLeagues": ["atp", "wta"]
-  }
-}
-```
-
-Allows unified tennis endpoint while searching both ATP and WTA rosters.
+This is how a promoted Championship team is found using the `epl` league code. See **[Team Matching → League Hierarchies](team-matching.html#league-hierarchies-with-feeder-leagues)** for the full list and examples.
 
 ---
 

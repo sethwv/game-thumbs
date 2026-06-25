@@ -22,10 +22,10 @@ Returns raw JSON data for a team from the provider.
 
 ## Examples
 
-```
-GET /nba/lakers/raw
-GET /nfl/chiefs/raw
-GET /ncaaf/alabama/raw
+```bash
+curl http://localhost:3000/nba/lakers/raw
+curl http://localhost:3000/nfl/chiefs/raw
+curl http://localhost:3000/ncaaf/alabama/raw
 ```
 
 ---

@@ -9,7 +9,7 @@ permalink: /
 # Game Thumbs API Documentation
 {: .fs-9 }
 
-A sports matchup thumbnail and logo generation API supporting 30+ professional and NCAA leagues.
+A sports matchup thumbnail and logo generation API supporting 100+ professional and NCAA leagues.
 {: .fs-6 .fw-300 }
 
 [Get Started](#quick-start){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
@@ -19,10 +19,10 @@ A sports matchup thumbnail and logo generation API supporting 30+ professional a
 
 ## Features
 
-- 🏀 **Multi-Sport Support**: 40+ leagues including NBA, NFL, MLB, NHL, UFC, PFL, Bellator, EPL, MLS, UEFA, and 21+ NCAA sports
+- 🏀 **Multi-Sport Support**: 100+ leagues including NBA, NFL, MLB, NHL, UFC, PFL, Bellator, EPL, MLS, UEFA, and 21+ NCAA sports
 - 🥊 **Combat Sports**: Individual fighter matchups for UFC, PFL, and Bellator
 - 🎨 **Dynamic Generation**: Creates thumbnails and logos on-the-fly with team colors
-- 🖼️ **Multiple Styles**: Choose from 4+ different visual styles
+- 🖼️ **Multiple Styles**: Choose from 6 different visual styles
 - 💾 **Smart Caching**: Automatically caches images and team data (24h teams, 72h athletes)
 - 🎯 **Flexible Matching**: Supports team/athlete names, cities, abbreviations, and partial matches
 - 🔧 **Customizable**: Override team data, logos, and aliases
@@ -31,33 +31,29 @@ A sports matchup thumbnail and logo generation API supporting 30+ professional a
 
 ## Quick Start
 
-### Docker
-
-Pull and run the latest image:
+**1. Run the container:**
 
 ```bash
-docker pull ghcr.io/sethwv/game-thumbs:latest
 docker run -p 3000:3000 ghcr.io/sethwv/game-thumbs:latest
 ```
 
-The API will be available at `http://localhost:3000`.
+**2. Verify it's up:**
 
-### Basic Examples
-
-Generate a matchup thumbnail:
-```
-GET http://localhost:3000/nba/lakers/celtics/thumb
+```bash
+curl http://localhost:3000/health
+# {"status":"ok","uptime":...}
 ```
 
-Generate a matchup logo:
-```
-GET http://localhost:3000/nfl/chiefs/49ers/logo?style=3
+**3. Request your first image:**
+
+```bash
+# Open in a browser or paste into Slack/Discord
+http://localhost:3000/nba/lakers/celtics/thumb
+http://localhost:3000/nfl/chiefs/49ers/logo?style=3
+http://localhost:3000/ncaa/football/alabama/georgia/thumb
 ```
 
-Get raw team data:
-```
-GET http://localhost:3000/mls/lafc/raw
-```
+That's it. See [Docker Setup](docker.html) for environment variables, volume mounts, and Docker Compose examples.
 
 ---
 
@@ -91,6 +87,7 @@ GET http://localhost:3000/mls/lafc/raw
 | **Other** | | |
 | Raw Data | `/:league/:team/raw` | JSON |
 | NCAA Shorthand | `/ncaa/:sport/:type` | Varies |
+| Health Check | `/health` | JSON |
 
 See the [API Reference](api-reference.html) for complete documentation.
 
