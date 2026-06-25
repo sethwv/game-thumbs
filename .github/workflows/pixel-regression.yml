@@ -54,7 +54,17 @@ jobs:
         run: npm install
 
       - name: Render baseline (base commit)
-        run: node test/snapshots/snapshot.js --update
+        run: |
+          if [ -f test/snapshots/snapshot.js ]; then
+            node test/snapshots/snapshot.js --update
+          else
+            # Harness not present on base (e.g. this PR introduces it).
+            # Write an empty manifest so the head comparison treats all cases
+            # as "added" (non-fatal in --soft mode) rather than crashing.
+            mkdir -p test/snapshots
+            printf '{"generatedAt":"%s","note":"empty baseline — harness not present on base commit","cases":{}}\n' \
+              "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > test/snapshots/manifest.json
+          fi
 
       - name: Stash baseline manifest
         run: cp test/snapshots/manifest.json /tmp/baseline-manifest.json
