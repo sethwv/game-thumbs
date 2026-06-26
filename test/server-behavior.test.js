@@ -156,7 +156,7 @@ function startServer(config) {
         const { spawn } = require('child_process');
         
         // Start server as child process with specific environment
-        serverProcess = spawn('node', [path.join(__dirname, '..', 'index.js')], {
+        serverProcess = spawn('node', [path.join(__dirname, '..', 'src', 'index.js')], {
             env: {
                 ...process.env,
                 PORT: PORT.toString(),
@@ -165,8 +165,7 @@ function startServer(config) {
                 RATE_LIMIT_PER_MINUTE: config.rateLimitPerMinute || '0',
                 IMAGE_CACHE_HOURS: config.imageCacheHours || '0',
                 LOG_TO_FILE: 'false',
-                SHOW_TIMESTAMP: 'false',
-                XC_PROXY: 'false'
+                SHOW_TIMESTAMP: 'false'
             },
             stdio: 'pipe'
         });

@@ -338,9 +338,8 @@ if (require.main === module) {
     process.env.IMAGE_CACHE_HOURS = '0'; // Disable caching for tests
     process.env.LOG_TO_FILE = 'false';
     process.env.SHOW_TIMESTAMP = 'false';
-    process.env.XC_PROXY = 'false'; // Explicitly disable XC proxy
     
-    require('../index');
+    require('../src/index');
     
     setTimeout(() => {
         runAllTests().catch(error => {

@@ -49,6 +49,26 @@ docker run -p 3000:3000 \
 
 When enabled, visitors to `http://localhost:3000/` will be permanently redirected (301) to the specified URL.
 
+### Build from Source
+
+If you need a custom build or want to run the development version locally:
+
+```bash
+git clone https://github.com/sethwv/game-thumbs.git
+cd game-thumbs
+docker build -t game-thumbs .
+docker run -p 3000:3000 game-thumbs
+```
+
+Or without Docker:
+
+```bash
+npm install
+node src/index.js
+```
+
+Node.js 18+ is required. Canvas native dependencies must be installed first — see the [Contributing Guide](https://github.com/sethwv/game-thumbs/blob/main/CONTRIBUTING.md) for platform-specific setup.
+
 ---
 
 ## Environment Variables
@@ -99,9 +119,10 @@ Configure the server behavior using environment variables:
 | `MAX_LOG_FILES` | Maximum number of log files to keep (oldest are deleted). | `10` |
 
 **Notes:**
-- When `LOG_TO_FILE=true`, logs are written to files in `./logs` directory with automatic rotation (~100KB per file)
+- When `LOG_TO_FILE=true`, logs are written to `LOG_DIR` (default: `./logs`) with automatic rotation at `LOG_ROTATION_SIZE` bytes (~100KB)
 - Log files are named `app-YYYY-MM-DD-NNN.log` and old files are automatically cleaned up
 - File logs always include full timestamps and stack traces (regardless of console settings)
+- See [Advanced: Logging](#advanced-logging) below to customize the log directory and rotation threshold
 
 ### CORS
 
@@ -134,10 +155,12 @@ docker run -p 3000:3000 \
   ghcr.io/sethwv/game-thumbs:latest
 ```
 
+{: .warning }
+> **Athlete cache time:** Enabling `LEAGUES_ENABLE_TENNIS` or `LEAGUES_ENABLE_MMA` triggers a one-time cache build on first startup. Tennis (33,800+ athletes) takes **5-30 minutes**; MMA rosters are smaller but still benefit from persistence. Mount a `.cache` volume (see [Volume Mounts](#provider-cache-directory)) so subsequent restarts are instant.
+
 **Notes:**
 - These leagues are disabled by default to reduce startup time and memory usage
-- Tennis leagues have 33,800+ athletes and may take 5-30 minutes for initial cache population
-- When disabled, API requests to these leagues will return a "league not found" error
+- When disabled, API requests to these leagues return a "league not found" error
 - Athlete caches are not created when the league is disabled
 
 ### ESPN Athlete Provider Rate Limiting
@@ -172,6 +195,51 @@ docker run -p 3000:3000 \
 - ESPN doesn't publish rate limits, but testing shows ~200-300 requests/min is safe
 - If you encounter 403/429 errors, increase delay or decrease concurrency
 - Request queue automatically handles pacing - no need for manual delays
+
+### Advanced: Provider API Keys
+{: #advanced-provider-api-keys }
+
+Override the default API keys for data providers that offer premium access:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `THESPORTSDB_API_KEY` | API key for TheSportsDB. The free-tier key (`3`) works for most leagues; a Patreon key unlocks higher rate limits and additional data. | `3` |
+| `HOCKEYTECH_API_KEY` | API key for HockeyTech (used for CHL, AHL, and other hockey leagues). The bundled public key covers most deployments. | `f1aa699db3d81487` |
+| `CBL_SUPABASE_API_KEY` | API key for the Supabase-backed CBL athlete provider. When not set, this provider is inactive. | Not set (disabled) |
+
+### Advanced: Logging
+{: #advanced-logging }
+
+Fine-tune where logs are stored and when files rotate:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `LOG_DIR` | Directory where log files are written (absolute or relative path). | `./logs` |
+| `LOG_ROTATION_SIZE` | Maximum size of a single log file in bytes before rotating to a new file. | `102400` (100 KB) |
+
+**Example - Custom log directory:**
+```bash
+docker run -p 3000:3000 \
+  -e LOG_TO_FILE=true \
+  -e LOG_DIR=/var/log/game-thumbs \
+  -e LOG_ROTATION_SIZE=524288 \
+  -v /var/log/game-thumbs:/var/log/game-thumbs \
+  ghcr.io/sethwv/game-thumbs:latest
+```
+
+### Advanced: Network and Proxy
+{: #advanced-network-proxy }
+
+Configure proxy routing and the scraper user-agent for deployments behind restricted networks:
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `SOCKS_PROXY` | SOCKS5 proxy URL (e.g. `socks5://user:pass@host:1080`). When set, eligible provider requests are routed through the proxy. Falls back to direct if the proxy is unreachable. | Not set (direct) |
+| `SCRAPER_USER_AGENT` | User-agent string sent with browser-like scraping requests (e.g. for ESPN image scraping). | Chrome 124 on macOS |
+| `HOCKEYTECH_PROXY_EXTRACT` | Route HockeyTech extract-endpoint requests through `SOCKS_PROXY`. Set to `true`, `1`, or `yes` to enable. | `false` |
+| `HOCKEYTECH_PROXY_FEED` | Route HockeyTech feed-endpoint requests through `SOCKS_PROXY`. Set to `true`, `1`, or `yes` to enable. | `false` |
+
+**Note:** `HOCKEYTECH_PROXY_EXTRACT` and `HOCKEYTECH_PROXY_FEED` are independent toggles so you can proxy only the endpoints that need it.
 
 ---
 
@@ -244,7 +312,7 @@ docker run -p 3000:3000 \
 ### Provider Cache Directory
 
 {: .important }
-> **Recommended for Tennis:** Mount the `.cache` directory to persist athlete data across container restarts. Tennis has 33,800+ athletes and takes 5-30 minutes to cache initially. Persisting the cache makes restarts instant.
+> **Recommended for Tennis and MMA:** Mount the `.cache` directory to persist athlete data across container restarts. Tennis has 33,800+ athletes and takes 5-30 minutes to cache initially; MMA rosters are smaller but also benefit. Persisting the cache makes restarts instant.
 
 ```bash
 docker run -p 3000:3000 \
@@ -253,8 +321,8 @@ docker run -p 3000:3000 \
 ```
 
 **Benefits:**
-- Instant restarts - no need to re-fetch 33,800+ tennis athletes
-- Preserves MMA fighter rosters (UFC, PFL, Bellator)
+- Instant restarts - no need to re-fetch 33,800+ tennis athletes or MMA fighter rosters
+- Preserves athlete data across container updates and restarts
 - Reduces load on ESPN APIs
 - Container updates don't lose cached data
 
@@ -292,7 +360,7 @@ docker run -p 3000:3000 \
   ghcr.io/sethwv/game-thumbs:dev
 ```
 
-### Docker Compose (Recommended Approach)
+### Docker Compose
 
 ```yaml
 version: '3.8'
@@ -308,34 +376,14 @@ services:
       - TRUST_PROXY=1
       - LOG_TO_FILE=true
     volumes:
-      # Recommended: Mount directories
+      # Custom config directories (recommended — supports multiple files per type)
       - ./custom-teams:/app/json/teams:ro
       - ./custom-leagues:/app/json/leagues:ro
+      # Alternative: mount single files instead
+      # - ./teams.json:/app/teams.json:ro
+      # - ./leagues.json:/app/leagues.json:ro
       - ./logs:/app/logs
-      - ./cache:/app/.cache  # Persist athlete/provider cache (recommended for Tennis)
-    restart: unless-stopped
-```
-
-### Docker Compose (Backward Compatible Single File)
-
-```yaml
-version: '3.8'
-
-services:
-  game-thumbs:
-    image: ghcr.io/sethwv/game-thumbs:latest
-    ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=production
-      - RATE_LIMIT_PER_MINUTE=60
-      - TRUST_PROXY=1
-      - LOG_TO_FILE=true
-    volumes:
-      # Alternative: Mount single files
-      - ./teams.json:/app/teams.json:ro
-      - ./leagues.json:/app/leagues.json:ro
-      - ./logs:/app/logs
+      - ./cache:/app/.cache   # persist athlete cache (recommended for Tennis and MMA)
     restart: unless-stopped
 ```
 

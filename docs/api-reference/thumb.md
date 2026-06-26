@@ -31,7 +31,7 @@ nav_order: 7
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `aspect` | string | `4-3` | Aspect ratio: `4-3` (1440x1080), `16-9` (1920x1080), or `1-1` (1080x1080) |
-| `style` | integer | 1 | Visual style 1-4 (matchup only) |
+| `style` | integer | 1 | Visual style 1-6 (matchup only); community styles 98 and 99 also available |
 | `logo` | boolean | true | Include league logo (matchup only) |
 | `badge` | string | - | Add quality badge overlay: `ALT`, `4K`, `HD`, `FHD`, or `UHD` (matchup only) |
 | `winner` | string | - | Winning team identifier - displays losing team in greyscale (matchup only) |

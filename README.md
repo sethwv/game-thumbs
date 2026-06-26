@@ -1,10 +1,10 @@
 ### **Note:** This service uses publicly available APIs and logos. All team names, logos, and trademarks are property of their respective owners.
 ---
-### [![Deployment](https://img.shields.io/badge/dynamic/json?url=https://api.github.com/repos/sethwv/game-thumbs/deployments?environment=Hosted-Instance&query=$[0].payload.display_ref&label=hosted%20instance&logo=github&color=blue)](https://github.com/sethwv/game-thumbs/deployments/Hosted-Instance) ![Last Deployed](https://img.shields.io/badge/dynamic/json?url=https://api.github.com/repos/sethwv/game-thumbs/deployments?environment=Hosted-Instance&query=$[0].created_at&label=&logo=clock&color=lightgrey) ![Commit](https://img.shields.io/badge/dynamic/json?url=https://api.github.com/repos/sethwv/game-thumbs/deployments?environment=Hosted-Instance&query=$[0].sha&label=&color=lightgrey)
+### [![Deployment](https://img.shields.io/badge/dynamic/json?url=https://api.github.com/repos/sethwv/game-thumbs/deployments?environment=cloud-instance&query=$[0].payload.display_ref&label=cloud%20instance&logo=github&color=blue)](https://github.com/sethwv/game-thumbs/deployments/cloud-instance) ![Last Deployed](https://img.shields.io/badge/dynamic/json?url=https://api.github.com/repos/sethwv/game-thumbs/deployments?environment=cloud-instance&query=$[0].created_at&label=&logo=clock&color=lightgrey) ![Commit](https://img.shields.io/badge/dynamic/json?url=https://api.github.com/repos/sethwv/game-thumbs/deployments?environment=cloud-instance&query=$[0].sha&label=&color=lightgrey)
 ### [![Pages](https://img.shields.io/github/deployments/sethwv/game-thumbs/github-pages?label=documentation&logo=github&color=green)](https://sethwv.github.io/game-thumbs/) ![Last Deployed](https://img.shields.io/badge/dynamic/json?url=https://api.github.com/repos/sethwv/game-thumbs/deployments?environment=github-pages&query=$[0].created_at&label=&logo=clock&color=lightgrey) ![Commit](https://img.shields.io/badge/dynamic/json?url=https://api.github.com/repos/sethwv/game-thumbs/deployments?environment=github-pages&query=$[0].sha&label=&color=lightgrey)
 # Game Thumbs
 
-A sports matchup thumbnail and logo generation API supporting 30+ professional and NCAA leagues.
+A sports matchup thumbnail and logo generation API supporting 100+ professional and NCAA leagues.
 
 ## Support
 
@@ -37,7 +37,7 @@ GET http://localhost:3000/ncaa/football/alabama/georgia/thumb
 
 🏀 Multi-Sport • 🎨 Dynamic Generation • 🖼️ Multiple Styles • 💾 Smart Caching • 🎯 Flexible Matching • 🔧 Customizable
 
-**Supports:** NBA, WNBA, NFL, MLB, NHL, UFC, PFL, Bellator, Tennis (ATP/WTA with singles & doubles), EPL, MLS, UEFA, International/Olympics, 21+ NCAA sports, and more
+**Supports:** NBA, WNBA, NFL, MLB, NHL, UFC, PFL, Bellator, Boxing, Tennis (ATP/WTA with singles & doubles), EPL, MLS, UEFA, International/Olympics, 21+ NCAA sports, and more
 
 ## Documentation
 

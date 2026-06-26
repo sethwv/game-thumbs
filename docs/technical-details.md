@@ -40,7 +40,7 @@ Game Thumbs uses a modular provider architecture to fetch team and athlete data 
 **Type**: Team-based sports  
 **Features**:
 - Fetches team rosters, logos, and colors from ESPN's public APIs
-- Supports 30+ professional and NCAA leagues
+- Supports 100+ professional and NCAA leagues
 - 24-hour team data caching
 - Automatic logo and color extraction
 
@@ -84,6 +84,20 @@ Game Thumbs uses a modular provider architecture to fetch team and athlete data 
 - Good coverage for non-US leagues
 - Team colors, logos, and basic information
 - 24-hour team data caching
+
+### TheSportsDB Athlete Provider
+
+**Leagues**: Boxing  
+**Type**: Athlete-based sports (individual / combat sports ESPN does not carry)  
+**API**: `thesportsdb.com/api/v1` (free key `3`, or premium via `THESPORTSDB_API_KEY`)  
+**Features**:
+- Resolves fighters per request via `searchplayers.php?p=<name>` (no roster prefetch: the free key's `lookup_all_players` endpoint is not available)
+- **Sport guard**: filters results to the configured `sport` (e.g. "Fighting") plus an optional `teamFilter` substring (e.g. "Boxing"), so a wrong-sport best match is rejected rather than returned
+- Uses the transparent cutout image (`strCutout`) as the athlete "logo", falling back to the photo (`strThumb`) only if the cutout fails to load
+- Dark blue combat-sports color palette
+- **Aggressive caching**: ~30-day caching of name/link lookups and the league-logo lookup (data and links are API-keyed and rarely change); short 24-hour caching of negative ("not found") results so newly added fighters are not blocked
+- **No image-asset caching here**: cutout/photo/badge images are served from TheSportsDB's CDN and are not gated by the API key, so they flow through the normal image pipeline
+- A premium key later enables a roster-prefetch path additively without changing the league config
 
 ### HockeyTech Provider
 
@@ -355,29 +369,15 @@ This ensures that even obscure NCAA teams can be found if they participate in ba
 
 ### Feeder Leagues
 
-Leagues can configure feeder leagues that are automatically searched:
+Leagues can configure feeder leagues searched automatically when a team isn't found in the primary league:
 
-**Example - English Premier League**:
 ```json
 {
-  "epl": {
-    "feederLeagues": ["championship", "league1", "league2"]
-  }
+  "epl": { "feederLeagues": ["championship", "league1", "league2"] }
 }
 ```
 
-This enables finding promoted/relegated teams without changing the league code.
-
-**Example - Tennis**:
-```json
-{
-  "tennis": {
-    "feederLeagues": ["atp", "wta"]
-  }
-}
-```
-
-Allows unified tennis endpoint while searching both ATP and WTA rosters.
+This is how a promoted Championship team is found using the `epl` league code. See **[Team Matching → League Hierarchies](team-matching.html#league-hierarchies-with-feeder-leagues)** for the full list and examples.
 
 ---
 

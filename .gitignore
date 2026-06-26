@@ -23,6 +23,11 @@ helpers/test.js
 test/output/*
 !test/output/.gitkeep
 
+# Snapshot regression PNGs (local artifacts; only manifest.json is committed)
+test/snapshots/baseline/
+test/snapshots/current/
+test/snapshots/snapshot-results.json
+
 # Lock files from other package managers (this project uses yarn)
 package-lock.json
 pnpm-lock.yaml
@@ -30,8 +35,14 @@ pnpm-lock.yaml
 # Environment files
 .env
 
+# Agent instruction files (kept local, not tracked)
+AGENTS.md
+CLAUDE.md
+
 # IDE files
 .claude
+.agents/
+.codex/
 .vscode
 .idea
 *.swp
@@ -43,3 +54,11 @@ Thumbs.db
 .github/copilot-instructions.md
 CHANGELOG.md
 HIGHLIGHTS.md
+
+# Beads / Dolt files (added by bd init)
+# Only the .jsonl exports belong in the repo; everything else under .beads/ is local.
+.beads/*
+!.beads/*.jsonl
+.dolt/
+*.db
+.beads-credential-key

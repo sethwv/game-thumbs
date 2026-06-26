@@ -27,6 +27,7 @@ RUN apt-get update \
     libgif-dev \
     librsvg2-dev \
     fonts-dejavu-core \
+    ca-certificates \
     curl \
     git \
  && yarn install --frozen-lockfile --network-timeout 100000 \
@@ -35,6 +36,11 @@ RUN apt-get update \
 
 # Copy application code (after dependencies for better caching)
 COPY . .
+
+# Bundle the post-deploy notification hook at a stable path so orchestrators
+# (e.g. a Komodo post-deploy step) can run it via `docker exec` against this
+# container, without bind-mounting a host file the daemon may not be able to see.
+COPY .github/workflows/deployment/standard-update.hook.sh /deploy/standard-update.hook.sh
 
 # Create directories for configuration and cache
 RUN mkdir -p json/teams json/leagues .cache
@@ -48,13 +54,10 @@ ENV IMAGE_CACHE_HOURS=24
 ENV RATE_LIMIT_PER_MINUTE=30
 ENV FORCE_COLOR=1
 ENV NODE_ENV=production
-ENV APP_MODE=standard
 
 # Add health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD curl -sf http://localhost:${PORT}/health | grep -q '"status":"ok"'
 
-# Start the application based on APP_MODE
-# APP_MODE=standard (default) - runs full game-thumbs API
-# APP_MODE=xcproxy - runs only XC proxy functionality (XC_PROXY is auto-enabled)
-CMD ["node", "index.js"]
+# Start the application
+CMD ["node", "src/index.js"]

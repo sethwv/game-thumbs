@@ -83,7 +83,7 @@ function waitForServer(maxAttempts = 40, delayMs = 500) {
 
 function startServer(env = {}) {
     return new Promise((resolve, reject) => {
-        serverProcess = spawn('node', [path.join(__dirname, '..', 'index.js')], {
+        serverProcess = spawn('node', [path.join(__dirname, '..', 'src', 'index.js')], {
             env: {
                 ...process.env,
                 PORT: PORT.toString(),
@@ -93,7 +93,6 @@ function startServer(env = {}) {
                 IMAGE_CACHE_HOURS: '0',
                 LOG_TO_FILE: 'false',
                 SHOW_TIMESTAMP: 'false',
-                XC_PROXY: 'false',
                 ...env
             },
             stdio: 'pipe'

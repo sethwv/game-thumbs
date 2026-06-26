@@ -1,0 +1,293 @@
+// ------------------------------------------------------------------------------
+// image/draw.js
+// Canvas drawing primitives, aspect/centering math, greyscale conversion, and
+// color helpers shared across the image pipeline.
+// ------------------------------------------------------------------------------
+
+const { createCanvas, loadImage } = require('canvas');
+const crypto = require('crypto');
+const fsCache = require('../fsCache');
+const { rgbToHex: colorUtilsRgbToHex, calculateColorDistance } = require('../colorUtils');
+const { setShadow, resetShadow } = require('../shadows');
+
+/**
+ * Compute aspect-ratio-preserving draw dimensions for a logo fit inside a square
+ * container, plus the offsets to center it. Replaces the repeated
+ * `if (aspectRatio > 1) { ... } else { ... }` blocks in the generators.
+ *
+ * @param {number} containerSize - side length of the square container
+ * @param {number} aspectRatio - image.width / image.height
+ * @returns {{ drawWidth: number, drawHeight: number, offsetX: number, offsetY: number }}
+ *   offsets are relative to the container's top-left corner.
+ */
+function calculateCenteredDimensions(containerSize, aspectRatio) {
+    let drawWidth, drawHeight;
+    if (aspectRatio > 1) {
+        drawWidth = containerSize;
+        drawHeight = containerSize / aspectRatio;
+    } else {
+        drawHeight = containerSize;
+        drawWidth = containerSize * aspectRatio;
+    }
+    const offsetX = (containerSize - drawWidth) / 2;
+    const offsetY = (containerSize - drawHeight) / 2;
+    return { drawWidth, drawHeight, offsetX, offsetY };
+}
+
+/**
+ * Fit a logo into a square box (aspect-preserving), center it, and draw it,
+ * optionally wrapped in a named shadow profile.
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {Image} logoImage
+ * @param {number} x - box top-left X
+ * @param {number} y - box top-left Y
+ * @param {number} boxSize - square box side length
+ * @param {string|null} shadowProfile - shadow profile name, or null for no shadow
+ */
+function drawCenteredLogo(ctx, logoImage, x, y, boxSize, shadowProfile = null) {
+    const { drawWidth, drawHeight, offsetX, offsetY } =
+        calculateCenteredDimensions(boxSize, logoImage.width / logoImage.height);
+    if (shadowProfile) {
+        ctx.save();
+        setShadow(ctx, shadowProfile);
+    }
+    ctx.drawImage(logoImage, x + offsetX, y + offsetY, drawWidth, drawHeight);
+    if (shadowProfile) {
+        ctx.restore();
+    }
+}
+
+function drawLogoWithShadow(ctx, logoImage, x, y, maxSize) {
+    // Calculate dimensions maintaining aspect ratio
+    const aspectRatio = logoImage.width / logoImage.height;
+    let drawWidth, drawHeight;
+
+    if (aspectRatio > 1) {
+        // Wider than tall
+        drawWidth = maxSize;
+        drawHeight = maxSize / aspectRatio;
+    } else {
+        // Taller than wide or square
+        drawHeight = maxSize;
+        drawWidth = maxSize * aspectRatio;
+    }
+
+    // Center the logo in the available space
+    const drawX = x + (maxSize - drawWidth) / 2;
+    const drawY = y + (maxSize - drawHeight) / 2;
+
+    // Add drop shadow
+    setShadow(ctx, 'logoDrawn');
+
+    ctx.drawImage(logoImage, drawX, drawY, drawWidth, drawHeight);
+
+    // Reset shadow
+    resetShadow(ctx);
+}
+
+function drawLogoMaintainAspect(ctx, logoImage, x, y, maxSize) {
+    // Calculate dimensions maintaining aspect ratio
+    const aspectRatio = logoImage.width / logoImage.height;
+    let drawWidth, drawHeight;
+
+    if (aspectRatio > 1) {
+        // Wider than tall
+        drawWidth = maxSize;
+        drawHeight = maxSize / aspectRatio;
+    } else {
+        // Taller than wide or square
+        drawHeight = maxSize;
+        drawWidth = maxSize * aspectRatio;
+    }
+
+    // Center the logo in the available space
+    const drawX = x + (maxSize - drawWidth) / 2;
+    const drawY = y + (maxSize - drawHeight) / 2;
+
+    // Add drop shadow
+    setShadow(ctx, 'logoDrawn');
+
+    ctx.drawImage(logoImage, drawX, drawY, drawWidth, drawHeight);
+
+    // Reset shadow
+    resetShadow(ctx);
+}
+
+/**
+ * Convert a logo to greyscale with reduced opacity
+ * @param {Image|Buffer} logoImageOrBuffer - Logo image or buffer to convert
+ * @param {number} opacity - Opacity level (0-1), default 0.35 for 35%
+ * @returns {Promise<Canvas>} Canvas with greyscale, semi-transparent logo
+ */
+async function convertToGreyscale(logoImageOrBuffer, opacity = 0.35) {
+    // Generate cache key
+    let cacheKey;
+    if (logoImageOrBuffer.src) {
+        cacheKey = `${logoImageOrBuffer.src}_${opacity}`;
+    } else if (Buffer.isBuffer(logoImageOrBuffer)) {
+        const hash = crypto.createHash('md5').update(logoImageOrBuffer).digest('hex');
+        cacheKey = `${hash}_${opacity}`;
+    } else {
+        // For canvas or other image objects, generate hash from pixel data
+        const tempCanvas = createCanvas(logoImageOrBuffer.width, logoImageOrBuffer.height);
+        const tempCtx = tempCanvas.getContext('2d');
+        tempCtx.drawImage(logoImageOrBuffer, 0, 0);
+        const imageData = tempCtx.getImageData(0, 0, logoImageOrBuffer.width, logoImageOrBuffer.height);
+        const hash = crypto.createHash('md5').update(Buffer.from(imageData.data.buffer)).digest('hex');
+        cacheKey = `${hash}_${opacity}`;
+    }
+
+    // Check filesystem cache
+    const cached = fsCache.getBuffer('greyscale', cacheKey);
+    if (cached) {
+        const img = await loadImage(cached);
+        const cachedCanvas = createCanvas(img.width, img.height);
+        const cachedCtx = cachedCanvas.getContext('2d');
+        cachedCtx.drawImage(img, 0, 0);
+        return cachedCanvas;
+    }
+
+    // Load the image if it's a buffer
+    let logoImage = logoImageOrBuffer;
+    if (Buffer.isBuffer(logoImageOrBuffer)) {
+        logoImage = await loadImage(logoImageOrBuffer);
+    }
+
+    // Create canvas with greyscale version
+    const canvas = createCanvas(logoImage.width, logoImage.height);
+    const ctx = canvas.getContext('2d');
+
+    // Draw original image
+    ctx.drawImage(logoImage, 0, 0);
+
+    // Get image data and convert to greyscale
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+
+    for (let i = 0; i < data.length; i += 4) {
+        // Calculate greyscale value using luminance formula
+        const grey = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+
+        data[i] = grey;     // R
+        data[i + 1] = grey; // G
+        data[i + 2] = grey; // B
+
+        // Apply opacity to alpha channel
+        data[i + 3] = data[i + 3] * opacity;
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+
+    // Save to filesystem cache
+    fsCache.setBuffer('greyscale', cacheKey, canvas.toBuffer('image/png'));
+
+    return canvas;
+}
+
+// ------------------------------------------------------------------------------
+// Color utilities
+// ------------------------------------------------------------------------------
+
+function hexToRgb(hex) {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+    } : null;
+}
+
+function rgbToHex(rgb) {
+    return colorUtilsRgbToHex(rgb.r, rgb.g, rgb.b);
+}
+
+function colorDistance(color1, color2) {
+    return calculateColorDistance(color1, color2);
+}
+
+function adjustColors(teamA, teamB) {
+    const threshold = 100; // Colors closer than this are considered too similar
+
+    let colorA = teamA.color || '#000000';
+    let colorB = teamB.color || '#000000';
+
+    const distance = colorDistance(colorA, colorB);
+
+    // If colors are too similar, try using alternate colors
+    if (distance < threshold) {
+        // Try teamB's alternate color first
+        if (teamB.alternateColor) {
+            const distanceWithAltB = colorDistance(colorA, teamB.alternateColor);
+            if (distanceWithAltB > distance) {
+                colorB = teamB.alternateColor;
+                return { colorA, colorB };
+            }
+        }
+
+        // If that didn't work, try teamA's alternate color
+        if (teamA.alternateColor) {
+            const distanceWithAltA = colorDistance(teamA.alternateColor, colorB);
+            if (distanceWithAltA > distance) {
+                colorA = teamA.alternateColor;
+                return { colorA, colorB };
+            }
+        }
+
+        // If both teams have alternate colors, try both alternates
+        if (teamA.alternateColor && teamB.alternateColor) {
+            const distanceBothAlts = colorDistance(teamA.alternateColor, teamB.alternateColor);
+            if (distanceBothAlts > distance) {
+                colorA = teamA.alternateColor;
+                colorB = teamB.alternateColor;
+            }
+        }
+    }
+
+    return { colorA, colorB };
+}
+
+function getAverageColor(image) {
+    // Create a temporary canvas to analyze the logo
+    const canvas = createCanvas(image.width, image.height);
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(image, 0, 0);
+
+    const imageData = ctx.getImageData(0, 0, image.width, image.height);
+    const data = imageData.data;
+
+    let r = 0, g = 0, b = 0, count = 0;
+
+    // Sample pixels and calculate average (skip transparent pixels)
+    for (let i = 0; i < data.length; i += 4) {
+        const alpha = data[i + 3];
+
+        // Only count non-transparent pixels
+        if (alpha > 128) {
+            r += data[i];
+            g += data[i + 1];
+            b += data[i + 2];
+            count++;
+        }
+    }
+
+    if (count === 0) return { r: 0, g: 0, b: 0 };
+
+    return {
+        r: Math.round(r / count),
+        g: Math.round(g / count),
+        b: Math.round(b / count)
+    };
+}
+
+module.exports = {
+    calculateCenteredDimensions,
+    drawCenteredLogo,
+    drawLogoWithShadow,
+    drawLogoMaintainAspect,
+    convertToGreyscale,
+    hexToRgb,
+    rgbToHex,
+    colorDistance,
+    adjustColors,
+    getAverageColor
+};

@@ -15,8 +15,8 @@ Returns server version and git information.
 
 ## Examples
 
-```
-GET /info
+```bash
+curl http://localhost:3000/info
 ```
 
 ---
