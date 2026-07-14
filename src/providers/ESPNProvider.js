@@ -22,7 +22,7 @@ const ESPN_CORE_API = 'https://sports.core.api.espn.com/v2';
 // These IDs are league-specific but always small (single digits to low teens
 // in every league checked), so this stays cheap without hardcoding any of them.
 const ALL_STAR_GROUP_PROBE_LIMIT = 20;
-const ALL_STAR_GROUP_NAME_PATTERN = /all[\s-]?star/i;
+const ALL_STAR_NAME_PATTERN = /all[\s-]?star/i;
 
 // ESPN accumulates a "team" object for every historical All-Star format a league
 // has used (conference vs. conference, rookie/sophomore challenges, one-off
@@ -592,13 +592,13 @@ class ESPNProvider extends BaseProvider {
     }
 
     /**
-     * Discover a league's permanent All-Star/conference-style pseudo-teams
-     * (e.g. MLB's AL/NL, NFL's AFC/NFC) purely from ESPN's own data, with no
-     * per-league configuration. ESPN groups teams into named categories
-     * (divisions, conferences, and, in every league checked, one named
-     * "All-Star"); this finds that group, fetches its member teams, and keeps
-     * only the ones that look like a stable, current pairing rather than a
-     * pile of one-off historical rosters.
+     * Discover a league's permanent All-Star pseudo-teams (e.g. MLB's AL/NL,
+     * NFL's AFC/NFC, MLS's/Liga MX's All-Star Game sides) purely from ESPN's
+     * own data, with no per-league configuration. Tries the group-based
+     * strategy first (works for leagues that model All-Star as a standings
+     * "group", e.g. MLB/NFL); if that finds nothing, falls back to the
+     * season-type strategy (works for leagues that model it as a season
+     * "type"/event instead, e.g. soccer's MLS/Liga MX All-Star Game).
      * @param {object} league - League object (used for cache-keying league data)
      * @param {string} espnSport - ESPN sport slug
      * @param {string} espnSlug - ESPN league slug
@@ -606,64 +606,107 @@ class ESPNProvider extends BaseProvider {
      */
     async discoverAllStarTeams(league, espnSport, espnSlug) {
         try {
-            const groupId = await this.findAllStarGroupId(espnSport, espnSlug);
-            if (!groupId) {
-                return [];
-            }
-
             const leagueData = await this.fetchLeagueData(league);
             const seasonYear = leagueData?.season?.year;
             if (!seasonYear) {
                 return [];
             }
 
-            const groupTeamsUrl = `${ESPN_CORE_API}/sports/${espnSport}/leagues/${espnSlug}/seasons/${seasonYear}/types/2/groups/${groupId}/teams?limit=100&lang=en&region=us`;
-            const groupTeamsResponse = await axios.get(groupTeamsUrl, {
-                timeout: this.REQUEST_TIMEOUT,
-                headers: { 'User-Agent': 'Mozilla/5.0' }
-            });
-
-            const teamIds = (groupTeamsResponse.data.items || [])
-                .map(item => item.$ref?.match(/\/teams\/(\d+)/)?.[1])
-                .filter(Boolean);
-
-            if (teamIds.length === 0) {
-                return [];
+            const groupTeams = await this.discoverAllStarTeamsFromGroup(espnSport, espnSlug, seasonYear, leagueData.season);
+            if (groupTeams.length > 0) {
+                return groupTeams;
             }
 
-            const fetchedTeams = await this.fetchTeamsByIds(espnSport, espnSlug, teamIds);
-
-            // Permanent conference/all-star pseudo-teams are consistently isActive:
-            // false; one-off captain-drafted rosters seen alongside them (e.g. NFL's
-            // "Team Rice"/"Team Irvin") are isActive: true, so this drops those.
-            const permanentTeams = fetchedTeams.filter(({ team }) => team.isActive === false);
-
-            // De-dupe by abbreviation, keeping the lowest (oldest/original) team ID
-            // per abbreviation, since ESPN re-issues fresh team IDs for the same
-            // concept (e.g. a duplicate AFC/NFC pair) across the years.
-            const byAbbreviation = new Map();
-            for (const entry of permanentTeams) {
-                const key = (entry.team.abbreviation || entry.team.displayName || '').toUpperCase();
-                const existing = byAbbreviation.get(key);
-                if (!existing || Number(entry.team.id) < Number(existing.team.id)) {
-                    byAbbreviation.set(key, entry);
-                }
-            }
-
-            const deduped = Array.from(byAbbreviation.values());
-
-            // A league with many distinct historical All-Star formats (e.g. NBA's
-            // yearly re-captained rosters) won't collapse to a small set here;
-            // skip it rather than guessing which pairing is "current."
-            if (deduped.length === 0 || deduped.length > MAX_ALL_STAR_TEAMS_PER_LEAGUE) {
-                return [];
-            }
-
-            return deduped;
+            return await this.discoverAllStarTeamsFromSeasonType(espnSport, espnSlug, seasonYear);
         } catch (error) {
             logger.warn('Failed to discover ESPN All-Star teams', { espnSport, espnSlug, error: error.message });
             return [];
         }
+    }
+
+    /**
+     * Discover All-Star pseudo-teams via ESPN's "group" concept (divisions,
+     * conferences, and, in some leagues, one named "All-Star"); finds that
+     * group and fetches its member teams, then narrows them down to this
+     * season's actual pairing/lineup using two strategies:
+     *  1. Permanent (isActive: false), stably-abbreviated entries (e.g. MLB's
+     *     AL/NL, NFL's AFC/NFC) — the group already collapses to a small set.
+     *  2. Otherwise, leagues whose All-Star format is redrafted/relabeled every
+     *     year (e.g. NBA's captain-picked teams, NHL's occasional "4 Nations"-
+     *     style one-offs) pile up years of disjoint entries under the same
+     *     group with no reliable "current" marker — so instead this picks out
+     *     whichever entries have a `nextEvent` landing inside the *current*
+     *     season's date window, which is exactly this year's participants
+     *     regardless of naming scheme or team count.
+     * @param {string} espnSport - ESPN sport slug
+     * @param {string} espnSlug - ESPN league slug
+     * @param {number} seasonYear - Current season year
+     * @param {object} [season] - Current season object (for its startDate/endDate window)
+     * @returns {Promise<Array>} Team entries in the same { team: {...} } shape as the bulk list
+     */
+    async discoverAllStarTeamsFromGroup(espnSport, espnSlug, seasonYear, season) {
+        const groupId = await this.findAllStarGroupId(espnSport, espnSlug);
+        if (!groupId) {
+            return [];
+        }
+
+        const groupTeamsUrl = `${ESPN_CORE_API}/sports/${espnSport}/leagues/${espnSlug}/seasons/${seasonYear}/types/2/groups/${groupId}/teams?limit=100&lang=en&region=us`;
+        const groupTeamsResponse = await axios.get(groupTeamsUrl, {
+            timeout: this.REQUEST_TIMEOUT,
+            headers: { 'User-Agent': 'Mozilla/5.0' }
+        });
+
+        const teamIds = (groupTeamsResponse.data.items || [])
+            .map(item => item.$ref?.match(/\/teams\/(\d+)/)?.[1])
+            .filter(Boolean);
+
+        if (teamIds.length === 0) {
+            return [];
+        }
+
+        const fetchedTeams = await this.fetchTeamsByIds(espnSport, espnSlug, teamIds);
+
+        // Strategy 1: permanent conference/all-star pseudo-teams are consistently
+        // isActive: false; one-off captain-drafted rosters seen alongside them
+        // (e.g. NFL's "Team Rice"/"Team Irvin") are isActive: true, so this drops
+        // those.
+        const permanentTeams = fetchedTeams.filter(({ team }) => team.isActive === false);
+
+        // De-dupe by abbreviation, keeping the lowest (oldest/original) team ID
+        // per abbreviation, since ESPN re-issues fresh team IDs for the same
+        // concept (e.g. a duplicate AFC/NFC pair) across the years.
+        const byAbbreviation = new Map();
+        for (const entry of permanentTeams) {
+            const key = (entry.team.abbreviation || entry.team.displayName || '').toUpperCase();
+            const existing = byAbbreviation.get(key);
+            if (!existing || Number(entry.team.id) < Number(existing.team.id)) {
+                byAbbreviation.set(key, entry);
+            }
+        }
+
+        const deduped = Array.from(byAbbreviation.values());
+        if (deduped.length > 0 && deduped.length <= MAX_ALL_STAR_TEAMS_PER_LEAGUE) {
+            return deduped;
+        }
+
+        // Strategy 2: a league with many distinct historical All-Star formats
+        // (e.g. NBA's yearly re-captained rosters) won't collapse via Strategy 1;
+        // instead identify this year's actual entries by their most recent
+        // scheduled game falling inside the current season's window.
+        const seasonStart = season?.startDate ? new Date(season.startDate) : null;
+        const seasonEnd = season?.endDate ? new Date(season.endDate) : null;
+        if (seasonStart && seasonEnd) {
+            const currentTeams = fetchedTeams.filter(({ team }) => {
+                const eventDate = team.nextEvent?.[0]?.date ? new Date(team.nextEvent[0].date) : null;
+                return eventDate && eventDate >= seasonStart && eventDate <= seasonEnd;
+            });
+            if (currentTeams.length > 0 && currentTeams.length <= MAX_ALL_STAR_TEAMS_PER_LEAGUE) {
+                return currentTeams;
+            }
+        }
+
+        // Neither strategy found a clean, current set; skip rather than guessing.
+        return [];
     }
 
     /**
@@ -689,7 +732,7 @@ class ESPNProvider extends BaseProvider {
                     headers: { 'User-Agent': 'Mozilla/5.0' }
                 });
                 const group = response.data;
-                if (group && !group.error && ALL_STAR_GROUP_NAME_PATTERN.test(group.name || group.abbreviation || '')) {
+                if (group && !group.error && ALL_STAR_NAME_PATTERN.test(group.name || group.abbreviation || '')) {
                     return id;
                 }
                 return null;
@@ -703,6 +746,102 @@ class ESPNProvider extends BaseProvider {
 
         fsCache.setJSON('espn', cacheKey, { groupId });
         return groupId;
+    }
+
+    /**
+     * Discover All-Star pseudo-teams via ESPN's "season type" concept
+     * (Regular Season, Playoffs, and, in leagues like soccer's MLS/Liga MX,
+     * one named "All-Star Game"). Finds that season type's date window, looks
+     * up the scoreboard event(s) within it whose name matches "All-Star", and
+     * takes their competitor teams as the pseudo-teams. Used as a fallback
+     * for leagues where All-Star isn't modeled as a "group" (e.g. soccer,
+     * where the pseudo-teams also report isActive: true rather than false).
+     * @param {string} espnSport - ESPN sport slug
+     * @param {string} espnSlug - ESPN league slug
+     * @param {number} seasonYear - Current season year
+     * @returns {Promise<Array>} Team entries in the same { team: {...} } shape as the bulk list
+     */
+    async discoverAllStarTeamsFromSeasonType(espnSport, espnSlug, seasonYear) {
+        const seasonType = await this.findAllStarSeasonType(espnSport, espnSlug, seasonYear);
+        if (!seasonType?.startDate || !seasonType?.endDate) {
+            return [];
+        }
+
+        // Pad by a day on each side to absorb timezone edges between the season
+        // type's UTC window and the scoreboard's local event date.
+        const toDateParam = (isoDate, offsetDays) => {
+            const date = new Date(isoDate);
+            date.setUTCDate(date.getUTCDate() + offsetDays);
+            return date.toISOString().slice(0, 10).replace(/-/g, '');
+        };
+        const dateRange = `${toDateParam(seasonType.startDate, -1)}-${toDateParam(seasonType.endDate, 1)}`;
+
+        const scoreboardUrl = `https://site.api.espn.com/apis/site/v2/sports/${espnSport}/${espnSlug}/scoreboard?dates=${dateRange}`;
+        const scoreboardResponse = await axios.get(scoreboardUrl, {
+            timeout: this.REQUEST_TIMEOUT,
+            headers: { 'User-Agent': 'Mozilla/5.0' }
+        });
+
+        const teamIds = new Set();
+        for (const event of scoreboardResponse.data.events || []) {
+            if (!ALL_STAR_NAME_PATTERN.test(event.name || '')) {
+                continue;
+            }
+            for (const competition of event.competitions || []) {
+                for (const competitor of competition.competitors || []) {
+                    if (competitor.team?.id) {
+                        teamIds.add(competitor.team.id);
+                    }
+                }
+            }
+        }
+
+        if (teamIds.size === 0 || teamIds.size > MAX_ALL_STAR_TEAMS_PER_LEAGUE) {
+            return [];
+        }
+
+        return await this.fetchTeamsByIds(espnSport, espnSlug, Array.from(teamIds));
+    }
+
+    /**
+     * Find the season type ESPN uses for a league's "All-Star Game" by
+     * scanning its small set of stable season type IDs (regular season,
+     * playoffs, etc.)
+     * @param {string} espnSport - ESPN sport slug
+     * @param {string} espnSlug - ESPN league slug
+     * @param {number} seasonYear - Current season year
+     * @returns {Promise<object|null>} The season type object, or null if not found
+     */
+    async findAllStarSeasonType(espnSport, espnSlug, seasonYear) {
+        const cacheKey = `${espnSport}_${espnSlug}_${seasonYear}_allstar_type`;
+        const cached = fsCache.getJSON('espn', cacheKey, this.CACHE_DURATION);
+        if (cached !== null) {
+            return cached.seasonType;
+        }
+
+        // Season types are 0-indexed (0 = "Combined", 1 = "Regular Season", ...).
+        const ids = Array.from({ length: ALL_STAR_GROUP_PROBE_LIMIT }, (_, i) => i);
+        const results = await Promise.all(ids.map(async (id) => {
+            try {
+                const url = `${ESPN_CORE_API}/sports/${espnSport}/leagues/${espnSlug}/seasons/${seasonYear}/types/${id}?lang=en&region=us`;
+                const response = await axios.get(url, {
+                    timeout: this.REQUEST_TIMEOUT,
+                    headers: { 'User-Agent': 'Mozilla/5.0' }
+                });
+                const type = response.data;
+                if (type && !type.error && ALL_STAR_NAME_PATTERN.test(type.name || type.abbreviation || '')) {
+                    return type;
+                }
+                return null;
+            } catch (error) {
+                return null;
+            }
+        }));
+
+        const seasonType = results.find(type => type !== null) || null;
+
+        fsCache.setJSON('espn', cacheKey, { seasonType });
+        return seasonType;
     }
 
     /**
