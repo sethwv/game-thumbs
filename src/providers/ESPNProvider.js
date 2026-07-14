@@ -15,6 +15,25 @@ const fsCache = require('../helpers/fsCache');
 const { TeamNotFoundError } = require('../helpers/errors');
 const { REQUEST_TIMEOUT } = require('../helpers/requestConfig');
 
+const ESPN_CORE_API = 'https://sports.core.api.espn.com/v2';
+
+// Bounded scan of ESPN's small, stable group IDs (conferences/divisions/special
+// groupings) to find whichever one is named "All-Star" for a given league.
+// These IDs are league-specific but always small (single digits to low teens
+// in every league checked), so this stays cheap without hardcoding any of them.
+const ALL_STAR_GROUP_PROBE_LIMIT = 20;
+const ALL_STAR_GROUP_NAME_PATTERN = /all[\s-]?star/i;
+
+// ESPN accumulates a "team" object for every historical All-Star format a league
+// has used (conference vs. conference, rookie/sophomore challenges, one-off
+// captain-drafted rosters, etc.) under the same group, with no reliable field
+// marking which one is current. After filtering to permanent (isActive: false)
+// entries and de-duping by abbreviation, a clean pairing (e.g. AL/NL, AFC/NFC)
+// collapses to a small set; a league with many disjoint historical formats
+// (e.g. NBA's yearly re-captained rosters) won't, so it's skipped rather than
+// guessing which pair is "current."
+const MAX_ALL_STAR_TEAMS_PER_LEAGUE = 4;
+
 class ESPNProvider extends BaseProvider {
     constructor() {
         super();
@@ -189,7 +208,7 @@ class ESPNProvider extends BaseProvider {
             
             if ((!primaryColor || !alternateColor) && logoUrl) {
                 // Check filesystem cache for previously extracted colors
-                const colorCacheKey = `colors_${teamObj.id}`;
+                const colorCacheKey = `colors_${league.shortName}_${teamObj.id}`;
                 const cachedColors = fsCache.getJSON('espn-colors', colorCacheKey, this.CACHE_DURATION);
                 
                 if (cachedColors) {
@@ -224,6 +243,12 @@ class ESPNProvider extends BaseProvider {
             if (!primaryColor) primaryColor = '#000000';
             if (!alternateColor) alternateColor = '#ffffff';
 
+            // Individually-fetched teams (see fetchExtraTeams) return `groups` as a
+            // single object rather than the array the bulk teams list returns.
+            const teamGroups = Array.isArray(teamObj.groups)
+                ? teamObj.groups
+                : (teamObj.groups ? [teamObj.groups] : []);
+
             const teamData = {
                 id: teamObj.id,
                 slug: teamObj.slug,
@@ -231,8 +256,8 @@ class ESPNProvider extends BaseProvider {
                 name: teamObj.nickname,
                 fullName: teamObj.displayName,
                 abbreviation: teamObj.abbreviation,
-                conference: teamObj.groups?.find(g => g.id)?.name,
-                division: teamObj.groups?.find(g => g.parent?.id)?.name,
+                conference: teamGroups.find(g => g.id)?.name,
+                division: teamGroups.find(g => g.parent?.id)?.name,
                 logo: logoUrl,
                 logoAlt: darkLogo?.href,
                 color: primaryColor,
@@ -540,22 +565,169 @@ class ESPNProvider extends BaseProvider {
         }
         const { espnSport, espnSlug } = espnConfig;
         const teamApiUrl = `https://site.api.espn.com/apis/site/v2/sports/${espnSport}/${espnSlug}/teams?limit=1000`;
-        
+
         try {
             const response = await axios.get(teamApiUrl, {
                 timeout: this.REQUEST_TIMEOUT,
                 headers: { 'User-Agent': 'Mozilla/5.0' }
             });
-            
-            const teams = response.data.sports?.[0]?.leagues?.[0]?.teams || [];
-            
+
+            let teams = response.data.sports?.[0]?.leagues?.[0]?.teams || [];
+
+            // Some leagues have permanent teams ESPN excludes from the bulk list
+            // (e.g. MLB's American/National All-Stars, NFL's AFC/NFC Pro Bowl teams).
+            // Discover them dynamically via ESPN's own "All-Star" group rather than
+            // a hardcoded ID list, and merge them in so they resolve through the
+            // same matching/color-extraction logic as any real team.
+            const allStarTeams = await this.discoverAllStarTeams(league, espnSport, espnSlug);
+            teams = teams.concat(allStarTeams);
+
             // Cache to filesystem
             fsCache.setJSON('espn', cacheKey, teams);
-            
+
             return teams;
         } catch (error) {
             throw this.handleHttpError(error, `Fetching teams for ${league.shortName}`);
         }
+    }
+
+    /**
+     * Discover a league's permanent All-Star/conference-style pseudo-teams
+     * (e.g. MLB's AL/NL, NFL's AFC/NFC) purely from ESPN's own data, with no
+     * per-league configuration. ESPN groups teams into named categories
+     * (divisions, conferences, and, in every league checked, one named
+     * "All-Star"); this finds that group, fetches its member teams, and keeps
+     * only the ones that look like a stable, current pairing rather than a
+     * pile of one-off historical rosters.
+     * @param {object} league - League object (used for cache-keying league data)
+     * @param {string} espnSport - ESPN sport slug
+     * @param {string} espnSlug - ESPN league slug
+     * @returns {Promise<Array>} Team entries in the same { team: {...} } shape as the bulk list
+     */
+    async discoverAllStarTeams(league, espnSport, espnSlug) {
+        try {
+            const groupId = await this.findAllStarGroupId(espnSport, espnSlug);
+            if (!groupId) {
+                return [];
+            }
+
+            const leagueData = await this.fetchLeagueData(league);
+            const seasonYear = leagueData?.season?.year;
+            if (!seasonYear) {
+                return [];
+            }
+
+            const groupTeamsUrl = `${ESPN_CORE_API}/sports/${espnSport}/leagues/${espnSlug}/seasons/${seasonYear}/types/2/groups/${groupId}/teams?limit=100&lang=en&region=us`;
+            const groupTeamsResponse = await axios.get(groupTeamsUrl, {
+                timeout: this.REQUEST_TIMEOUT,
+                headers: { 'User-Agent': 'Mozilla/5.0' }
+            });
+
+            const teamIds = (groupTeamsResponse.data.items || [])
+                .map(item => item.$ref?.match(/\/teams\/(\d+)/)?.[1])
+                .filter(Boolean);
+
+            if (teamIds.length === 0) {
+                return [];
+            }
+
+            const fetchedTeams = await this.fetchTeamsByIds(espnSport, espnSlug, teamIds);
+
+            // Permanent conference/all-star pseudo-teams are consistently isActive:
+            // false; one-off captain-drafted rosters seen alongside them (e.g. NFL's
+            // "Team Rice"/"Team Irvin") are isActive: true, so this drops those.
+            const permanentTeams = fetchedTeams.filter(({ team }) => team.isActive === false);
+
+            // De-dupe by abbreviation, keeping the lowest (oldest/original) team ID
+            // per abbreviation, since ESPN re-issues fresh team IDs for the same
+            // concept (e.g. a duplicate AFC/NFC pair) across the years.
+            const byAbbreviation = new Map();
+            for (const entry of permanentTeams) {
+                const key = (entry.team.abbreviation || entry.team.displayName || '').toUpperCase();
+                const existing = byAbbreviation.get(key);
+                if (!existing || Number(entry.team.id) < Number(existing.team.id)) {
+                    byAbbreviation.set(key, entry);
+                }
+            }
+
+            const deduped = Array.from(byAbbreviation.values());
+
+            // A league with many distinct historical All-Star formats (e.g. NBA's
+            // yearly re-captained rosters) won't collapse to a small set here;
+            // skip it rather than guessing which pairing is "current."
+            if (deduped.length === 0 || deduped.length > MAX_ALL_STAR_TEAMS_PER_LEAGUE) {
+                return [];
+            }
+
+            return deduped;
+        } catch (error) {
+            logger.warn('Failed to discover ESPN All-Star teams', { espnSport, espnSlug, error: error.message });
+            return [];
+        }
+    }
+
+    /**
+     * Find the group ID ESPN uses for a league's "All-Star" grouping by
+     * scanning its small set of stable group IDs (divisions/conferences/etc.)
+     * @param {string} espnSport - ESPN sport slug
+     * @param {string} espnSlug - ESPN league slug
+     * @returns {Promise<number|null>} The group ID, or null if not found
+     */
+    async findAllStarGroupId(espnSport, espnSlug) {
+        const cacheKey = `${espnSport}_${espnSlug}_allstar_group`;
+        const cached = fsCache.getJSON('espn', cacheKey, this.CACHE_DURATION);
+        if (cached !== null) {
+            return cached.groupId;
+        }
+
+        const ids = Array.from({ length: ALL_STAR_GROUP_PROBE_LIMIT }, (_, i) => i + 1);
+        const results = await Promise.all(ids.map(async (id) => {
+            try {
+                const url = `${ESPN_CORE_API}/sports/${espnSport}/leagues/${espnSlug}/groups/${id}?lang=en&region=us`;
+                const response = await axios.get(url, {
+                    timeout: this.REQUEST_TIMEOUT,
+                    headers: { 'User-Agent': 'Mozilla/5.0' }
+                });
+                const group = response.data;
+                if (group && !group.error && ALL_STAR_GROUP_NAME_PATTERN.test(group.name || group.abbreviation || '')) {
+                    return id;
+                }
+                return null;
+            } catch (error) {
+                return null;
+            }
+        }));
+
+        const matches = results.filter(id => id !== null);
+        const groupId = matches.length > 0 ? Math.min(...matches) : null;
+
+        fsCache.setJSON('espn', cacheKey, { groupId });
+        return groupId;
+    }
+
+    /**
+     * Fetch individual teams by ID
+     * @param {string} espnSport - ESPN sport slug
+     * @param {string} espnSlug - ESPN league slug
+     * @param {(string|number)[]} teamIds - Team IDs to fetch
+     * @returns {Promise<Array>} Team entries in the same { team: {...} } shape as the bulk list
+     */
+    async fetchTeamsByIds(espnSport, espnSlug, teamIds) {
+        const results = await Promise.all(teamIds.map(async (id) => {
+            try {
+                const url = `https://site.api.espn.com/apis/site/v2/sports/${espnSport}/${espnSlug}/teams/${id}`;
+                const response = await axios.get(url, {
+                    timeout: this.REQUEST_TIMEOUT,
+                    headers: { 'User-Agent': 'Mozilla/5.0' }
+                });
+                return response.data.team ? { team: response.data.team } : null;
+            } catch (error) {
+                logger.warn('Failed to fetch ESPN team by id', { espnSport, espnSlug, id, error: error.message });
+                return null;
+            }
+        }));
+
+        return results.filter(Boolean);
     }
 
     async fetchLeagueData(league) {
