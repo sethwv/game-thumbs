@@ -34,17 +34,33 @@ const ALL_STAR_NAME_PATTERN = /all[\s-]?star/i;
 // guessing which pair is "current."
 const MAX_ALL_STAR_TEAMS_PER_LEAGUE = 4;
 
+// Bump whenever fetchTeamData's cached shape changes (e.g. new fields merged
+// in, like the All-Star pseudo-teams) so a stale pre-deploy entry sitting in
+// the persistent .cache volume gets bypassed instead of served for up to
+// CACHE_DURATION after a deploy.
+const TEAM_DATA_CACHE_VERSION = 'v2';
+
+// A failed All-Star group/season-type probe (e.g. one transient ESPN
+// rate-limit/timeout during the 20-way concurrent scan) shouldn't be
+// remembered as long as a successful one — keep negative results in a
+// short-lived in-memory cache instead of the 24h fsCache so they self-heal.
+const ALL_STAR_NEGATIVE_CACHE_DURATION_MS = 15 * 60 * 1000;
+
 class ESPNProvider extends BaseProvider {
     constructor() {
         super();
         this.CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
         this.REQUEST_TIMEOUT = REQUEST_TIMEOUT;
-        
+
         // Sport/League cache for unconfigured league fallback
         this.sportLeagueMap = new Map(); // Map<sport, Set<leagueSlug>>
         this.cacheInitialized = false;
         this.CACHE_DIR = path.join(process.cwd(), '.cache', 'providers');
         this.SPORT_LEAGUE_CACHE_FILE = path.join(this.CACHE_DIR, 'espn-sport-league.json');
+
+        // In-memory negative-result cache for All-Star group/season-type discovery
+        // (see ALL_STAR_NEGATIVE_CACHE_DURATION_MS). Map<cacheKey, timestampMs>.
+        this._allStarNegativeCache = new Map();
     }
 
     getProviderId() {
@@ -551,7 +567,7 @@ class ESPNProvider extends BaseProvider {
     // ------------------------------------------------------------------------------
 
     async fetchTeamData(league) {
-        const cacheKey = `${league.shortName}_teams`;
+        const cacheKey = `${league.shortName}_teams_${TEAM_DATA_CACHE_VERSION}`;
 
         // Return cached data from filesystem if still valid
         const cached = fsCache.getJSON('espn', cacheKey, this.CACHE_DURATION);
@@ -722,6 +738,9 @@ class ESPNProvider extends BaseProvider {
         if (cached !== null) {
             return cached.groupId;
         }
+        if (this._hasFreshAllStarNegativeCache(cacheKey)) {
+            return null;
+        }
 
         const ids = Array.from({ length: ALL_STAR_GROUP_PROBE_LIMIT }, (_, i) => i + 1);
         const results = await Promise.all(ids.map(async (id) => {
@@ -744,7 +763,11 @@ class ESPNProvider extends BaseProvider {
         const matches = results.filter(id => id !== null);
         const groupId = matches.length > 0 ? Math.min(...matches) : null;
 
-        fsCache.setJSON('espn', cacheKey, { groupId });
+        if (groupId !== null) {
+            fsCache.setJSON('espn', cacheKey, { groupId });
+        } else {
+            this._allStarNegativeCache.set(cacheKey, Date.now());
+        }
         return groupId;
     }
 
@@ -818,6 +841,9 @@ class ESPNProvider extends BaseProvider {
         if (cached !== null) {
             return cached.seasonType;
         }
+        if (this._hasFreshAllStarNegativeCache(cacheKey)) {
+            return null;
+        }
 
         // Season types are 0-indexed (0 = "Combined", 1 = "Regular Season", ...).
         const ids = Array.from({ length: ALL_STAR_GROUP_PROBE_LIMIT }, (_, i) => i);
@@ -840,8 +866,23 @@ class ESPNProvider extends BaseProvider {
 
         const seasonType = results.find(type => type !== null) || null;
 
-        fsCache.setJSON('espn', cacheKey, { seasonType });
+        if (seasonType !== null) {
+            fsCache.setJSON('espn', cacheKey, { seasonType });
+        } else {
+            this._allStarNegativeCache.set(cacheKey, Date.now());
+        }
         return seasonType;
+    }
+
+    /**
+     * Check whether a negative All-Star group/season-type discovery result is
+     * still within its short in-memory TTL (see ALL_STAR_NEGATIVE_CACHE_DURATION_MS).
+     * @param {string} cacheKey
+     * @returns {boolean}
+     */
+    _hasFreshAllStarNegativeCache(cacheKey) {
+        const cachedAt = this._allStarNegativeCache.get(cacheKey);
+        return cachedAt !== undefined && (Date.now() - cachedAt) < ALL_STAR_NEGATIVE_CACHE_DURATION_MS;
     }
 
     /**
