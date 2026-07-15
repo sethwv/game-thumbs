@@ -11,7 +11,7 @@ const { createCanvas, loadImage } = require('canvas');
 const { rasterizeLogo, extractPalette } = require('../helpers/svgUtils');
 const fsCache = require('../helpers/fsCache');
 const { TeamNotFoundError } = require('../helpers/errors');
-const { REQUEST_TIMEOUT } = require('../helpers/requestConfig');
+const { REQUEST_TIMEOUT, bullpenUrl, getBullpenHeaders } = require('../helpers/requestConfig');
 
 const SPORTS = [
     'volleyball-women',
@@ -258,8 +258,8 @@ class NCAAProvider extends BaseProvider {
      */
     async fetchAndConvertLogo(schoolSlug, darkBackground = false) {
         const bgParam = darkBackground ? 'bgd' : 'bgl';
-        const url = `https://www.ncaa.com/sites/default/files/images/logos/schools/${bgParam}/${schoolSlug}.svg`;
-        
+        const url = bullpenUrl('ncaa', `/sites/default/files/images/logos/schools/${bgParam}/${schoolSlug}.svg`);
+
         // Check filesystem cache
         const cacheKey = `${schoolSlug}-${bgParam}`;
         const cachedBuffer = fsCache.getBuffer('ncaa', cacheKey);
@@ -273,7 +273,7 @@ class NCAAProvider extends BaseProvider {
                 responseType: 'arraybuffer',
                 timeout: REQUEST_TIMEOUT,
                 maxRedirects: 5,
-                headers: { 'User-Agent': 'Mozilla/5.0' }
+                headers: { 'User-Agent': 'Mozilla/5.0', ...getBullpenHeaders(url) }
             });
 
             const svgBuffer = Buffer.from(response.data);
@@ -327,10 +327,11 @@ class NCAAProvider extends BaseProvider {
         const fetchPromises = [];
         for (const sport of SPORTS) {
             for (const division of DIVISIONS) {
+                const poolUrl = bullpenUrl('ncaa', `/json/teams/${sport}/${division}`);
                 fetchPromises.push(
-                    axios.get(`https://www.ncaa.com/json/teams/${sport}/${division}`, {
+                    axios.get(poolUrl, {
                         timeout: 10000,
-                        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; GameThumbs/1.0)' }
+                        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; GameThumbs/1.0)', ...getBullpenHeaders(poolUrl) }
                     })
                     .then(response => ({ sport, division, data: response.data }))
                     .catch(error => {

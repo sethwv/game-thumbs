@@ -28,7 +28,7 @@ const { getTeamMatchScoreWithOverrides, generateSlug, applyTeamOverrides } = req
 const logger = require('../helpers/logger');
 const fsCache = require('../helpers/fsCache');
 const { TeamNotFoundError } = require('../helpers/errors');
-const { REQUEST_TIMEOUT } = require('../helpers/requestConfig');
+const { REQUEST_TIMEOUT, bullpenUrl, getBullpenHeaders } = require('../helpers/requestConfig');
 
 const CACHE_SUBDIR = 'thesportsdb-athletes';
 
@@ -43,8 +43,6 @@ class TheSportsDBAthleteProvider extends BaseProvider {
         // boxer is not blocked for a month.
         this.NEGATIVE_CACHE_DURATION = 24 * 60 * 60 * 1000;
         this.REQUEST_TIMEOUT = REQUEST_TIMEOUT;
-        // Use premium API key from env var if available, otherwise free tier.
-        this.API_KEY = process.env.THESPORTSDB_API_KEY || '3';
 
         // Combat-sports palette (dark blues), mirrors ESPNAthleteProvider.
         // Extracting colors from a fighter photo yields skin tones, so we use a
@@ -223,12 +221,12 @@ class TheSportsDBAthleteProvider extends BaseProvider {
             }
         }
 
-        const url = `https://www.thesportsdb.com/api/v1/json/${this.API_KEY}/searchplayers.php?p=${encodeURIComponent(athleteIdentifier)}`;
+        const url = bullpenUrl('thesportsdb', `/api/v1/json/x/searchplayers.php?p=${encodeURIComponent(athleteIdentifier)}`);
         let players = [];
         try {
             const response = await axios.get(url, {
                 timeout: this.REQUEST_TIMEOUT,
-                headers: { 'User-Agent': 'Mozilla/5.0' }
+                headers: { 'User-Agent': 'Mozilla/5.0', ...getBullpenHeaders(url) }
             });
             players = response.data?.player || [];
         } catch (error) {
@@ -250,11 +248,11 @@ class TheSportsDBAthleteProvider extends BaseProvider {
             return cached;
         }
 
-        const url = `https://www.thesportsdb.com/api/v1/json/${this.API_KEY}/lookupleague.php?id=${leagueId}`;
+        const url = bullpenUrl('thesportsdb', `/api/v1/json/x/lookupleague.php?id=${leagueId}`);
         try {
             const response = await axios.get(url, {
                 timeout: this.REQUEST_TIMEOUT,
-                headers: { 'User-Agent': 'Mozilla/5.0' }
+                headers: { 'User-Agent': 'Mozilla/5.0', ...getBullpenHeaders(url) }
             });
             const leagueData = response.data?.leagues?.[0];
             if (!leagueData) {

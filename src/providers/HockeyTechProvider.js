@@ -11,11 +11,13 @@ const { extractDominantColors } = require('../helpers/colorUtils');
 const logger = require('../helpers/logger');
 const fsCache = require('../helpers/fsCache');
 const { TeamNotFoundError } = require('../helpers/errors');
-const { REQUEST_TIMEOUT, BROWSER_HEADERS, getBrowserHeaders, getProxyRequestConfig } = require('../helpers/requestConfig');
+const { REQUEST_TIMEOUT, BROWSER_HEADERS, getBrowserHeaders, getProxyRequestConfig, bullpenUrl, getBullpenHeaders } = require('../helpers/requestConfig');
 
-// Independent per-path proxy toggles (see helpers/requestConfig.js + SOCKS_PROXY)
+// Independent per-path proxy toggle (see helpers/requestConfig.js + SOCKS_PROXY).
+// Only gates config-extraction scraping of league websites (out of Bullpen's
+// scope); the feed itself now targets Bullpen, which handles TLS/HTTP
+// fingerprinting server-side, so no proxy toggle is needed for it anymore.
 const PROXY_EXTRACT = /^(1|true|yes)$/i.test(process.env.HOCKEYTECH_PROXY_EXTRACT || '');
-const PROXY_FEED = /^(1|true|yes)$/i.test(process.env.HOCKEYTECH_PROXY_FEED || '');
 
 class HockeyTechProvider extends BaseProvider {
     constructor() {
@@ -25,9 +27,7 @@ class HockeyTechProvider extends BaseProvider {
         this.CONFIG_CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days
         this.SEASONS_TO_AGGREGATE = 3;  // combine up to 3 substantive seasons for full roster coverage
         this.MIN_SEASON_TEAMS = 4;      // skip All-Star/exhibition seasons with fewer real teams
-        this.BASE_URL = 'https://lscluster.hockeytech.com/feed/';
-        // Use API key from env var if available, otherwise use public key
-        this.API_KEY = process.env.HOCKEYTECH_API_KEY || 'f1aa699db3d81487';
+        this.BASE_URL = bullpenUrl('hockeytech', '/feed/');
     }
 
     getProviderId() {
@@ -47,9 +47,9 @@ class HockeyTechProvider extends BaseProvider {
         // Get the provider config
         const syncConfig = this.getLeagueConfig(league);
         
-        // If we have an explicit clientCode, use it. apiKey is optional here:
-        // fetchTeamData falls back to the provider's default key (this.API_KEY)
-        // when the config omits one (see fetchTeamData: key = apiKey || this.API_KEY).
+        // If we have an explicit clientCode, use it — that's all the Bullpen-routed
+        // feed request needs now (Bullpen maps client_code to the upstream key
+        // server-side, so apiKey is no longer required here).
         if (syncConfig && syncConfig.clientCode) {
             return syncConfig;
         }
@@ -59,7 +59,7 @@ class HockeyTechProvider extends BaseProvider {
             try {
                 // Extract and schedule refresh for this URL
                 const extractedConfig = await this.extractAndScheduleConfig(syncConfig.websiteUrl);
-                if (extractedConfig && extractedConfig.clientCode && extractedConfig.apiKey) {
+                if (extractedConfig && extractedConfig.clientCode) {
                     return extractedConfig;
                 }
                 logger.warn('Extracted incomplete HockeyTech config', {
@@ -230,20 +230,18 @@ class HockeyTechProvider extends BaseProvider {
     // Private helper methods
     // ------------------------------------------------------------------------------
 
-    async fetchStartedSeasons(clientCode, key) {
+    async fetchStartedSeasons(clientCode) {
         try {
             const response = await axios.get(this.BASE_URL, {
                 params: {
                     feed: 'modulekit',
                     view: 'seasons',
-                    key,
                     client_code: clientCode,
                     lang_code: 'en',
                     fmt: 'json'
                 },
                 timeout: REQUEST_TIMEOUT,
-                headers: BROWSER_HEADERS,
-                ...getProxyRequestConfig(PROXY_FEED)
+                headers: { ...BROWSER_HEADERS, ...getBullpenHeaders(this.BASE_URL) }
             });
 
             const seasons = response.data?.SiteKit?.Seasons || [];
@@ -261,11 +259,10 @@ class HockeyTechProvider extends BaseProvider {
         }
     }
 
-    async fetchTeamsForSeason(clientCode, key, seasonId) {
+    async fetchTeamsForSeason(clientCode, seasonId) {
         const params = {
             feed: 'modulekit',
             view: 'teamsbyseason',
-            key,
             client_code: clientCode,
             lang_code: 'en',
             fmt: 'json'
@@ -278,8 +275,7 @@ class HockeyTechProvider extends BaseProvider {
         const response = await axios.get(this.BASE_URL, {
             params,
             timeout: REQUEST_TIMEOUT,
-            headers: BROWSER_HEADERS,
-            ...getProxyRequestConfig(PROXY_FEED)
+            headers: { ...BROWSER_HEADERS, ...getBullpenHeaders(this.BASE_URL) }
         });
 
         return response.data?.SiteKit?.Teamsbyseason || [];
@@ -299,7 +295,7 @@ class HockeyTechProvider extends BaseProvider {
             throw new Error(`League ${league.shortName} is missing HockeyTech configuration`);
         }
 
-        const { clientCode, apiKey } = hockeyTechConfig;
+        const { clientCode } = hockeyTechConfig;
         const { seasonId } = hockeyTechConfig;
 
         if (!clientCode) {
@@ -310,25 +306,23 @@ class HockeyTechProvider extends BaseProvider {
             throw new Error(`League ${league.shortName} requires clientCode in HockeyTech configuration`);
         }
 
-        const key = apiKey || this.API_KEY;
-
         try {
             let teams = [];
 
             if (seasonId) {
-                teams = await this.fetchTeamsForSeason(clientCode, key, seasonId);
+                teams = await this.fetchTeamsForSeason(clientCode, seasonId);
             } else {
                 // Aggregate the most recent substantive seasons so that teams eliminated before
                 // playoffs (or missing from an All-Star bracket) are still resolvable.
                 // Seasons are walked newest-first; first-write-wins keeps the newest team data.
-                const seasons = await this.fetchStartedSeasons(clientCode, key);
+                const seasons = await this.fetchStartedSeasons(clientCode);
                 const teamMap = new Map();
                 let substantiveCount = 0;
 
                 for (const season of seasons) {
                     if (substantiveCount >= this.SEASONS_TO_AGGREGATE) break;
 
-                    const candidates = await this.fetchTeamsForSeason(clientCode, key, season.season_id);
+                    const candidates = await this.fetchTeamsForSeason(clientCode, season.season_id);
                     const real = candidates.filter(t =>
                         t.city && t.city.toUpperCase() !== 'TBD' &&
                         t.name && t.name.toUpperCase() !== 'TBD'
@@ -353,7 +347,7 @@ class HockeyTechProvider extends BaseProvider {
 
                 // Last resort: no seasons found at all, let the API pick its default
                 if (teams.length === 0) {
-                    const fallback = await this.fetchTeamsForSeason(clientCode, key, null);
+                    const fallback = await this.fetchTeamsForSeason(clientCode, null);
                     teams = fallback.filter(t =>
                         t.city?.toUpperCase() !== 'TBD' && t.name?.toUpperCase() !== 'TBD'
                     );

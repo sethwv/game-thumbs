@@ -4,7 +4,7 @@
 
 const axios = require('axios');
 const { createCanvas, loadImage } = require('canvas');
-const { REQUEST_TIMEOUT, getHockeytechAssetProxyConfig } = require('./requestConfig');
+const { REQUEST_TIMEOUT, getHockeytechAssetProxyConfig, getBullpenHeaders } = require('./requestConfig');
 
 /**
  * Fetch image from URL
@@ -17,7 +17,7 @@ async function fetchImage(url) {
             responseType: 'arraybuffer',
             timeout: REQUEST_TIMEOUT,
             maxRedirects: 5,
-            headers: { 'User-Agent': 'Mozilla/5.0' },
+            headers: { 'User-Agent': 'Mozilla/5.0', ...getBullpenHeaders(url) },
             ...getHockeytechAssetProxyConfig(url)
         });
         

@@ -10,6 +10,7 @@
     "canvas": "^3.2.3",
     "chalk": "^5.6.2",
     "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "express-rate-limit": "^8.5.2",
     "fontkit": "^2.0.4",
@@ -19,15 +20,12 @@
   },
   "scripts": {
     "start": "NODE_ENV=production SHOW_TIMESTAMP=false node src/index.js",
-    
     "dev": "NODE_ENV=development TRUST_PROXY=0 IMAGE_CACHE_HOURS=0 RATE_LIMIT_PER_MINUTE=0 SHOW_TIMESTAMP=false LOG_TO_FILE=true ALLOW_CUSTOM_BADGES=true ALLOW_EVENT_OVERLAYS=true node src/index.js",
     "dev:mma": "NODE_ENV=development TRUST_PROXY=0 IMAGE_CACHE_HOURS=0 RATE_LIMIT_PER_MINUTE=0 SHOW_TIMESTAMP=false LOG_TO_FILE=true ALLOW_EVENT_OVERLAYS=true LEAGUES_ENABLE_MMA=true node src/index.js",
     "dev:tennis": "NODE_ENV=development TRUST_PROXY=0 IMAGE_CACHE_HOURS=0 RATE_LIMIT_PER_MINUTE=0 SHOW_TIMESTAMP=false LOG_TO_FILE=true ALLOW_EVENT_OVERLAYS=true LEAGUES_ENABLE_TENNIS=true node src/index.js",
     "dev:mma+tennis": "NODE_ENV=development TRUST_PROXY=0 IMAGE_CACHE_HOURS=0 RATE_LIMIT_PER_MINUTE=0 SHOW_TIMESTAMP=false LOG_TO_FILE=true ALLOW_EVENT_OVERLAYS=true LEAGUES_ENABLE_MMA=true LEAGUES_ENABLE_TENNIS=true node src/index.js",
-    
     "extract:hockeytech": "node -e \"require('./src/providers/HockeyTechProvider').HockeyTechProvider.displayAllCredentials()\"",
     "extract:supabase": "node -e \"require('./src/providers/SupabaseProvider').SupabaseProvider.displayAllCredentials()\"",
-
     "test": "for file in test/*.test.js; do [ -f \"$file\" ] && node \"$file\" || exit 1; done",
     "test:endpoints": "node test/endpoints.test.js",
     "test:leagues": "node test/leagues.test.js",
@@ -40,7 +38,6 @@
     "test:espn-fallback": "node test/espn-fallback.test.js",
     "test:url-validator": "node test/url-validator.test.js",
     "test:event-overlays": "node test/event-overlays.test.js",
-
     "snapshot": "node test/snapshots/snapshot.js",
     "snapshot:ci": "node test/snapshots/snapshot.js --soft",
     "snapshot:update": "node test/snapshots/snapshot.js --update"

@@ -12,15 +12,15 @@ const { rasterizeLogo, extractPalette } = require('../helpers/svgUtils');
 const logger = require('../helpers/logger');
 const fsCache = require('../helpers/fsCache');
 const { TeamNotFoundError } = require('../helpers/errors');
-const { REQUEST_TIMEOUT } = require('../helpers/requestConfig');
+const { REQUEST_TIMEOUT, bullpenUrl, getBullpenHeaders } = require('../helpers/requestConfig');
 
 class MLBStatsProvider extends BaseProvider {
     constructor() {
         super();
         this.TEAM_CACHE_DURATION = 24 * 60 * 60 * 1000;     // 24 hours
         this.LOGO_CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days
-        this.BASE_URL = 'https://statsapi.mlb.com/api/v1';
-        this.LOGO_BASE_URL = 'https://www.mlbstatic.com/team-logos';
+        this.BASE_URL = bullpenUrl('mlb-stats', '/api/v1');
+        this.LOGO_BASE_URL = bullpenUrl('mlb-static', '/team-logos');
     }
 
     getProviderId() {
@@ -205,7 +205,7 @@ class MLBStatsProvider extends BaseProvider {
             try {
                 const response = await axios.get(url, {
                     timeout: REQUEST_TIMEOUT,
-                    headers: { 'User-Agent': 'Mozilla/5.0' }
+                    headers: { 'User-Agent': 'Mozilla/5.0', ...getBullpenHeaders(url) }
                 });
 
                 const teams = response.data?.teams || [];
@@ -258,7 +258,7 @@ class MLBStatsProvider extends BaseProvider {
             const response = await axios.get(svgUrl, {
                 responseType: 'arraybuffer',
                 timeout: REQUEST_TIMEOUT,
-                headers: { 'User-Agent': 'Mozilla/5.0' }
+                headers: { 'User-Agent': 'Mozilla/5.0', ...getBullpenHeaders(svgUrl) }
             });
 
             const svgBuffer = Buffer.from(response.data);

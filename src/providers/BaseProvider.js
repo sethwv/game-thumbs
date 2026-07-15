@@ -145,12 +145,25 @@ class BaseProvider {
                 'x-rate-limit-remaining': headers['x-rate-limit-remaining'],
                 'x-rate-limit-reset': headers['x-rate-limit-reset']
             };
-            
+
             // Filter out undefined headers
             const cleanedInfo = Object.fromEntries(
                 Object.entries(rateLimitInfo).filter(([_, v]) => v !== undefined)
             );
-            
+
+            // Bullpen returns a flat 401 for a missing/invalid X-Bullpen-Key — surface this
+            // as a config problem, not a generic upstream failure.
+            if (status === 401) {
+                logger.error('HTTP 401 - Bullpen authentication failed', {
+                    provider: this.getProviderId(),
+                    context,
+                    ...cleanedInfo
+                });
+                return new Error(
+                    `Bullpen authentication failed (401) for ${context} — check BULLPEN_API_KEY. URL: ${url}`
+                );
+            }
+
             // Log rate limit or access issues
             if (status === 403 || status === 429) {
                 logger.error(`HTTP ${status} - ${status === 429 ? 'Rate limit exceeded' : 'Access denied'}`, {
@@ -173,8 +186,12 @@ class BaseProvider {
                 context,
                 ...cleanedInfo
             });
-            
-            return new Error(`API request failed (${status}): ${error.message}. URL: ${url}`);
+
+            // Bullpen sets Retry-After when its upstream circuit breaker is open, which can
+            // arrive on statuses other than 403/429 (e.g. 503) — surface it either way.
+            const retryAfterMsg = cleanedInfo['retry-after'] ? ` Retry after ${cleanedInfo['retry-after']}s.` : '';
+
+            return new Error(`API request failed (${status}): ${error.message}.${retryAfterMsg} URL: ${url}`);
         }
         
         // Non-HTTP errors (timeouts, network issues, etc.)

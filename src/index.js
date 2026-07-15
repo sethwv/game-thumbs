@@ -6,6 +6,8 @@
 // running it directly (node src/index.js) does the same.
 // ------------------------------------------------------------------------------
 
+require('dotenv').config();
+
 const express = require('express');
 const logger = require('./helpers/logger');
 const { applyMiddleware } = require('./app/middleware');

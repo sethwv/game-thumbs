@@ -13,9 +13,10 @@ const { extractDominantColors } = require('../helpers/colorUtils');
 const logger = require('../helpers/logger');
 const fsCache = require('../helpers/fsCache');
 const { TeamNotFoundError } = require('../helpers/errors');
-const { REQUEST_TIMEOUT } = require('../helpers/requestConfig');
+const { REQUEST_TIMEOUT, bullpenUrl, getBullpenHeaders } = require('../helpers/requestConfig');
 
-const ESPN_CORE_API = 'https://sports.core.api.espn.com/v2';
+const ESPN_CORE_API = bullpenUrl('espn-core', '/v2');
+const ESPN_SITE_API = bullpenUrl('espn-site', '/apis/site/v2');
 
 // Bounded scan of ESPN's small, stable group IDs (conferences/divisions/special
 // groupings) to find whichever one is named "All-Star" for a given league.
@@ -324,12 +325,12 @@ class ESPNProvider extends BaseProvider {
                 logo.rel?.includes('full') && logo.rel?.includes('dark')
             )?.href;
 
-            return darkLogoPreferred ? (darkLogo || defaultLogo) : (defaultLogo || darkLogo) 
-                || `https://a.espncdn.com/i/teamlogos/leagues/500/${league.shortName.toLowerCase()}.png`;
+            return darkLogoPreferred ? (darkLogo || defaultLogo) : (defaultLogo || darkLogo)
+                || bullpenUrl('espn-cdn', `/i/teamlogos/leagues/500/${league.shortName.toLowerCase()}.png`);
         } catch (error) {
             logger.warn('Failed to get league logo', { league: league.shortName, error: error.message });
             // Fallback to ESPN CDN logo
-            return `https://a.espncdn.com/i/teamlogos/leagues/500/${league.shortName.toLowerCase()}.png`;
+            return bullpenUrl('espn-cdn', `/i/teamlogos/leagues/500/${league.shortName.toLowerCase()}.png`);
         }
     }
 
@@ -448,11 +449,12 @@ class ESPNProvider extends BaseProvider {
         const sports = [];
 
         try {
-            const url = 'https://sports.core.api.espn.com/v2/sports?limit=1000';
+            const url = `${ESPN_CORE_API}/sports?limit=1000`;
             const response = await axios.get(url, {
                 timeout: 15000,
                 headers: {
-                    'User-Agent': 'game-thumbs-api/1.0'
+                    'User-Agent': 'game-thumbs-api/1.0',
+                    ...getBullpenHeaders(url)
                 }
             });
 
@@ -488,11 +490,12 @@ class ESPNProvider extends BaseProvider {
 
         try {
             // Use ESPN Core API with high limit to get all leagues
-            const url = `https://sports.core.api.espn.com/v2/sports/${sport}/leagues?limit=1000`;
+            const url = `${ESPN_CORE_API}/sports/${sport}/leagues?limit=1000`;
             const response = await axios.get(url, {
                 timeout: 15000,
                 headers: {
-                    'User-Agent': 'game-thumbs-api/1.0'
+                    'User-Agent': 'game-thumbs-api/1.0',
+                    ...getBullpenHeaders(url)
                 }
             });
 
@@ -580,12 +583,12 @@ class ESPNProvider extends BaseProvider {
             throw new Error(`League ${league.shortName} is missing ESPN configuration`);
         }
         const { espnSport, espnSlug } = espnConfig;
-        const teamApiUrl = `https://site.api.espn.com/apis/site/v2/sports/${espnSport}/${espnSlug}/teams?limit=1000`;
+        const teamApiUrl = `${ESPN_SITE_API}/sports/${espnSport}/${espnSlug}/teams?limit=1000`;
 
         try {
             const response = await axios.get(teamApiUrl, {
                 timeout: this.REQUEST_TIMEOUT,
-                headers: { 'User-Agent': 'Mozilla/5.0' }
+                headers: { 'User-Agent': 'Mozilla/5.0', ...getBullpenHeaders(teamApiUrl) }
             });
 
             let teams = response.data.sports?.[0]?.leagues?.[0]?.teams || [];
@@ -669,7 +672,7 @@ class ESPNProvider extends BaseProvider {
         const groupTeamsUrl = `${ESPN_CORE_API}/sports/${espnSport}/leagues/${espnSlug}/seasons/${seasonYear}/types/2/groups/${groupId}/teams?limit=100&lang=en&region=us`;
         const groupTeamsResponse = await axios.get(groupTeamsUrl, {
             timeout: this.REQUEST_TIMEOUT,
-            headers: { 'User-Agent': 'Mozilla/5.0' }
+            headers: { 'User-Agent': 'Mozilla/5.0', ...getBullpenHeaders(groupTeamsUrl) }
         });
 
         const teamIds = (groupTeamsResponse.data.items || [])
@@ -748,7 +751,7 @@ class ESPNProvider extends BaseProvider {
                 const url = `${ESPN_CORE_API}/sports/${espnSport}/leagues/${espnSlug}/groups/${id}?lang=en&region=us`;
                 const response = await axios.get(url, {
                     timeout: this.REQUEST_TIMEOUT,
-                    headers: { 'User-Agent': 'Mozilla/5.0' }
+                    headers: { 'User-Agent': 'Mozilla/5.0', ...getBullpenHeaders(url) }
                 });
                 const group = response.data;
                 if (group && !group.error && ALL_STAR_NAME_PATTERN.test(group.name || group.abbreviation || '')) {
@@ -799,10 +802,10 @@ class ESPNProvider extends BaseProvider {
         };
         const dateRange = `${toDateParam(seasonType.startDate, -1)}-${toDateParam(seasonType.endDate, 1)}`;
 
-        const scoreboardUrl = `https://site.api.espn.com/apis/site/v2/sports/${espnSport}/${espnSlug}/scoreboard?dates=${dateRange}`;
+        const scoreboardUrl = `${ESPN_SITE_API}/sports/${espnSport}/${espnSlug}/scoreboard?dates=${dateRange}`;
         const scoreboardResponse = await axios.get(scoreboardUrl, {
             timeout: this.REQUEST_TIMEOUT,
-            headers: { 'User-Agent': 'Mozilla/5.0' }
+            headers: { 'User-Agent': 'Mozilla/5.0', ...getBullpenHeaders(scoreboardUrl) }
         });
 
         const teamIds = new Set();
@@ -852,7 +855,7 @@ class ESPNProvider extends BaseProvider {
                 const url = `${ESPN_CORE_API}/sports/${espnSport}/leagues/${espnSlug}/seasons/${seasonYear}/types/${id}?lang=en&region=us`;
                 const response = await axios.get(url, {
                     timeout: this.REQUEST_TIMEOUT,
-                    headers: { 'User-Agent': 'Mozilla/5.0' }
+                    headers: { 'User-Agent': 'Mozilla/5.0', ...getBullpenHeaders(url) }
                 });
                 const type = response.data;
                 if (type && !type.error && ALL_STAR_NAME_PATTERN.test(type.name || type.abbreviation || '')) {
@@ -895,10 +898,10 @@ class ESPNProvider extends BaseProvider {
     async fetchTeamsByIds(espnSport, espnSlug, teamIds) {
         const results = await Promise.all(teamIds.map(async (id) => {
             try {
-                const url = `https://site.api.espn.com/apis/site/v2/sports/${espnSport}/${espnSlug}/teams/${id}`;
+                const url = `${ESPN_SITE_API}/sports/${espnSport}/${espnSlug}/teams/${id}`;
                 const response = await axios.get(url, {
                     timeout: this.REQUEST_TIMEOUT,
-                    headers: { 'User-Agent': 'Mozilla/5.0' }
+                    headers: { 'User-Agent': 'Mozilla/5.0', ...getBullpenHeaders(url) }
                 });
                 return response.data.team ? { team: response.data.team } : null;
             } catch (error) {
@@ -924,12 +927,12 @@ class ESPNProvider extends BaseProvider {
             throw new Error(`League ${league.shortName} is missing ESPN configuration`);
         }
         const { espnSport, espnSlug } = espnConfig;
-        const leagueApiUrl = `https://sports.core.api.espn.com/v2/sports/${espnSport}/leagues/${espnSlug}`;
-        
+        const leagueApiUrl = `${ESPN_CORE_API}/sports/${espnSport}/leagues/${espnSlug}`;
+
         try {
             const response = await axios.get(leagueApiUrl, {
                 timeout: this.REQUEST_TIMEOUT,
-                headers: { 'User-Agent': 'Mozilla/5.0' }
+                headers: { 'User-Agent': 'Mozilla/5.0', ...getBullpenHeaders(leagueApiUrl) }
             });
             
             // Cache to filesystem

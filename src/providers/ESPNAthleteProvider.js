@@ -27,7 +27,21 @@ const { getTeamMatchScoreWithOverrides } = require('../helpers/teamUtils');
 const logger = require('../helpers/logger');
 const RequestQueue = require('../helpers/RequestQueue');
 const { TeamNotFoundError } = require('../helpers/errors');
-const { REQUEST_TIMEOUT } = require('../helpers/requestConfig');
+const { REQUEST_TIMEOUT, bullpenUrl, getBullpenHeaders } = require('../helpers/requestConfig');
+
+const ESPN_CORE_API = bullpenUrl('espn-core', '/v2');
+
+// ESPN's core API embeds absolute $ref links back to itself in list responses
+// (e.g. paginated athlete lists). Since Bullpen passes response bodies through
+// byte-for-byte, those $refs still point at the real upstream host, not Bullpen
+// — so any code that follows one as a URL must rewrite it first, or the request
+// silently bypasses Bullpen entirely.
+const ESPN_CORE_UPSTREAM_PREFIX = 'https://sports.core.api.espn.com/v2';
+function toBullpenEspnCoreUrl(ref) {
+    return ref.startsWith(ESPN_CORE_UPSTREAM_PREFIX)
+        ? `${ESPN_CORE_API}${ref.slice(ESPN_CORE_UPSTREAM_PREFIX.length)}`
+        : ref;
+}
 
 // Track if we've logged queue initialization (prevent duplicate logs)
 let queueInitLogged = false;
@@ -192,7 +206,7 @@ class ESPNAthleteProvider extends BaseProvider {
             
             // If no headshot URL from API, construct one based on sport
             if (!headshotUrl) {
-                headshotUrl = `https://a.espncdn.com/i/headshots/${espnSport}/players/full/${bestMatch.id}.png`;
+                headshotUrl = bullpenUrl('espn-cdn', `/i/headshots/${espnSport}/players/full/${bestMatch.id}.png`);
             }
             
             // Generate random colors based on sport
@@ -246,26 +260,26 @@ class ESPNAthleteProvider extends BaseProvider {
         // Try to fetch from ESPN API
         try {
             const { espnSport, espnSlug } = espnConfig;
-            const leagueApiUrl = `https://sports.core.api.espn.com/v2/sports/${espnSport}/leagues/${espnSlug}`;
-            
+            const leagueApiUrl = `${ESPN_CORE_API}/sports/${espnSport}/leagues/${espnSlug}`;
+
             const response = await axios.get(leagueApiUrl, {
                 timeout: this.REQUEST_TIMEOUT,
-                headers: { 'User-Agent': 'Mozilla/5.0' }
+                headers: { 'User-Agent': 'Mozilla/5.0', ...getBullpenHeaders(leagueApiUrl) }
             });
-            
+
             const defaultLogo = response.data.logos?.find(logo =>
                 logo.rel?.includes('full') && logo.rel?.includes('default')
             )?.href;
-            
+
             const darkLogo = response.data.logos?.find(logo =>
                 logo.rel?.includes('full') && logo.rel?.includes('dark')
             )?.href;
 
-            return darkLogoPreferred ? (darkLogo || defaultLogo) : (defaultLogo || darkLogo) 
-                || `https://a.espncdn.com/i/teamlogos/leagues/500/${league.shortName.toLowerCase()}.png`;
+            return darkLogoPreferred ? (darkLogo || defaultLogo) : (defaultLogo || darkLogo)
+                || bullpenUrl('espn-cdn', `/i/teamlogos/leagues/500/${league.shortName.toLowerCase()}.png`);
         } catch (error) {
             logger.warn('Failed to get league logo', { league: league.shortName, error: error.message });
-            return `https://a.espncdn.com/i/teamlogos/leagues/500/${league.shortName.toLowerCase()}.png`;
+            return bullpenUrl('espn-cdn', `/i/teamlogos/leagues/500/${league.shortName.toLowerCase()}.png`);
         }
     }
 
@@ -452,8 +466,10 @@ class ESPNAthleteProvider extends BaseProvider {
                 return await fn();
             } catch (error) {
                 lastError = error;
+                // 401 means a bad/missing BULLPEN_API_KEY (a config error, not transient) —
+                // fail immediately rather than retrying 5x with exponential backoff.
                 const isRateLimit = error.response?.status === 403 || error.response?.status === 429;
-                
+
                 if (!isRateLimit || attempt === maxRetries - 1) {
                     throw error;
                 }
@@ -572,36 +588,38 @@ class ESPNAthleteProvider extends BaseProvider {
         
         try {
             while (hasMorePages) {
-                const athleteApiUrl = `https://sports.core.api.espn.com/v2/sports/${espnSport}/leagues/${espnSlug}/athletes?limit=${pageSize}&page=${pageIndex}`;
-                
+                const athleteApiUrl = `${ESPN_CORE_API}/sports/${espnSport}/leagues/${espnSlug}/athletes?limit=${pageSize}&page=${pageIndex}`;
+
                 // logger.info('Fetching athletes', { league: league.shortName, page: pageIndex, limit: pageSize });
-                
+
                 const response = await this.requestQueue.enqueue(
                     () => this.retryWithBackoff(async () => {
                         return await axios.get(athleteApiUrl, {
                             timeout: this.REQUEST_TIMEOUT * 2,
-                            headers: { 'User-Agent': 'Mozilla/5.0' }
+                            headers: { 'User-Agent': 'Mozilla/5.0', ...getBullpenHeaders(athleteApiUrl) }
                         });
                     }),
                     { metadata: { league: league.shortName, page: pageIndex, type: 'athlete-list' } }
                 );
-                
+
                 const items = response.data.items || [];
-                
+
                 // Fetch full athlete details in batches to avoid overwhelming the API
                 const BATCH_SIZE = 25; // Process 25 athletes at a time (balanced for speed and rate limits)
                 const athletes = [];
-                
+
                 for (let i = 0; i < items.length; i += BATCH_SIZE) {
                     const batch = items.slice(i, i + BATCH_SIZE);
                     const batchPromises = batch.map(async (item) => {
                         try {
-                            const athleteUrl = item.$ref;
+                            // item.$ref is an absolute link ESPN embeds in its own response,
+                            // pointing at the real upstream host — rewrite it to Bullpen.
+                            const athleteUrl = toBullpenEspnCoreUrl(item.$ref);
                             return await this.requestQueue.enqueue(
                                 () => this.retryWithBackoff(async () => {
                                     const athleteResponse = await axios.get(athleteUrl, {
                                         timeout: this.REQUEST_TIMEOUT,
-                                        headers: { 'User-Agent': 'Mozilla/5.0' }
+                                        headers: { 'User-Agent': 'Mozilla/5.0', ...getBullpenHeaders(athleteUrl) }
                                     });
                                     return athleteResponse.data;
                                 }),

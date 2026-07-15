@@ -34,10 +34,18 @@ Game Thumbs is a Node.js Express application that dynamically generates sports m
 
 Game Thumbs uses a modular provider architecture to fetch team and athlete data from multiple sources.
 
+**Bullpen Proxy**: ESPN, MLB Stats, TheSportsDB, HockeyTech, FlagCDN, and NCAA are all accessed
+through Bullpen, an internal proxy that fronts these upstreams, caches responses, and injects
+upstream credentials server-side (`BULLPEN_BASE_URL`/`BULLPEN_API_KEY`, see [docker.md](docker.md)).
+Response bodies are unchanged from the real upstream. The Supabase-backed CBL provider and
+HockeyTech's website-scraping config extraction (theahl.com, bchl.ca, etc.) are not yet proxied and
+still call their upstreams directly.
+
 ### ESPN Provider
 
 **Leagues**: NBA, NFL, MLB, NHL, NCAA, Soccer, and more  
 **Type**: Team-based sports  
+**API**: ESPN Site API and Core API, routed via Bullpen (`espn-site`, `espn-core`); team logos via `espn-cdn`  
 **Features**:
 - Fetches team rosters, logos, and colors from ESPN's public APIs
 - Supports 100+ professional and NCAA leagues
@@ -48,6 +56,7 @@ Game Thumbs uses a modular provider architecture to fetch team and athlete data 
 
 **Leagues**: UFC, PFL, Bellator (MMA), Tennis (ATP/WTA)  
 **Type**: Athlete-based sports  
+**API**: ESPN Sports Core API, routed via Bullpen (`espn-core`); headshots via `espn-cdn`  
 **Features**:
 - Treats individual fighters/athletes as "teams" for matchup generation
 - Fetches complete athlete rosters from ESPN Sports Core API v2
@@ -79,6 +88,7 @@ Game Thumbs uses a modular provider architecture to fetch team and athlete data 
 
 **Leagues**: CFL, AHL, OHL, WHL, QMJHL, and international soccer  
 **Type**: Team-based sports  
+**API**: TheSportsDB, routed via Bullpen (`thesportsdb`) — Bullpen injects the upstream key server-side  
 **Features**:
 - Community-maintained sports database
 - Good coverage for non-US leagues
@@ -89,7 +99,7 @@ Game Thumbs uses a modular provider architecture to fetch team and athlete data 
 
 **Leagues**: Boxing  
 **Type**: Athlete-based sports (individual / combat sports ESPN does not carry)  
-**API**: `thesportsdb.com/api/v1` (free key `3`, or premium via `THESPORTSDB_API_KEY`)  
+**API**: TheSportsDB, routed via Bullpen (`thesportsdb`)  
 **Features**:
 - Resolves fighters per request via `searchplayers.php?p=<name>` (no roster prefetch: the free key's `lookup_all_players` endpoint is not available)
 - **Sport guard**: filters results to the configured `sport` (e.g. "Fighting") plus an optional `teamFilter` substring (e.g. "Boxing"), so a wrong-sport best match is rejected rather than returned
@@ -103,6 +113,7 @@ Game Thumbs uses a modular provider architecture to fetch team and athlete data 
 
 **Leagues**: PWHL, CHL, OHL, WHL
 **Type**: Team-based sports (hockey)
+**API**: HockeyTech feed, routed via Bullpen (`hockeytech`) — Bullpen maps `client_code` to the upstream key server-side. Per-league config extraction from league websites (theahl.com, bchl.ca, etc.) still calls those sites directly; not yet proxied.
 **Features**:
 - Official provider for Canadian hockey leagues
 - Real-time roster data
@@ -113,7 +124,7 @@ Game Thumbs uses a modular provider architecture to fetch team and athlete data 
 
 **Leagues**: MiLB (Triple-A, Double-A, High-A, Single-A), Winter Leagues, Independent Leagues, KBO
 **Type**: Team-based sports (baseball)
-**API**: `statsapi.mlb.com/api/v1`
+**API**: MLB StatsAPI, routed via Bullpen (`mlb-stats`); team logos via `mlb-static`
 **Features**:
 - Free MLB StatsAPI — no API key required
 - Covers all MiLB levels and international baseball leagues tracked by MLB
@@ -127,6 +138,7 @@ Game Thumbs uses a modular provider architecture to fetch team and athlete data 
 
 **Leagues**: Country, Olympics  
 **Type**: International country-based matchups  
+**API**: FlagCDN, routed via Bullpen (`flagcdn`)  
 **Features**:
 - High-resolution flag images (2560px) from flagcdn.com
 - ISO 3166 alpha-2 and alpha-3 code support (USA, CAN, GBR, etc.)

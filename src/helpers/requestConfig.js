@@ -8,6 +8,31 @@ const logger = require('./logger');
 
 const REQUEST_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '10000', 10);
 
+// Bullpen proxy: fronts ESPN/MLB/TheSportsDB/HockeyTech/FlagCDN/NCAA so game-thumbs no
+// longer needs to hold those upstreams' credentials itself. Every request needs the
+// X-Bullpen-Key header; see docs/bullpen-translation-guide.md for the full contract.
+const BULLPEN_BASE_URL = (process.env.BULLPEN_BASE_URL || '').replace(/\/+$/, '');
+const BULLPEN_API_KEY = process.env.BULLPEN_API_KEY || '';
+
+if (!BULLPEN_BASE_URL || !BULLPEN_API_KEY) {
+    logger.warn('BULLPEN_BASE_URL/BULLPEN_API_KEY not set — provider requests routed through Bullpen will fail');
+}
+
+// Builds `${BULLPEN_BASE_URL}/v1/{target}/{path}`, normalizing the slash between target and path.
+function bullpenUrl(target, path) {
+    return `${BULLPEN_BASE_URL}/v1/${target}${path.startsWith('/') ? path : `/${path}`}`;
+}
+
+// Returns the X-Bullpen-Key header, but ONLY when `url` actually targets Bullpen.
+// This gate matters: some callers (e.g. imageIO.downloadImage) also fetch arbitrary
+// user-supplied URLs, and attaching this header unconditionally would leak the key.
+function getBullpenHeaders(url) {
+    if (!BULLPEN_BASE_URL || typeof url !== 'string' || !url.startsWith(BULLPEN_BASE_URL)) {
+        return {};
+    }
+    return { 'X-Bullpen-Key': BULLPEN_API_KEY };
+}
+
 // Realistic browser User-Agent so feeds/sites don't reject obvious bots.
 // Overridable via env for quick rotation without a code change.
 const SCRAPER_USER_AGENT = process.env.SCRAPER_USER_AGENT ||
@@ -124,5 +149,9 @@ module.exports = {
     BROWSER_HEADERS,
     getBrowserHeaders,
     getProxyRequestConfig,
-    getHockeytechAssetProxyConfig
+    getHockeytechAssetProxyConfig,
+    BULLPEN_BASE_URL,
+    BULLPEN_API_KEY,
+    bullpenUrl,
+    getBullpenHeaders
 };

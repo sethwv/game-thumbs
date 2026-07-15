@@ -199,13 +199,15 @@ docker run -p 3000:3000 \
 ### Advanced: Provider API Keys
 {: #advanced-provider-api-keys }
 
-Override the default API keys for data providers that offer premium access:
+Most upstream sports APIs (ESPN, MLB Stats, TheSportsDB, HockeyTech, FlagCDN, NCAA) are accessed
+through Bullpen, an internal proxy that injects upstream credentials server-side — game-thumbs no
+longer holds those keys itself. Bullpen access is required, not optional:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `THESPORTSDB_API_KEY` | API key for TheSportsDB. The free-tier key (`3`) works for most leagues; a Patreon key unlocks higher rate limits and additional data. | `3` |
-| `HOCKEYTECH_API_KEY` | API key for HockeyTech (used for CHL, AHL, and other hockey leagues). The bundled public key covers most deployments. | `f1aa699db3d81487` |
-| `CBL_SUPABASE_API_KEY` | API key for the Supabase-backed CBL athlete provider. When not set, this provider is inactive. | Not set (disabled) |
+| `BULLPEN_BASE_URL` | Base URL of the Bullpen proxy (e.g. `https://bullpen.example.com`). | Required, no default |
+| `BULLPEN_API_KEY` | Consumer API key for Bullpen, sent as `X-Bullpen-Key` on every proxied request. | Required, no default |
+| `CBL_SUPABASE_API_KEY` | API key for the Supabase-backed CBL athlete provider (not yet proxied by Bullpen). When not set, this provider is inactive. | Not set (disabled) |
 
 ### Advanced: Logging
 {: #advanced-logging }

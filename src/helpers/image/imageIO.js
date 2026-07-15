@@ -11,7 +11,7 @@ const fs = require('fs').promises;
 const fsSync = require('fs');
 const path = require('path');
 const logger = require('../logger');
-const { REQUEST_TIMEOUT, getHockeytechAssetProxyConfig } = require('../requestConfig');
+const { REQUEST_TIMEOUT, getHockeytechAssetProxyConfig, getBullpenHeaders } = require('../requestConfig');
 
 // Cache settings from environment
 const CACHE_HOURS = parseInt(process.env.IMAGE_CACHE_HOURS || '24', 10);
@@ -55,7 +55,8 @@ async function downloadImage(urlOrPath, { allowSvg = false } = {}) {
                 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                 'Accept': 'image/png,image/jpeg,image/jpg,*/*;q=0.8',
                 'Accept-Encoding': 'gzip, deflate, br',
-                'Referer': 'https://www.espn.com/'
+                'Referer': 'https://www.espn.com/',
+                ...getBullpenHeaders(urlOrPath)
             },
             ...getHockeytechAssetProxyConfig(urlOrPath)
         });
@@ -96,7 +97,7 @@ async function downloadImage(urlOrPath, { allowSvg = false } = {}) {
         // For 404 errors on ESPN athlete headshots, this is expected (many athletes don't have photos)
         // Only log in development mode to reduce noise
         // Silently fail for missing athlete headshots (404s are expected)
-        const isAthleteHeadshot = urlOrPath.includes('espncdn.com/i/headshots/');
+        const isAthleteHeadshot = urlOrPath.includes('espncdn.com/i/headshots/') || urlOrPath.includes('/v1/espn-cdn/i/headshots/');
         const is404 = error.response?.status === 404;
 
         if (!isAthleteHeadshot || !is404) {

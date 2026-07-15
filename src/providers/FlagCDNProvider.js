@@ -12,7 +12,7 @@ const { downloadImage } = require('../helpers/imageUtils');
 const logger = require('../helpers/logger');
 const fsCache = require('../helpers/fsCache');
 const { TeamNotFoundError } = require('../helpers/errors');
-const { REQUEST_TIMEOUT } = require('../helpers/requestConfig');
+const { REQUEST_TIMEOUT, bullpenUrl, getBullpenHeaders } = require('../helpers/requestConfig');
 
 class FlagCDNProvider extends BaseProvider {
     constructor() {
@@ -60,10 +60,12 @@ class FlagCDNProvider extends BaseProvider {
         }
 
         try {
-            const response = await axios.get('https://flagcdn.com/en/codes.json', {
+            const url = bullpenUrl('flagcdn', '/en/codes.json');
+            const response = await axios.get(url, {
                 timeout: REQUEST_TIMEOUT,
                 headers: {
-                    'User-Agent': 'game-thumbs/1.0'
+                    'User-Agent': 'game-thumbs/1.0',
+                    ...getBullpenHeaders(url)
                 }
             });
 
@@ -375,7 +377,7 @@ class FlagCDNProvider extends BaseProvider {
             }
 
             // Build flag URL (using w2560 for high resolution)
-            const flagUrl = `https://flagcdn.com/w2560/${bestCode.toLowerCase()}.png`;
+            const flagUrl = bullpenUrl('flagcdn', `/w2560/${bestCode.toLowerCase()}.png`);
 
             // Extract colors from flag
             let primaryColor = null;
