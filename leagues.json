@@ -198,7 +198,7 @@
   "atp": {
     "name": "ATP Tour",
     "env_var": "LEAGUES_ENABLE_TENNIS",
-    "logoUrl": "https://r2.thesportsdb.com/images/media/league/badge/x16ihc1546113079.png",
+    "logoUrl": "./assets/ATP.png",
     "providers": [
       {
         "espnAthlete": {
@@ -211,7 +211,7 @@
   "wta": {
     "name": "WTA Tour",
     "env_var": "LEAGUES_ENABLE_TENNIS",
-    "logoUrl": "https://www.thesportsdb.com/images/media/league/badge/bddhun1768230678.png",
+    "logoUrl": "./assets/WTA.png",
     "providers": [
       {
         "espnAthlete": {
