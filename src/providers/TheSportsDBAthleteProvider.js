@@ -22,13 +22,12 @@
 // fetched through the normal thumbnail asset pipeline, not cached here.
 // ------------------------------------------------------------------------------
 
-const axios = require('axios');
 const BaseProvider = require('./BaseProvider');
 const { getTeamMatchScoreWithOverrides, generateSlug, applyTeamOverrides } = require('../helpers/teamUtils');
 const logger = require('../helpers/logger');
 const fsCache = require('../helpers/fsCache');
 const { TeamNotFoundError } = require('../helpers/errors');
-const { REQUEST_TIMEOUT, bullpenUrl, getBullpenHeaders } = require('../helpers/requestConfig');
+const httpClient = require('../helpers/httpClient');
 
 const CACHE_SUBDIR = 'thesportsdb-athletes';
 
@@ -42,7 +41,6 @@ class TheSportsDBAthleteProvider extends BaseProvider {
         // Negative ("not found") results are cached only briefly so a newly added
         // boxer is not blocked for a month.
         this.NEGATIVE_CACHE_DURATION = 24 * 60 * 60 * 1000;
-        this.REQUEST_TIMEOUT = REQUEST_TIMEOUT;
 
         // Combat-sports palette (dark blues), mirrors ESPNAthleteProvider.
         // Extracting colors from a fighter photo yields skin tones, so we use a
@@ -221,12 +219,10 @@ class TheSportsDBAthleteProvider extends BaseProvider {
             }
         }
 
-        const url = bullpenUrl('thesportsdb', `/api/v1/json/x/searchplayers.php?p=${encodeURIComponent(athleteIdentifier)}`);
         let players = [];
         try {
-            const response = await axios.get(url, {
-                timeout: this.REQUEST_TIMEOUT,
-                headers: { 'User-Agent': 'Mozilla/5.0', ...getBullpenHeaders(url) }
+            const response = await httpClient.apiGet('thesportsdb', `/api/v1/json/x/searchplayers.php?p=${encodeURIComponent(athleteIdentifier)}`, {
+                headers: { 'User-Agent': 'Mozilla/5.0' }
             });
             players = response.data?.player || [];
         } catch (error) {
@@ -248,11 +244,9 @@ class TheSportsDBAthleteProvider extends BaseProvider {
             return cached;
         }
 
-        const url = bullpenUrl('thesportsdb', `/api/v1/json/x/lookupleague.php?id=${leagueId}`);
         try {
-            const response = await axios.get(url, {
-                timeout: this.REQUEST_TIMEOUT,
-                headers: { 'User-Agent': 'Mozilla/5.0', ...getBullpenHeaders(url) }
+            const response = await httpClient.apiGet('thesportsdb', `/api/v1/json/x/lookupleague.php?id=${leagueId}`, {
+                headers: { 'User-Agent': 'Mozilla/5.0' }
             });
             const leagueData = response.data?.leagues?.[0];
             if (!leagueData) {

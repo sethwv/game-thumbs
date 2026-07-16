@@ -4,8 +4,7 @@
 // ------------------------------------------------------------------------------
 
 const { createCanvas, loadImage } = require('canvas');
-const axios = require('axios');
-const { getBullpenHeaders } = require('./requestConfig');
+const httpClient = require('./httpClient');
 
 /**
  * Creates a composite image with multiple athlete headshots side-by-side
@@ -37,31 +36,17 @@ async function createAthleteComposite(athletes, width = 1600, height = 1600) {
             let imageBuffer;
             
             try {
-                const response = await axios.get(imageUrl, {
-                    responseType: 'arraybuffer',
+                const response = await httpClient.downloadBinary(imageUrl, {
                     timeout: 10000,
-                    headers: {
-                        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                        'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
-                        'Accept-Encoding': 'gzip, deflate, br',
-                        'Referer': 'https://www.espn.com/',
-                        ...getBullpenHeaders(imageUrl)
-                    }
+                    headers: { 'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8' }
                 });
                 imageBuffer = Buffer.from(response.data);
             } catch (error) {
                 // Headshot failed, try logoAlt (flag)
                 if (athlete.logoAlt) {
-                    const response = await axios.get(athlete.logoAlt, {
-                        responseType: 'arraybuffer',
+                    const response = await httpClient.downloadBinary(athlete.logoAlt, {
                         timeout: 10000,
-                        headers: {
-                            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                            'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
-                            'Accept-Encoding': 'gzip, deflate, br',
-                            'Referer': 'https://www.espn.com/',
-                            ...getBullpenHeaders(athlete.logoAlt)
-                        }
+                        headers: { 'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8' }
                     });
                     imageBuffer = Buffer.from(response.data);
                 } else {

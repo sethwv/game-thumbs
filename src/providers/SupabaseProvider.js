@@ -5,14 +5,13 @@
 // mirroring the HockeyTech website config-extraction pattern.
 // ------------------------------------------------------------------------------
 
-const axios = require('axios');
 const BaseProvider = require('./BaseProvider');
 const { getTeamMatchScoreWithOverrides } = require('../helpers/teamUtils');
 const { extractDominantColors } = require('../helpers/colorUtils');
 const logger = require('../helpers/logger');
 const fsCache = require('../helpers/fsCache');
 const { TeamNotFoundError } = require('../helpers/errors');
-const { REQUEST_TIMEOUT } = require('../helpers/requestConfig');
+const httpClient = require('../helpers/httpClient');
 
 const SUPABASE_URL_PATTERN = /https:\/\/([a-z0-9]+)\.supabase\.co/;
 // Supabase publishable key (new format): sb_publishable_<random>
@@ -160,10 +159,7 @@ class SupabaseProvider extends BaseProvider {
 
         let html;
         try {
-            const response = await axios.get(websiteUrl, {
-                timeout: REQUEST_TIMEOUT,
-                headers: BROWSER_HEADERS
-            });
+            const response = await httpClient.directGet(websiteUrl);
             html = response.data;
         } catch (error) {
             throw new Error(`Failed to fetch ${websiteUrl}: ${error.message}`);
@@ -194,8 +190,8 @@ class SupabaseProvider extends BaseProvider {
 
         for (const scriptUrl of scriptUrls) {
             try {
-                const jsResponse = await axios.get(scriptUrl, {
-                    timeout: REQUEST_TIMEOUT,
+                const jsResponse = await httpClient.directGet(scriptUrl, {
+                    browserHeaders: false,
                     headers: { 'User-Agent': BROWSER_HEADERS['User-Agent'] }
                 });
                 const js = String(jsResponse.data);
@@ -281,9 +277,9 @@ class SupabaseProvider extends BaseProvider {
         logger.info('Fetching teams from Supabase', { league: league.shortName, supabaseUrl, table });
 
         try {
-            const response = await axios.get(`${supabaseUrl}/rest/v1/${table}`, {
+            const response = await httpClient.directGet(`${supabaseUrl}/rest/v1/${table}`, {
                 params: { select: '*' },
-                timeout: REQUEST_TIMEOUT,
+                browserHeaders: false,
                 headers: {
                     'apikey': apiKey,
                     'Authorization': `Bearer ${apiKey}`,

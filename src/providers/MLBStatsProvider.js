@@ -5,22 +5,21 @@
 // via the free MLB StatsAPI (statsapi.mlb.com)
 // ------------------------------------------------------------------------------
 
-const axios = require('axios');
 const BaseProvider = require('./BaseProvider');
 const { getTeamMatchScoreWithOverrides, generateSlug, findTeamByAlias, applyTeamOverrides } = require('../helpers/teamUtils');
 const { rasterizeLogo, extractPalette } = require('../helpers/svgUtils');
 const logger = require('../helpers/logger');
 const fsCache = require('../helpers/fsCache');
 const { TeamNotFoundError } = require('../helpers/errors');
-const { REQUEST_TIMEOUT, bullpenUrl, getBullpenHeaders } = require('../helpers/requestConfig');
+const httpClient = require('../helpers/httpClient');
 
 class MLBStatsProvider extends BaseProvider {
     constructor() {
         super();
         this.TEAM_CACHE_DURATION = 24 * 60 * 60 * 1000;     // 24 hours
         this.LOGO_CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days
-        this.BASE_URL = bullpenUrl('mlb-stats', '/api/v1');
-        this.LOGO_BASE_URL = bullpenUrl('mlb-static', '/team-logos');
+        this.BASE_URL = httpClient.resolveUrl('mlb-stats', '/api/v1');
+        this.LOGO_BASE_URL = httpClient.resolveUrl('mlb-static', '/team-logos');
     }
 
     getProviderId() {
@@ -203,9 +202,8 @@ class MLBStatsProvider extends BaseProvider {
             const url = `${this.BASE_URL}/teams?sportId=${sportId}&season=${seasonParam}`;
 
             try {
-                const response = await axios.get(url, {
-                    timeout: REQUEST_TIMEOUT,
-                    headers: { 'User-Agent': 'Mozilla/5.0', ...getBullpenHeaders(url) }
+                const response = await httpClient.fetchUrl(url, {
+                    headers: { 'User-Agent': 'Mozilla/5.0' }
                 });
 
                 const teams = response.data?.teams || [];
@@ -255,10 +253,8 @@ class MLBStatsProvider extends BaseProvider {
 
         const svgUrl = `${this.LOGO_BASE_URL}/${teamId}.svg`;
         try {
-            const response = await axios.get(svgUrl, {
-                responseType: 'arraybuffer',
-                timeout: REQUEST_TIMEOUT,
-                headers: { 'User-Agent': 'Mozilla/5.0', ...getBullpenHeaders(svgUrl) }
+            const response = await httpClient.downloadBinary(svgUrl, {
+                headers: { 'User-Agent': 'Mozilla/5.0' }
             });
 
             const svgBuffer = Buffer.from(response.data);

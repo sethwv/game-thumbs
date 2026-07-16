@@ -4,14 +4,14 @@
 // Handles team resolution and data fetching from HockeyTech LeagueStat API
 // ------------------------------------------------------------------------------
 
-const axios = require('axios');
 const BaseProvider = require('./BaseProvider');
 const { getTeamMatchScoreWithOverrides, generateSlug } = require('../helpers/teamUtils');
 const { extractDominantColors } = require('../helpers/colorUtils');
 const logger = require('../helpers/logger');
 const fsCache = require('../helpers/fsCache');
 const { TeamNotFoundError } = require('../helpers/errors');
-const { REQUEST_TIMEOUT, BROWSER_HEADERS, getBrowserHeaders, getProxyRequestConfig, bullpenUrl, getBullpenHeaders } = require('../helpers/requestConfig');
+const { BROWSER_HEADERS } = require('../helpers/requestConfig');
+const httpClient = require('../helpers/httpClient');
 
 // Independent per-path proxy toggle (see helpers/requestConfig.js + SOCKS_PROXY).
 // Only gates config-extraction scraping of league websites (out of Bullpen's
@@ -27,7 +27,6 @@ class HockeyTechProvider extends BaseProvider {
         this.CONFIG_CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days
         this.SEASONS_TO_AGGREGATE = 3;  // combine up to 3 substantive seasons for full roster coverage
         this.MIN_SEASON_TEAMS = 4;      // skip All-Star/exhibition seasons with fewer real teams
-        this.BASE_URL = bullpenUrl('hockeytech', '/feed/');
     }
 
     getProviderId() {
@@ -232,7 +231,7 @@ class HockeyTechProvider extends BaseProvider {
 
     async fetchStartedSeasons(clientCode) {
         try {
-            const response = await axios.get(this.BASE_URL, {
+            const response = await httpClient.apiGet('hockeytech', '/feed/', {
                 params: {
                     feed: 'modulekit',
                     view: 'seasons',
@@ -240,8 +239,7 @@ class HockeyTechProvider extends BaseProvider {
                     lang_code: 'en',
                     fmt: 'json'
                 },
-                timeout: REQUEST_TIMEOUT,
-                headers: { ...BROWSER_HEADERS, ...getBullpenHeaders(this.BASE_URL) }
+                headers: BROWSER_HEADERS
             });
 
             const seasons = response.data?.SiteKit?.Seasons || [];
@@ -272,10 +270,9 @@ class HockeyTechProvider extends BaseProvider {
             params.season_id = seasonId;
         }
 
-        const response = await axios.get(this.BASE_URL, {
+        const response = await httpClient.apiGet('hockeytech', '/feed/', {
             params,
-            timeout: REQUEST_TIMEOUT,
-            headers: { ...BROWSER_HEADERS, ...getBullpenHeaders(this.BASE_URL) }
+            headers: BROWSER_HEADERS
         });
 
         return response.data?.SiteKit?.Teamsbyseason || [];
@@ -388,11 +385,7 @@ class HockeyTechProvider extends BaseProvider {
         }
 
         try {
-            const response = await axios.get(url, {
-                timeout: REQUEST_TIMEOUT,
-                headers: BROWSER_HEADERS,
-                ...getProxyRequestConfig(PROXY_EXTRACT)
-            });
+            const response = await httpClient.directGet(url, { proxy: PROXY_EXTRACT });
 
             const html = response.data;
             const config = this.parseConfigFromHtml(html);
@@ -472,13 +465,10 @@ class HockeyTechProvider extends BaseProvider {
             
             if (jsFileMatch) {
                 const jsUrl = jsFileMatch[1];
-                
-                const response = await axios.get(jsUrl, {
-                    timeout: REQUEST_TIMEOUT,
-                    headers: getBrowserHeaders('*/*'),
-                    ...getProxyRequestConfig(PROXY_EXTRACT)
-                });
-                
+
+                const response = await httpClient.directGet(jsUrl, { accept: '*/*', proxy: PROXY_EXTRACT });
+
+
                 // Look for var appKey = "value" in the external JS
                 const keyMatch = response.data.match(/var\s+appKey\s*=\s*["']([a-f0-9]{16})["']/i);
                 if (keyMatch) {

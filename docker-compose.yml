@@ -16,6 +16,9 @@ services:
       RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-30}
       IMAGE_CACHE_HOURS: ${IMAGE_CACHE_HOURS:-24}
 
+      BULLPEN_BASE_URL: ${BULLPEN_BASE_URL:-}
+      BULLPEN_API_KEY: ${BULLPEN_API_KEY:-}
+
       # ROOT_REDIRECT_URL: ${ROOT_REDIRECT_URL:-}  # Optional: Redirect root path to docs (e.g., https://game-thumbs-docs.swvn.io/)
 
       CORS_ORIGIN: ${CORS_ORIGIN:-*}

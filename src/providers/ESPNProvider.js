@@ -4,7 +4,6 @@
 // Handles team resolution and data fetching from ESPN APIs
 // ------------------------------------------------------------------------------
 
-const axios = require('axios');
 const fs = require('fs').promises;
 const path = require('path');
 const BaseProvider = require('./BaseProvider');
@@ -13,10 +12,8 @@ const { extractDominantColors } = require('../helpers/colorUtils');
 const logger = require('../helpers/logger');
 const fsCache = require('../helpers/fsCache');
 const { TeamNotFoundError } = require('../helpers/errors');
-const { REQUEST_TIMEOUT, bullpenUrl, getBullpenHeaders } = require('../helpers/requestConfig');
-
-const ESPN_CORE_API = bullpenUrl('espn-core', '/v2');
-const ESPN_SITE_API = bullpenUrl('espn-site', '/apis/site/v2');
+const { REQUEST_TIMEOUT } = require('../helpers/requestConfig');
+const httpClient = require('../helpers/httpClient');
 
 // Bounded scan of ESPN's small, stable group IDs (conferences/divisions/special
 // groupings) to find whichever one is named "All-Star" for a given league.
@@ -326,11 +323,11 @@ class ESPNProvider extends BaseProvider {
             )?.href;
 
             return darkLogoPreferred ? (darkLogo || defaultLogo) : (defaultLogo || darkLogo)
-                || bullpenUrl('espn-cdn', `/i/teamlogos/leagues/500/${league.shortName.toLowerCase()}.png`);
+                || httpClient.resolveUrl('espn-cdn', `/i/teamlogos/leagues/500/${league.shortName.toLowerCase()}.png`);
         } catch (error) {
             logger.warn('Failed to get league logo', { league: league.shortName, error: error.message });
             // Fallback to ESPN CDN logo
-            return bullpenUrl('espn-cdn', `/i/teamlogos/leagues/500/${league.shortName.toLowerCase()}.png`);
+            return httpClient.resolveUrl('espn-cdn', `/i/teamlogos/leagues/500/${league.shortName.toLowerCase()}.png`);
         }
     }
 
@@ -449,13 +446,9 @@ class ESPNProvider extends BaseProvider {
         const sports = [];
 
         try {
-            const url = `${ESPN_CORE_API}/sports?limit=1000`;
-            const response = await axios.get(url, {
+            const response = await httpClient.apiGet('espn-core', '/sports?limit=1000', {
                 timeout: 15000,
-                headers: {
-                    'User-Agent': 'game-thumbs-api/1.0',
-                    ...getBullpenHeaders(url)
-                }
+                headers: { 'User-Agent': 'game-thumbs-api/1.0' }
             });
 
             // ESPN Core API returns sports in items array with $ref URLs
@@ -490,13 +483,9 @@ class ESPNProvider extends BaseProvider {
 
         try {
             // Use ESPN Core API with high limit to get all leagues
-            const url = `${ESPN_CORE_API}/sports/${sport}/leagues?limit=1000`;
-            const response = await axios.get(url, {
+            const response = await httpClient.apiGet('espn-core', `/sports/${sport}/leagues?limit=1000`, {
                 timeout: 15000,
-                headers: {
-                    'User-Agent': 'game-thumbs-api/1.0',
-                    ...getBullpenHeaders(url)
-                }
+                headers: { 'User-Agent': 'game-thumbs-api/1.0' }
             });
 
             // ESPN Core API returns leagues in items array with $ref URLs
@@ -583,12 +572,11 @@ class ESPNProvider extends BaseProvider {
             throw new Error(`League ${league.shortName} is missing ESPN configuration`);
         }
         const { espnSport, espnSlug } = espnConfig;
-        const teamApiUrl = `${ESPN_SITE_API}/sports/${espnSport}/${espnSlug}/teams?limit=1000`;
 
         try {
-            const response = await axios.get(teamApiUrl, {
+            const response = await httpClient.apiGet('espn-site', `/sports/${espnSport}/${espnSlug}/teams?limit=1000`, {
                 timeout: this.REQUEST_TIMEOUT,
-                headers: { 'User-Agent': 'Mozilla/5.0', ...getBullpenHeaders(teamApiUrl) }
+                headers: { 'User-Agent': 'Mozilla/5.0' }
             });
 
             let teams = response.data.sports?.[0]?.leagues?.[0]?.teams || [];
@@ -669,11 +657,14 @@ class ESPNProvider extends BaseProvider {
             return [];
         }
 
-        const groupTeamsUrl = `${ESPN_CORE_API}/sports/${espnSport}/leagues/${espnSlug}/seasons/${seasonYear}/types/2/groups/${groupId}/teams?limit=100&lang=en&region=us`;
-        const groupTeamsResponse = await axios.get(groupTeamsUrl, {
-            timeout: this.REQUEST_TIMEOUT,
-            headers: { 'User-Agent': 'Mozilla/5.0', ...getBullpenHeaders(groupTeamsUrl) }
-        });
+        const groupTeamsResponse = await httpClient.apiGet(
+            'espn-core',
+            `/sports/${espnSport}/leagues/${espnSlug}/seasons/${seasonYear}/types/2/groups/${groupId}/teams?limit=100&lang=en&region=us`,
+            {
+                timeout: this.REQUEST_TIMEOUT,
+                headers: { 'User-Agent': 'Mozilla/5.0' }
+            }
+        );
 
         const teamIds = (groupTeamsResponse.data.items || [])
             .map(item => item.$ref?.match(/\/teams\/(\d+)/)?.[1])
@@ -748,10 +739,9 @@ class ESPNProvider extends BaseProvider {
         const ids = Array.from({ length: ALL_STAR_GROUP_PROBE_LIMIT }, (_, i) => i + 1);
         const results = await Promise.all(ids.map(async (id) => {
             try {
-                const url = `${ESPN_CORE_API}/sports/${espnSport}/leagues/${espnSlug}/groups/${id}?lang=en&region=us`;
-                const response = await axios.get(url, {
+                const response = await httpClient.apiGet('espn-core', `/sports/${espnSport}/leagues/${espnSlug}/groups/${id}?lang=en&region=us`, {
                     timeout: this.REQUEST_TIMEOUT,
-                    headers: { 'User-Agent': 'Mozilla/5.0', ...getBullpenHeaders(url) }
+                    headers: { 'User-Agent': 'Mozilla/5.0' }
                 });
                 const group = response.data;
                 if (group && !group.error && ALL_STAR_NAME_PATTERN.test(group.name || group.abbreviation || '')) {
@@ -802,10 +792,9 @@ class ESPNProvider extends BaseProvider {
         };
         const dateRange = `${toDateParam(seasonType.startDate, -1)}-${toDateParam(seasonType.endDate, 1)}`;
 
-        const scoreboardUrl = `${ESPN_SITE_API}/sports/${espnSport}/${espnSlug}/scoreboard?dates=${dateRange}`;
-        const scoreboardResponse = await axios.get(scoreboardUrl, {
+        const scoreboardResponse = await httpClient.apiGet('espn-site', `/sports/${espnSport}/${espnSlug}/scoreboard?dates=${dateRange}`, {
             timeout: this.REQUEST_TIMEOUT,
-            headers: { 'User-Agent': 'Mozilla/5.0', ...getBullpenHeaders(scoreboardUrl) }
+            headers: { 'User-Agent': 'Mozilla/5.0' }
         });
 
         const teamIds = new Set();
@@ -852,10 +841,9 @@ class ESPNProvider extends BaseProvider {
         const ids = Array.from({ length: ALL_STAR_GROUP_PROBE_LIMIT }, (_, i) => i);
         const results = await Promise.all(ids.map(async (id) => {
             try {
-                const url = `${ESPN_CORE_API}/sports/${espnSport}/leagues/${espnSlug}/seasons/${seasonYear}/types/${id}?lang=en&region=us`;
-                const response = await axios.get(url, {
+                const response = await httpClient.apiGet('espn-core', `/sports/${espnSport}/leagues/${espnSlug}/seasons/${seasonYear}/types/${id}?lang=en&region=us`, {
                     timeout: this.REQUEST_TIMEOUT,
-                    headers: { 'User-Agent': 'Mozilla/5.0', ...getBullpenHeaders(url) }
+                    headers: { 'User-Agent': 'Mozilla/5.0' }
                 });
                 const type = response.data;
                 if (type && !type.error && ALL_STAR_NAME_PATTERN.test(type.name || type.abbreviation || '')) {
@@ -898,10 +886,9 @@ class ESPNProvider extends BaseProvider {
     async fetchTeamsByIds(espnSport, espnSlug, teamIds) {
         const results = await Promise.all(teamIds.map(async (id) => {
             try {
-                const url = `${ESPN_SITE_API}/sports/${espnSport}/${espnSlug}/teams/${id}`;
-                const response = await axios.get(url, {
+                const response = await httpClient.apiGet('espn-site', `/sports/${espnSport}/${espnSlug}/teams/${id}`, {
                     timeout: this.REQUEST_TIMEOUT,
-                    headers: { 'User-Agent': 'Mozilla/5.0', ...getBullpenHeaders(url) }
+                    headers: { 'User-Agent': 'Mozilla/5.0' }
                 });
                 return response.data.team ? { team: response.data.team } : null;
             } catch (error) {
@@ -927,14 +914,13 @@ class ESPNProvider extends BaseProvider {
             throw new Error(`League ${league.shortName} is missing ESPN configuration`);
         }
         const { espnSport, espnSlug } = espnConfig;
-        const leagueApiUrl = `${ESPN_CORE_API}/sports/${espnSport}/leagues/${espnSlug}`;
 
         try {
-            const response = await axios.get(leagueApiUrl, {
+            const response = await httpClient.apiGet('espn-core', `/sports/${espnSport}/leagues/${espnSlug}`, {
                 timeout: this.REQUEST_TIMEOUT,
-                headers: { 'User-Agent': 'Mozilla/5.0', ...getBullpenHeaders(leagueApiUrl) }
+                headers: { 'User-Agent': 'Mozilla/5.0' }
             });
-            
+
             // Cache to filesystem
             fsCache.setJSON('espn', cacheKey, response.data);
             

@@ -6,12 +6,11 @@
 
 const BaseProvider = require('./BaseProvider');
 const logger = require('../helpers/logger');
-const axios = require('axios');
 const { createCanvas, loadImage } = require('canvas');
 const { rasterizeLogo, extractPalette } = require('../helpers/svgUtils');
 const fsCache = require('../helpers/fsCache');
 const { TeamNotFoundError } = require('../helpers/errors');
-const { REQUEST_TIMEOUT, bullpenUrl, getBullpenHeaders } = require('../helpers/requestConfig');
+const httpClient = require('../helpers/httpClient');
 
 const SPORTS = [
     'volleyball-women',
@@ -258,7 +257,8 @@ class NCAAProvider extends BaseProvider {
      */
     async fetchAndConvertLogo(schoolSlug, darkBackground = false) {
         const bgParam = darkBackground ? 'bgd' : 'bgl';
-        const url = bullpenUrl('ncaa', `/sites/default/files/images/logos/schools/${bgParam}/${schoolSlug}.svg`);
+        const path = `/sites/default/files/images/logos/schools/${bgParam}/${schoolSlug}.svg`;
+        const url = httpClient.resolveUrl('ncaa', path);
 
         // Check filesystem cache
         const cacheKey = `${schoolSlug}-${bgParam}`;
@@ -269,11 +269,10 @@ class NCAAProvider extends BaseProvider {
         }
 
         try {
-            const response = await axios.get(url, {
+            const response = await httpClient.apiGet('ncaa', path, {
                 responseType: 'arraybuffer',
-                timeout: REQUEST_TIMEOUT,
                 maxRedirects: 5,
-                headers: { 'User-Agent': 'Mozilla/5.0', ...getBullpenHeaders(url) }
+                headers: { 'User-Agent': 'Mozilla/5.0' }
             });
 
             const svgBuffer = Buffer.from(response.data);
@@ -327,11 +326,10 @@ class NCAAProvider extends BaseProvider {
         const fetchPromises = [];
         for (const sport of SPORTS) {
             for (const division of DIVISIONS) {
-                const poolUrl = bullpenUrl('ncaa', `/json/teams/${sport}/${division}`);
                 fetchPromises.push(
-                    axios.get(poolUrl, {
+                    httpClient.apiGet('ncaa', `/json/teams/${sport}/${division}`, {
                         timeout: 10000,
-                        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; GameThumbs/1.0)', ...getBullpenHeaders(poolUrl) }
+                        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; GameThumbs/1.0)' }
                     })
                     .then(response => ({ sport, division, data: response.data }))
                     .catch(error => {

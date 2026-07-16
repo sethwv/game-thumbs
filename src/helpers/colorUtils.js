@@ -2,9 +2,9 @@
  * Color utility functions for image generation
  */
 
-const axios = require('axios');
 const { createCanvas, loadImage } = require('canvas');
-const { REQUEST_TIMEOUT, getHockeytechAssetProxyConfig, getBullpenHeaders } = require('./requestConfig');
+const { REQUEST_TIMEOUT } = require('./requestConfig');
+const httpClient = require('./httpClient');
 
 /**
  * Fetch image from URL
@@ -13,14 +13,10 @@ const { REQUEST_TIMEOUT, getHockeytechAssetProxyConfig, getBullpenHeaders } = re
  */
 async function fetchImage(url) {
     try {
-        const response = await axios.get(url, {
-            responseType: 'arraybuffer',
-            timeout: REQUEST_TIMEOUT,
-            maxRedirects: 5,
-            headers: { 'User-Agent': 'Mozilla/5.0', ...getBullpenHeaders(url) },
-            ...getHockeytechAssetProxyConfig(url)
+        const response = await httpClient.downloadBinary(url, {
+            headers: { 'User-Agent': 'Mozilla/5.0' }
         });
-        
+
         return Buffer.from(response.data);
     } catch (error) {
         if (error.code === 'ECONNABORTED') {

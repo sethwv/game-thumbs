@@ -5,13 +5,13 @@
 // ------------------------------------------------------------------------------
 
 const { createCanvas, loadImage } = require('canvas');
-const axios = require('axios');
 const crypto = require('crypto');
 const fs = require('fs').promises;
 const fsSync = require('fs');
 const path = require('path');
 const logger = require('../logger');
-const { REQUEST_TIMEOUT, getHockeytechAssetProxyConfig, getBullpenHeaders } = require('../requestConfig');
+const { REQUEST_TIMEOUT } = require('../requestConfig');
+const httpClient = require('../httpClient');
 
 // Cache settings from environment
 const CACHE_HOURS = parseInt(process.env.IMAGE_CACHE_HOURS || '24', 10);
@@ -47,19 +47,7 @@ async function downloadImage(urlOrPath, { allowSvg = false } = {}) {
 
     // Otherwise, treat as URL with timeout protection
     try {
-        const response = await axios.get(urlOrPath, {
-            responseType: 'arraybuffer',
-            timeout: REQUEST_TIMEOUT,
-            maxRedirects: 5,
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                'Accept': 'image/png,image/jpeg,image/jpg,*/*;q=0.8',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Referer': 'https://www.espn.com/',
-                ...getBullpenHeaders(urlOrPath)
-            },
-            ...getHockeytechAssetProxyConfig(urlOrPath)
-        });
+        const response = await httpClient.downloadBinary(urlOrPath);
 
         const buffer = Buffer.from(response.data);
 

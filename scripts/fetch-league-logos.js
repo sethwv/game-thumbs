@@ -4,7 +4,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const axios = require('axios');
+const httpClient = require('../src/helpers/httpClient');
 const { rasterizeLogo } = require('../src/helpers/svgUtils');
 
 const ASSETS_DIR = path.join(__dirname, '..', 'assets');
@@ -36,7 +36,7 @@ async function fetchWithRetry(url, attempts = 5) {
     let delay = 3000;
     for (let i = 1; i <= attempts; i++) {
         try {
-            return await axios.get(url, { responseType: 'arraybuffer', timeout: 30000, headers: HEADERS, maxRedirects: 5 });
+            return await httpClient.downloadBinary(url, { timeout: 30000, headers: HEADERS });
         } catch (err) {
             const status = err.response?.status;
             if (status === 429 && i < attempts) {

@@ -1,6 +1,8 @@
 // ------------------------------------------------------------------------------
 // requestConfig.js
-// Shared request configuration: timeout, browser headers, and optional SOCKS5 proxy
+// Shared request configuration: timeout, browser headers, and optional SOCKS5 proxy.
+// Bullpen routing/URL-building lives in httpClient.js, which imports the
+// BULLPEN_* values below.
 // ------------------------------------------------------------------------------
 
 const { SocksProxyAgent } = require('socks-proxy-agent');
@@ -9,28 +11,16 @@ const logger = require('./logger');
 const REQUEST_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '10000', 10);
 
 // Bullpen proxy: fronts ESPN/MLB/TheSportsDB/HockeyTech/FlagCDN/NCAA so game-thumbs no
-// longer needs to hold those upstreams' credentials itself. Every request needs the
-// X-Bullpen-Key header; see docs/bullpen-translation-guide.md for the full contract.
+// longer needs to hold those upstreams' credentials itself. When unset, httpClient.js
+// falls back to hitting each upstream directly. See docs/bullpen-translation-guide.md
+// for the full contract.
 const BULLPEN_BASE_URL = (process.env.BULLPEN_BASE_URL || '').replace(/\/+$/, '');
 const BULLPEN_API_KEY = process.env.BULLPEN_API_KEY || '';
 
 if (!BULLPEN_BASE_URL || !BULLPEN_API_KEY) {
-    logger.warn('BULLPEN_BASE_URL/BULLPEN_API_KEY not set — provider requests routed through Bullpen will fail');
-}
-
-// Builds `${BULLPEN_BASE_URL}/v1/{target}/{path}`, normalizing the slash between target and path.
-function bullpenUrl(target, path) {
-    return `${BULLPEN_BASE_URL}/v1/${target}${path.startsWith('/') ? path : `/${path}`}`;
-}
-
-// Returns the X-Bullpen-Key header, but ONLY when `url` actually targets Bullpen.
-// This gate matters: some callers (e.g. imageIO.downloadImage) also fetch arbitrary
-// user-supplied URLs, and attaching this header unconditionally would leak the key.
-function getBullpenHeaders(url) {
-    if (!BULLPEN_BASE_URL || typeof url !== 'string' || !url.startsWith(BULLPEN_BASE_URL)) {
-        return {};
-    }
-    return { 'X-Bullpen-Key': BULLPEN_API_KEY };
+    // logger.warn('BULLPEN_BASE_URL/BULLPEN_API_KEY not set — provider requests will go directly to upstream APIs instead of through Bullpen');
+} else {
+    logger.info(`Bullpen enabled — provider requests will be routed through ${BULLPEN_BASE_URL}`);
 }
 
 // Realistic browser User-Agent so feeds/sites don't reject obvious bots.
@@ -151,7 +141,5 @@ module.exports = {
     getProxyRequestConfig,
     getHockeytechAssetProxyConfig,
     BULLPEN_BASE_URL,
-    BULLPEN_API_KEY,
-    bullpenUrl,
-    getBullpenHeaders
+    BULLPEN_API_KEY
 };

@@ -4,7 +4,6 @@
 // Handles country flag resolution and fetching from flagcdn.com
 // ------------------------------------------------------------------------------
 
-const axios = require('axios');
 const { createCanvas, loadImage } = require('canvas');
 const BaseProvider = require('./BaseProvider');
 const { findTeamByAlias, applyTeamOverrides } = require('../helpers/teamUtils');
@@ -12,7 +11,7 @@ const { downloadImage } = require('../helpers/imageUtils');
 const logger = require('../helpers/logger');
 const fsCache = require('../helpers/fsCache');
 const { TeamNotFoundError } = require('../helpers/errors');
-const { REQUEST_TIMEOUT, bullpenUrl, getBullpenHeaders } = require('../helpers/requestConfig');
+const httpClient = require('../helpers/httpClient');
 
 class FlagCDNProvider extends BaseProvider {
     constructor() {
@@ -60,13 +59,8 @@ class FlagCDNProvider extends BaseProvider {
         }
 
         try {
-            const url = bullpenUrl('flagcdn', '/en/codes.json');
-            const response = await axios.get(url, {
-                timeout: REQUEST_TIMEOUT,
-                headers: {
-                    'User-Agent': 'game-thumbs/1.0',
-                    ...getBullpenHeaders(url)
-                }
+            const response = await httpClient.apiGet('flagcdn', '/en/codes.json', {
+                headers: { 'User-Agent': 'game-thumbs/1.0' }
             });
 
             fsCache.setJSON('flagcdn', 'countries', response.data);
@@ -377,7 +371,7 @@ class FlagCDNProvider extends BaseProvider {
             }
 
             // Build flag URL (using w2560 for high resolution)
-            const flagUrl = bullpenUrl('flagcdn', `/w2560/${bestCode.toLowerCase()}.png`);
+            const flagUrl = httpClient.resolveUrl('flagcdn', `/w2560/${bestCode.toLowerCase()}.png`);
 
             // Extract colors from flag
             let primaryColor = null;
