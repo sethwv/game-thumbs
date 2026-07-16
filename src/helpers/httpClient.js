@@ -45,11 +45,19 @@ const TARGET_REGISTRY = {
 };
 
 function normalizePath(path) {
+    if (!path) return '';
     return path.startsWith('/') ? path : `/${path}`;
 }
 
-function bullpenUrlFor(target, path) {
-    return `${BULLPEN_BASE_URL}/v1/${target}${normalizePath(path)}`;
+// Bullpen forwards {path} verbatim onto the target's real upstream host — it does not
+// rewrite, strip, or add any prefix. So the path we send it must be the exact real
+// upstream path, including any version/namespace segment baked into that target's
+// rawBase (e.g. espn-core needs a leading /v2, espn-site needs /apis/site/v2). Do not
+// "simplify" this back to swapping in a bare caller-supplied path — that's the bug
+// this function fixes (see game-thumbs-* / Bullpen path-prefix incident).
+function bullpenUrlFromRawUrl(target, rawUrl) {
+    const u = new URL(rawUrl);
+    return `${BULLPEN_BASE_URL}/v1/${target}${u.pathname}${u.search}`;
 }
 
 // Resolves a target+path to the URL to actually fetch: the Bullpen URL when
@@ -61,11 +69,9 @@ function resolveUrl(target, path) {
     if (!entry) {
         throw new Error(`httpClient: unknown target "${target}"`);
     }
-    if (bullpenEnabled) {
-        return bullpenUrlFor(target, path);
-    }
     const rawPath = entry.rawPath ? entry.rawPath(normalizePath(path)) : normalizePath(path);
-    return `${entry.rawBase}${rawPath}`;
+    const rawUrl = `${entry.rawBase}${rawPath}`;
+    return bullpenEnabled ? bullpenUrlFromRawUrl(target, rawUrl) : rawUrl;
 }
 
 // ESPN's core API embeds absolute $ref links back to itself in list responses
@@ -73,11 +79,14 @@ function resolveUrl(target, path) {
 // the real upstream host and must be rewritten before fetching; when disabled
 // they're already the correct URL to fetch as-is.
 function rewriteEspnCoreRef(ref) {
-    const rawBase = TARGET_REGISTRY['espn-core'].rawBase;
-    if (bullpenEnabled && typeof ref === 'string' && ref.startsWith(rawBase)) {
-        return bullpenUrlFor('espn-core', ref.slice(rawBase.length));
+    if (!bullpenEnabled || typeof ref !== 'string') {
+        return ref;
     }
-    return ref;
+    const rawOrigin = new URL(TARGET_REGISTRY['espn-core'].rawBase).origin;
+    if (!ref.startsWith(rawOrigin)) {
+        return ref;
+    }
+    return bullpenUrlFromRawUrl('espn-core', ref);
 }
 
 // Attaches X-Bullpen-Key only when `url` actually targets Bullpen. This gate

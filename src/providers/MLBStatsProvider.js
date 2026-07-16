@@ -18,8 +18,8 @@ class MLBStatsProvider extends BaseProvider {
         super();
         this.TEAM_CACHE_DURATION = 24 * 60 * 60 * 1000;     // 24 hours
         this.LOGO_CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days
-        this.BASE_URL = httpClient.resolveUrl('mlb-stats', '/api/v1');
-        this.LOGO_BASE_URL = httpClient.resolveUrl('mlb-static', '/team-logos');
+        this.BASE_URL = httpClient.resolveUrl('mlb-stats', '');
+        this.LOGO_BASE_URL = httpClient.resolveUrl('mlb-static', '');
     }
 
     getProviderId() {
