@@ -248,6 +248,22 @@
     ]
   },
   "__SOCCER_LEAGUES__": "===========================================",
+  "nwsl": {
+    "name": "National Women's Soccer League",
+    "aliases": [
+      "national women's soccer league",
+      "usa.nwsl",
+      "nwsl"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "usa.nwsl",
+          "espnSport": "soccer"
+        }
+      }
+    ]
+  },
   "uefa": {
     "name": "UEFA Champions League",
     "aliases": [
