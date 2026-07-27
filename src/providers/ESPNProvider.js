@@ -34,17 +34,33 @@ const ALL_STAR_GROUP_NAME_PATTERN = /all[\s-]?star/i;
 // guessing which pair is "current."
 const MAX_ALL_STAR_TEAMS_PER_LEAGUE = 4;
 
+// Bump whenever fetchTeamData's cached shape changes (e.g. new fields merged
+// in, like the All-Star pseudo-teams) so a stale pre-deploy entry sitting in
+// the persistent .cache volume gets bypassed instead of served for up to
+// CACHE_DURATION after a deploy.
+const TEAM_DATA_CACHE_VERSION = 'v2';
+
+// A failed All-Star group/season-type probe (e.g. one transient ESPN
+// rate-limit/timeout during the 20-way concurrent scan) shouldn't be
+// remembered as long as a successful one — keep negative results in a
+// short-lived in-memory cache instead of the 24h fsCache so they self-heal.
+const ALL_STAR_NEGATIVE_CACHE_DURATION_MS = 15 * 60 * 1000;
+
 class ESPNProvider extends BaseProvider {
     constructor() {
         super();
         this.CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
         this.REQUEST_TIMEOUT = REQUEST_TIMEOUT;
-        
+
         // Sport/League cache for unconfigured league fallback
         this.sportLeagueMap = new Map(); // Map<sport, Set<leagueSlug>>
         this.cacheInitialized = false;
         this.CACHE_DIR = path.join(process.cwd(), '.cache', 'providers');
         this.SPORT_LEAGUE_CACHE_FILE = path.join(this.CACHE_DIR, 'espn-sport-league.json');
+
+        // In-memory negative-result cache for All-Star group/season-type discovery
+        // (see ALL_STAR_NEGATIVE_CACHE_DURATION_MS). Map<cacheKey, timestampMs>.
+        this._allStarNegativeCache = new Map();
     }
 
     getProviderId() {
@@ -564,7 +580,7 @@ class ESPNProvider extends BaseProvider {
     // ------------------------------------------------------------------------------
 
     async fetchTeamData(league) {
-        const cacheKey = `${league.shortName}_teams`;
+        const cacheKey = `${league.shortName}_teams_${TEAM_DATA_CACHE_VERSION}`;
 
         // Return cached data from filesystem if still valid
         const cached = fsCache.getJSON('espn', cacheKey, this.CACHE_DURATION);
@@ -578,7 +594,7 @@ class ESPNProvider extends BaseProvider {
         }
         const { espnSport, espnSlug } = espnConfig;
         const teamApiUrl = `https://site.api.espn.com/apis/site/v2/sports/${espnSport}/${espnSlug}/teams?limit=1000`;
-        
+
         try {
             const response = await axios.get(teamApiUrl, {
                 timeout: this.REQUEST_TIMEOUT,
@@ -692,6 +708,9 @@ class ESPNProvider extends BaseProvider {
         if (cached !== null) {
             return cached.groupId;
         }
+        if (this._hasFreshAllStarNegativeCache(cacheKey)) {
+            return null;
+        }
 
         const ids = Array.from({ length: ALL_STAR_GROUP_PROBE_LIMIT }, (_, i) => i + 1);
         const results = await Promise.all(ids.map(async (id) => {
@@ -714,8 +733,126 @@ class ESPNProvider extends BaseProvider {
         const matches = results.filter(id => id !== null);
         const groupId = matches.length > 0 ? Math.min(...matches) : null;
 
-        fsCache.setJSON('espn', cacheKey, { groupId });
+        if (groupId !== null) {
+            fsCache.setJSON('espn', cacheKey, { groupId });
+        } else {
+            this._allStarNegativeCache.set(cacheKey, Date.now());
+        }
         return groupId;
+    }
+
+    /**
+     * Discover All-Star pseudo-teams via ESPN's "season type" concept
+     * (Regular Season, Playoffs, and, in leagues like soccer's MLS/Liga MX,
+     * one named "All-Star Game"). Finds that season type's date window, looks
+     * up the scoreboard event(s) within it whose name matches "All-Star", and
+     * takes their competitor teams as the pseudo-teams. Used as a fallback
+     * for leagues where All-Star isn't modeled as a "group" (e.g. soccer,
+     * where the pseudo-teams also report isActive: true rather than false).
+     * @param {string} espnSport - ESPN sport slug
+     * @param {string} espnSlug - ESPN league slug
+     * @param {number} seasonYear - Current season year
+     * @returns {Promise<Array>} Team entries in the same { team: {...} } shape as the bulk list
+     */
+    async discoverAllStarTeamsFromSeasonType(espnSport, espnSlug, seasonYear) {
+        const seasonType = await this.findAllStarSeasonType(espnSport, espnSlug, seasonYear);
+        if (!seasonType?.startDate || !seasonType?.endDate) {
+            return [];
+        }
+
+        // Pad by a day on each side to absorb timezone edges between the season
+        // type's UTC window and the scoreboard's local event date.
+        const toDateParam = (isoDate, offsetDays) => {
+            const date = new Date(isoDate);
+            date.setUTCDate(date.getUTCDate() + offsetDays);
+            return date.toISOString().slice(0, 10).replace(/-/g, '');
+        };
+        const dateRange = `${toDateParam(seasonType.startDate, -1)}-${toDateParam(seasonType.endDate, 1)}`;
+
+        const scoreboardUrl = `https://site.api.espn.com/apis/site/v2/sports/${espnSport}/${espnSlug}/scoreboard?dates=${dateRange}`;
+        const scoreboardResponse = await axios.get(scoreboardUrl, {
+            timeout: this.REQUEST_TIMEOUT,
+            headers: { 'User-Agent': 'Mozilla/5.0' }
+        });
+
+        const teamIds = new Set();
+        for (const event of scoreboardResponse.data.events || []) {
+            if (!ALL_STAR_NAME_PATTERN.test(event.name || '')) {
+                continue;
+            }
+            for (const competition of event.competitions || []) {
+                for (const competitor of competition.competitors || []) {
+                    if (competitor.team?.id) {
+                        teamIds.add(competitor.team.id);
+                    }
+                }
+            }
+        }
+
+        if (teamIds.size === 0 || teamIds.size > MAX_ALL_STAR_TEAMS_PER_LEAGUE) {
+            return [];
+        }
+
+        return await this.fetchTeamsByIds(espnSport, espnSlug, Array.from(teamIds));
+    }
+
+    /**
+     * Find the season type ESPN uses for a league's "All-Star Game" by
+     * scanning its small set of stable season type IDs (regular season,
+     * playoffs, etc.)
+     * @param {string} espnSport - ESPN sport slug
+     * @param {string} espnSlug - ESPN league slug
+     * @param {number} seasonYear - Current season year
+     * @returns {Promise<object|null>} The season type object, or null if not found
+     */
+    async findAllStarSeasonType(espnSport, espnSlug, seasonYear) {
+        const cacheKey = `${espnSport}_${espnSlug}_${seasonYear}_allstar_type`;
+        const cached = fsCache.getJSON('espn', cacheKey, this.CACHE_DURATION);
+        if (cached !== null) {
+            return cached.seasonType;
+        }
+        if (this._hasFreshAllStarNegativeCache(cacheKey)) {
+            return null;
+        }
+
+        // Season types are 0-indexed (0 = "Combined", 1 = "Regular Season", ...).
+        const ids = Array.from({ length: ALL_STAR_GROUP_PROBE_LIMIT }, (_, i) => i);
+        const results = await Promise.all(ids.map(async (id) => {
+            try {
+                const url = `${ESPN_CORE_API}/sports/${espnSport}/leagues/${espnSlug}/seasons/${seasonYear}/types/${id}?lang=en&region=us`;
+                const response = await axios.get(url, {
+                    timeout: this.REQUEST_TIMEOUT,
+                    headers: { 'User-Agent': 'Mozilla/5.0' }
+                });
+                const type = response.data;
+                if (type && !type.error && ALL_STAR_NAME_PATTERN.test(type.name || type.abbreviation || '')) {
+                    return type;
+                }
+                return null;
+            } catch (error) {
+                return null;
+            }
+        }));
+
+        const seasonType = results.find(type => type !== null) || null;
+
+        if (seasonType !== null) {
+            fsCache.setJSON('espn', cacheKey, { seasonType });
+        } else {
+            this._allStarNegativeCache.set(cacheKey, Date.now());
+        }
+        return seasonType;
+    }
+
+    /**
+     * Check whether a negative All-Star group/season-type discovery result is
+     * still within its short in-memory TTL (see ALL_STAR_NEGATIVE_CACHE_DURATION_MS).
+     * @param {string} cacheKey
+     * @returns {boolean}
+     */
+    _hasFreshAllStarNegativeCache(cacheKey) {
+        const cachedAt = this._allStarNegativeCache.get(cacheKey);
+        return cachedAt !== undefined && (Date.now() - cachedAt) < ALL_STAR_NEGATIVE_CACHE_DURATION_MS;
     }
 
     /**
@@ -741,56 +878,6 @@ class ESPNProvider extends BaseProvider {
         }));
 
         return results.filter(Boolean);
-    }
-
-    async fetchFranchiseData(espnSport, espnSlug, teamId) {
-        const cacheKey = `franchise_${espnSlug}_${teamId}`;
-
-        const cached = fsCache.getJSON('espn', cacheKey, this.CACHE_DURATION);
-        if (cached) {
-            return cached;
-        }
-
-        try {
-            const url = `https://sports.core.api.espn.com/v2/sports/${espnSport}/leagues/${espnSlug}/franchises/${teamId}?lang=en&region=us`;
-            const response = await axios.get(url, {
-                timeout: this.REQUEST_TIMEOUT,
-                headers: { 'User-Agent': 'Mozilla/5.0' }
-            });
-
-            fsCache.setJSON('espn', cacheKey, response.data);
-            return response.data;
-        } catch (error) {
-            logger.warn('Failed to fetch franchise data', { espnSport, espnSlug, teamId, error: error.message });
-            return null;
-        }
-    }
-
-    async fetchTeamRecord(espnSport, espnSlug, teamId) {
-        const RECORD_CACHE_DURATION = 60 * 60 * 1000; // 1 hour — records update frequently
-        const cacheKey = `record_${espnSlug}_${teamId}`;
-
-        const cached = fsCache.getJSON('espn', cacheKey, RECORD_CACHE_DURATION);
-        if (cached !== null && cached !== undefined) {
-            return cached;
-        }
-
-        try {
-            const url = `https://site.api.espn.com/apis/site/v2/sports/${espnSport}/${espnSlug}/teams/${teamId}`;
-            const response = await axios.get(url, {
-                timeout: this.REQUEST_TIMEOUT,
-                headers: { 'User-Agent': 'Mozilla/5.0' }
-            });
-
-            const record = response.data?.team?.record?.items
-                ?.find(i => i.type === 'total')?.summary ?? null;
-
-            fsCache.setJSON('espn', cacheKey, record);
-            return record;
-        } catch (error) {
-            logger.warn('Failed to fetch team record', { espnSport, espnSlug, teamId, error: error.message });
-            return null;
-        }
     }
 
     async fetchLeagueData(league) {
