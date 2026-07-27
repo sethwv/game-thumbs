@@ -89,6 +89,7 @@ class MLBStatsProvider extends BaseProvider {
 
             const teamSlug = generateSlug(bestMatch.name);
             const teamData = {
+                _rawSource: bestMatch,
                 id: bestMatch.id,
                 slug: teamSlug,
                 city: bestMatch.locationName || bestMatch.shortName || '',

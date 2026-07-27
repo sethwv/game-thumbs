@@ -35,9 +35,10 @@ module.exports = {
                 });
             }
 
-            // Otherwise, return team data
+            // Otherwise, return team data with raw source before parsed fields
             const resolvedTeam = await providerManager.resolveTeam(leagueObj, team);
-            res.json(resolvedTeam);
+            const { _rawSource, ...parsed } = resolvedTeam;
+            res.json({ source: _rawSource ?? null, parsed });
         } catch (error) {
             res.status(400).json({ error: error.message });
         }

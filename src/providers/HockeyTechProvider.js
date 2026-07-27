@@ -141,6 +141,7 @@ class HockeyTechProvider extends BaseProvider {
 
             // Return standardized team object
             return {
+                _rawSource: team,
                 id: team.id,
                 city: team.city,
                 name: team.nickname,

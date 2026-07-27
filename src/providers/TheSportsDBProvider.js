@@ -147,6 +147,7 @@ class TheSportsDBProvider extends BaseProvider {
 
             // Build standardized format
             let teamData = {
+                _rawSource: bestMatch,
                 id: bestMatch.idTeam,
                 slug: teamSlug, // Generated slug for TheSportsDB teams
                 city: bestMatch.strLocation || '',

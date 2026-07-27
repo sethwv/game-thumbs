@@ -422,6 +422,7 @@ class SupabaseProvider extends BaseProvider {
             }
 
             return {
+                _rawSource: team._raw,
                 id: team.id,
                 city: team.city,
                 name: team.name,
