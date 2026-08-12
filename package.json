@@ -13,7 +13,7 @@
     "express": "^5.2.1",
     "express-rate-limit": "^8.6.1",
     "fontkit": "^2.0.4",
-    "helmet": "^8.2.0",
+    "helmet": "^8.3.0",
     "sharp": "^0.35.3",
     "socks-proxy-agent": "^10.1.0"
   },
