@@ -4,7 +4,7 @@
 // ------------------------------------------------------------------------------
 
 const { createCanvas } = require('canvas');
-const { loadProcessedLogo, drawLogoMaintainAspect, hexToRgb } = require('../helpers/imageUtils');
+const { loadProcessedLogo, drawLogoMaintainAspect, drawTeamNameCard, hexToRgb } = require('../helpers/imageUtils');
 const { DIMENSIONS } = require('../config/constants');
 const { setShadow } = require('../helpers/shadows');
 const { extractDominantColors, blendColors, blendColorsWeighted, calculateColorDistance, analyzeColor, adjustVibrancy } = require('../helpers/colorUtils');
@@ -264,22 +264,22 @@ async function generateTeamThumb(teamLogoUrl, teamColor, teamAltColor, options =
     const width = options.width || DIMENSIONS.THUMB.width;
     const height = options.height || DIMENSIONS.THUMB.height;
     const teamLogoUrlAlt = options.teamLogoUrlAlt;
-    
-    return generateTeamImage(teamLogoUrl, teamColor, teamAltColor, width, height, teamLogoUrlAlt);
+
+    return generateTeamImage(teamLogoUrl, teamColor, teamAltColor, width, height, teamLogoUrlAlt, options);
 }
 
 async function generateTeamCover(teamLogoUrl, teamColor, teamAltColor, options = {}) {
     const width = options.width || DIMENSIONS.COVER.width;
     const height = options.height || DIMENSIONS.COVER.height;
     const teamLogoUrlAlt = options.teamLogoUrlAlt;
-    
-    return generateTeamImage(teamLogoUrl, teamColor, teamAltColor, width, height, teamLogoUrlAlt);
+
+    return generateTeamImage(teamLogoUrl, teamColor, teamAltColor, width, height, teamLogoUrlAlt, options);
 }
 
-async function generateTeamImage(teamLogoUrl, teamColor, teamAltColor, width, height, teamLogoUrlAlt) {
+async function generateTeamImage(teamLogoUrl, teamColor, teamAltColor, width, height, teamLogoUrlAlt, options = {}) {
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
-    
+
     try {
         // Use team colors to create gradient
         const color1Info = analyzeColor(teamColor);
@@ -330,21 +330,34 @@ async function generateTeamImage(teamLogoUrl, teamColor, teamAltColor, width, he
             getColorBrightness(hexToRgb(gradientColors[1]))
         ) / 2;
         
+        if (options.mode === 'name') {
+            const nameBoxSize = Math.min(width, height) * 0.7;
+            drawTeamNameCard(ctx, {
+                text: options.teamName,
+                color: '#ffffff',
+                x: (width - nameBoxSize) / 2,
+                y: (height - nameBoxSize) / 2,
+                boxSize: nameBoxSize
+            });
+
+            return canvas.toBuffer('image/png');
+        }
+
         // Load and check team logo contrast
         let finalLogoUrl = teamLogoUrl;
         let logoToUse = null;
-        
+
         // Try alternative logo if available and primary has poor contrast
         if (teamLogoUrlAlt) {
             try {
                 const primaryLogoBrightness = await estimateLogoBrightness(teamLogoUrl);
                 const contrastWithPrimary = Math.abs(avgGradientBrightness - primaryLogoBrightness);
-                
+
                 // If primary logo has poor contrast, try the alternative
                 if (contrastWithPrimary < 80) {
                     const altLogoBrightness = await estimateLogoBrightness(teamLogoUrlAlt);
                     const contrastWithAlt = Math.abs(avgGradientBrightness - altLogoBrightness);
-                    
+
                     // Use alt logo if it has better contrast
                     if (contrastWithAlt > contrastWithPrimary) {
                         finalLogoUrl = teamLogoUrlAlt;
@@ -354,22 +367,22 @@ async function generateTeamImage(teamLogoUrl, teamColor, teamAltColor, width, he
                 // If brightness estimation fails, use primary logo
             }
         }
-        
+
         // Download and load the chosen logo
         logoToUse = await loadProcessedLogo(finalLogoUrl, { svgSupport: true, trim: false });
-        
+
         // Draw the team logo
         const logoSize = Math.min(width, height) * 0.6;
         const logoX = (width - logoSize) / 2;
         const logoY = (height - logoSize) / 2;
-        
+
         ctx.save();
         setShadow(ctx, 'leagueLift');
-        
+
         drawLogoMaintainAspect(ctx, logoToUse, logoX, logoY, logoSize);
-        
+
         ctx.restore();
-        
+
         return canvas.toBuffer('image/png');
         
     } catch (error) {

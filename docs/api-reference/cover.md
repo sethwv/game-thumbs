@@ -36,6 +36,7 @@ nav_order: 8
 | `badge` | string | - | Add quality badge overlay: `ALT`, `4K`, `HD`, `FHD`, or `UHD` (matchup only) |
 | `winner` | string | - | Winning team identifier - displays losing team in greyscale (matchup only) |
 | `fallback` | boolean | false | **Single team:** Return league cover. **Matchup:** Use greyscale league logo for missing teams |
+| `mode` | string | league config | Override the league's configured `mode` (see [Customization](../customization.html#mode-name-render-team-names-instead-of-logos)) for this request: `name` renders team names as text instead of logos, `default` forces logos even if the league is configured with `mode: "name"`. Single team and matchup only. |
 | `title` | string | - | **League Cover:** An optional title to display on the league cover for sports that are not based on matchups (motorsports, etc.). Requires `ALLOW_EVENT_OVERLAYS=true`. |
 | `subtitle` | string | - | **League Cover:** An optional subtitle to display on the league cover for sports that are not based on matchups (motorsports, etc.). Requires `ALLOW_EVENT_OVERLAYS=true`. |
 | `iconurl` | string | - | **League Cover:** Optional image URL to display on the league cover for sports that are not based on matchups (motorsports, etc.). Must be an `http://` or `https://` URL with a public hostname; private and loopback targets are rejected unless `ALLOW_INSECURE_OVERLAY_URLS=true`. Requires `ALLOW_EVENT_OVERLAYS=true`. |

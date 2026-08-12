@@ -198,7 +198,7 @@
   "atp": {
     "name": "ATP Tour",
     "env_var": "LEAGUES_ENABLE_TENNIS",
-    "logoUrl": "https://r2.thesportsdb.com/images/media/league/badge/x16ihc1546113079.png",
+    "logoUrl": "./assets/ATP.png",
     "providers": [
       {
         "espnAthlete": {
@@ -211,7 +211,7 @@
   "wta": {
     "name": "WTA Tour",
     "env_var": "LEAGUES_ENABLE_TENNIS",
-    "logoUrl": "https://www.thesportsdb.com/images/media/league/badge/bddhun1768230678.png",
+    "logoUrl": "./assets/WTA.png",
     "providers": [
       {
         "espnAthlete": {
@@ -1825,6 +1825,21 @@
       {
         "supabase": {
           "websiteUrl": "https://cbl.ca"
+        }
+      }
+    ]
+  },
+  "llb": {
+    "name": "Little League Baseball",
+    "logoUrl": "./assets/LLB_LIGHTMODE.png",
+    "logoUrlDark": "./assets/LLB_DARKMODE.png",
+    "mode": "name",
+    "teamColors": ["#ef476f", "#ffd166", "#06d6a0", "#118ab2", "#073b4c"],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "llb",
+          "espnSport": "baseball"
         }
       }
     ]

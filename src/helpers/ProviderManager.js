@@ -430,6 +430,20 @@ class ProviderManager {
             try {
                 const result = await provider.resolveTeam(league, teamIdentifier);
                 result.providerId = provider.getProviderId();
+
+                // Leagues that configure `teamColors` in leagues.json get a
+                // deterministic color/alternateColor pulled from that palette
+                // instead of whatever the provider resolved, so the same team
+                // always renders in the same color.
+                if (Array.isArray(league.teamColors) && league.teamColors.length > 0) {
+                    const { pickTeamColors } = require('./colorUtils');
+                    const picked = pickTeamColors(result.id || result.slug || result.abbreviation || result.fullName || result.name, league.teamColors);
+                    if (picked) {
+                        result.color = picked.color;
+                        result.alternateColor = picked.alternateColor;
+                    }
+                }
+
                 if (!suppressLogging) {
                     logger.teamResolved(result.providerId, league.shortName, result.fullName || result.name);
                 }

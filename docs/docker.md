@@ -235,7 +235,7 @@ Configure proxy routing and the scraper user-agent for deployments behind restri
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `SOCKS_PROXY` | SOCKS5 proxy URL (e.g. `socks5://user:pass@host:1080`). When set, eligible provider requests are routed through the proxy. Falls back to direct if the proxy is unreachable. | Not set (direct) |
-| `SCRAPER_USER_AGENT` | User-agent string sent with browser-like scraping requests (e.g. for ESPN image scraping). | Chrome 124 on macOS |
+| `SCRAPER_USER_AGENT` | User-agent string sent with scraping/API requests (e.g. ESPN). Defaults to a non-browser (curl-style) UA — ESPN's Akamai WAF blocks browser-style UAs (`Mozilla/5.0`, spoofed Chrome/Firefox) from datacenter/VPS IPs but allows honest non-browser UAs from any origin. | `curl/8.7.1` |
 | `HOCKEYTECH_PROXY_EXTRACT` | Route HockeyTech extract-endpoint requests through `SOCKS_PROXY`. Set to `true`, `1`, or `yes` to enable. | `false` |
 | `HOCKEYTECH_PROXY_FEED` | Route HockeyTech feed-endpoint requests through `SOCKS_PROXY`. Set to `true`, `1`, or `yes` to enable. | `false` |
 

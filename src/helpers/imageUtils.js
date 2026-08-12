@@ -45,6 +45,7 @@ module.exports = {
     drawLogoMaintainAspect: draw.drawLogoMaintainAspect,
     calculateCenteredDimensions: draw.calculateCenteredDimensions,
     drawCenteredLogo: draw.drawCenteredLogo,
+    drawTeamNameCard: draw.drawTeamNameCard,
     convertToGreyscale: draw.convertToGreyscale,
 
     // Image utilities

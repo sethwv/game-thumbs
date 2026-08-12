@@ -8,12 +8,13 @@ const logger = require('./logger');
 
 const REQUEST_TIMEOUT = parseInt(process.env.REQUEST_TIMEOUT || '10000', 10);
 
-// Realistic browser User-Agent so feeds/sites don't reject obvious bots.
-// Overridable via env for quick rotation without a code change.
-const SCRAPER_USER_AGENT = process.env.SCRAPER_USER_AGENT ||
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
+// Non-browser UA. ESPN's Akamai WAF 403s browser-style UAs (Mozilla/5.0, spoofed
+// Chrome/Firefox) from datacenter IPs but passes honest non-browser UAs from any
+// origin (see game-thumbs issue #149). Overridable via env for quick rotation
+// without a code change.
+const SCRAPER_USER_AGENT = process.env.SCRAPER_USER_AGENT || 'curl/8.7.1';
 
-// Default browser-like headers shared across scraping requests.
+// Default headers shared across scraping/API requests.
 const BROWSER_HEADERS = {
     'User-Agent': SCRAPER_USER_AGENT,
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',

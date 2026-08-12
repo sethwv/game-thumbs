@@ -8,6 +8,7 @@ const {
     drawLogoWithShadow,
     drawLogoMaintainAspect,
     drawCenteredLogo,
+    drawTeamNameCard,
     loadProcessedLogo,
     calculateCenteredDimensions,
     selectBestLogo,
@@ -73,25 +74,25 @@ async function generateCover(teamA, teamB, options = {}) {
 }
 
 async function generateImage(teamA, teamB, options) {
-    const { width, height, style, league, orientation } = options;
-    
+    const { width, height, style, league, orientation, mode } = options;
+
     switch (style) {
         case 1:
-            return generateSplit(teamA, teamB, width, height, league, orientation);
+            return generateSplit(teamA, teamB, width, height, league, orientation, mode);
         case 2:
-            return generateGradient(teamA, teamB, width, height, league, orientation);
+            return generateGradient(teamA, teamB, width, height, league, orientation, mode);
         case 3:
-            return generateMinimalist(teamA, teamB, width, height, league, orientation, false);
+            return generateMinimalist(teamA, teamB, width, height, league, orientation, false, mode);
         case 4:
-            return generateMinimalist(teamA, teamB, width, height, league, orientation, true);
+            return generateMinimalist(teamA, teamB, width, height, league, orientation, true, mode);
         case 5:
-            return generateGrid(teamA, teamB, width, height, league, orientation, false);
+            return generateGrid(teamA, teamB, width, height, league, orientation, false, mode);
         case 6:
-            return generateGrid(teamA, teamB, width, height, league, orientation, true);
+            return generateGrid(teamA, teamB, width, height, league, orientation, true, mode);
         case 98:
-            return generate3DEmbossed(teamA, teamB, width, height, league, orientation, true);
+            return generate3DEmbossed(teamA, teamB, width, height, league, orientation, true, mode);
         case 99:
-            return generate3DEmbossed(teamA, teamB, width, height, league, orientation, false);
+            return generate3DEmbossed(teamA, teamB, width, height, league, orientation, false, mode);
         default:
             throw new Error(`Unknown style: ${style}. Valid styles are 1 (split), 2 (gradient), 3 (minimalist badge), 4 (minimalist badge dark), 5 (grid), 6 (grid team colors), 98 (3D embossed with league logo), 99 (3D embossed)`);
     }
@@ -101,7 +102,7 @@ async function generateImage(teamA, teamB, options) {
 // Style 1: Split (diagonal for landscape, horizontal for portrait)
 // ------------------------------------------------------------------------------
 
-async function generateSplit(teamA, teamB, width, height, league, orientation) {
+async function generateSplit(teamA, teamB, width, height, league, orientation, mode) {
     const { colorA, colorB } = adjustColors(teamA, teamB);
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
@@ -146,48 +147,50 @@ async function generateSplit(teamA, teamB, width, height, league, orientation) {
         ? Math.min(width * THUMBNAIL.LOGO_MAX_W_SCALE_LANDSCAPE, height * THUMBNAIL.LOGO_MAX_H_SCALE_LANDSCAPE)
         : Math.min(width * THUMBNAIL.LOGO_MAX_W_SCALE_PORTRAIT, height * THUMBNAIL.LOGO_MAX_H_SCALE_PORTRAIT);
     
-    // Load teamA logo independently
-    if (teamA.logo && !teamA.skipLogos) {
-        try {
-            const finalLogoImageA = await loadTrimmedLogo(teamA, colorA);
-            
-            const logoAX = orientation === 'landscape'
-                ? (width * THUMBNAIL.LOGO_ANCHOR_NEAR) - (logoMaxSize / 2)
-                : (width - logoMaxSize) / 2;
-            const logoAY = orientation === 'landscape'
-                ? (height / 2) - (logoMaxSize / 2)
-                : (height * THUMBNAIL.LOGO_ANCHOR_NEAR) - (logoMaxSize / 2);
-            
-            drawLogoWithShadow(ctx, finalLogoImageA, logoAX, logoAY, logoMaxSize);
-        } catch (error) {
-            logger.warn('Failed to load team A logo for split style', { 
-                team: teamA.name,
-                error: error.message 
-            });
+    const logoAX = orientation === 'landscape'
+        ? (width * THUMBNAIL.LOGO_ANCHOR_NEAR) - (logoMaxSize / 2)
+        : (width - logoMaxSize) / 2;
+    const logoAY = orientation === 'landscape'
+        ? (height / 2) - (logoMaxSize / 2)
+        : (height * THUMBNAIL.LOGO_ANCHOR_NEAR) - (logoMaxSize / 2);
+    const logoBX = orientation === 'landscape'
+        ? (width * THUMBNAIL.LOGO_ANCHOR_FAR) - (logoMaxSize / 2)
+        : (width - logoMaxSize) / 2;
+    const logoBY = orientation === 'landscape'
+        ? (height / 2) - (logoMaxSize / 2)
+        : (height * THUMBNAIL.LOGO_ANCHOR_FAR) - (logoMaxSize / 2);
+
+    if (mode === 'name') {
+        drawTeamNameCard(ctx, { text: teamA.fullName || teamA.name, color: '#ffffff', x: logoAX, y: logoAY, boxSize: logoMaxSize });
+        drawTeamNameCard(ctx, { text: teamB.fullName || teamB.name, color: '#ffffff', x: logoBX, y: logoBY, boxSize: logoMaxSize });
+    } else {
+        // Load teamA logo independently
+        if (teamA.logo && !teamA.skipLogos) {
+            try {
+                const finalLogoImageA = await loadTrimmedLogo(teamA, colorA);
+                drawLogoWithShadow(ctx, finalLogoImageA, logoAX, logoAY, logoMaxSize);
+            } catch (error) {
+                logger.warn('Failed to load team A logo for split style', {
+                    team: teamA.name,
+                    error: error.message
+                });
+            }
+        }
+
+        // Load teamB logo independently
+        if (teamB.logo && !teamB.skipLogos) {
+            try {
+                const finalLogoImageB = await loadTrimmedLogo(teamB, colorB);
+                drawLogoWithShadow(ctx, finalLogoImageB, logoBX, logoBY, logoMaxSize);
+            } catch (error) {
+                logger.warn('Failed to load team B logo for split style', {
+                    team: teamB.name,
+                    error: error.message
+                });
+            }
         }
     }
-    
-    // Load teamB logo independently
-    if (teamB.logo && !teamB.skipLogos) {
-        try {
-            const finalLogoImageB = await loadTrimmedLogo(teamB, colorB);
-            
-            const logoBX = orientation === 'landscape'
-                ? (width * THUMBNAIL.LOGO_ANCHOR_FAR) - (logoMaxSize / 2)
-                : (width - logoMaxSize) / 2;
-            const logoBY = orientation === 'landscape'
-                ? (height / 2) - (logoMaxSize / 2)
-                : (height * THUMBNAIL.LOGO_ANCHOR_FAR) - (logoMaxSize / 2);
-            
-            drawLogoWithShadow(ctx, finalLogoImageB, logoBX, logoBY, logoMaxSize);
-        } catch (error) {
-            logger.warn('Failed to load team B logo for split style', { 
-                team: teamB.name,
-                error: error.message 
-            });
-        }
-    }
-    
+
     // Draw league logo in bottom right corner if league logo URL is provided
     if (league && league.logoUrl) {
         try {
@@ -208,7 +211,7 @@ async function generateSplit(teamA, teamB, width, height, league, orientation) {
 // Style 2: Gradient
 // ------------------------------------------------------------------------------
 
-async function generateGradient(teamA, teamB, width, height, league, orientation) {
+async function generateGradient(teamA, teamB, width, height, league, orientation, mode) {
     const { colorA, colorB } = adjustColors(teamA, teamB);
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
@@ -228,40 +231,41 @@ async function generateGradient(teamA, teamB, width, height, league, orientation
     ctx.fillRect(0, 0, width, height);
     
     // Load and draw logos
-    try {
-        const logoMaxSize = orientation === 'landscape'
-            ? Math.min(width * THUMBNAIL.LOGO_MAX_W_SCALE_LANDSCAPE, height * THUMBNAIL.LOGO_MAX_H_SCALE_LANDSCAPE)
-            : Math.min(width * THUMBNAIL.LOGO_MAX_W_SCALE_PORTRAIT, height * THUMBNAIL.LOGO_MAX_H_SCALE_PORTRAIT);
-        
-        if (teamA.logo && !teamA.skipLogos) {
-            const finalLogoImageA = await loadTrimmedLogo(teamA, colorA);
-            
-            const logoAX = orientation === 'landscape'
-                ? (width * THUMBNAIL.LOGO_ANCHOR_NEAR) - (logoMaxSize / 2)
-                : (width - logoMaxSize) / 2;
-            const logoAY = orientation === 'landscape'
-                ? (height / 2) - (logoMaxSize / 2)
-                : (height * THUMBNAIL.LOGO_ANCHOR_NEAR) - (logoMaxSize / 2);
-            
-            drawLogoWithShadow(ctx, finalLogoImageA, logoAX, logoAY, logoMaxSize);
+    const logoMaxSize = orientation === 'landscape'
+        ? Math.min(width * THUMBNAIL.LOGO_MAX_W_SCALE_LANDSCAPE, height * THUMBNAIL.LOGO_MAX_H_SCALE_LANDSCAPE)
+        : Math.min(width * THUMBNAIL.LOGO_MAX_W_SCALE_PORTRAIT, height * THUMBNAIL.LOGO_MAX_H_SCALE_PORTRAIT);
+    const logoAX = orientation === 'landscape'
+        ? (width * THUMBNAIL.LOGO_ANCHOR_NEAR) - (logoMaxSize / 2)
+        : (width - logoMaxSize) / 2;
+    const logoAY = orientation === 'landscape'
+        ? (height / 2) - (logoMaxSize / 2)
+        : (height * THUMBNAIL.LOGO_ANCHOR_NEAR) - (logoMaxSize / 2);
+    const logoBX = orientation === 'landscape'
+        ? (width * THUMBNAIL.LOGO_ANCHOR_FAR) - (logoMaxSize / 2)
+        : (width - logoMaxSize) / 2;
+    const logoBY = orientation === 'landscape'
+        ? (height / 2) - (logoMaxSize / 2)
+        : (height * THUMBNAIL.LOGO_ANCHOR_FAR) - (logoMaxSize / 2);
+
+    if (mode === 'name') {
+        drawTeamNameCard(ctx, { text: teamA.fullName || teamA.name, color: '#ffffff', x: logoAX, y: logoAY, boxSize: logoMaxSize });
+        drawTeamNameCard(ctx, { text: teamB.fullName || teamB.name, color: '#ffffff', x: logoBX, y: logoBY, boxSize: logoMaxSize });
+    } else {
+        try {
+            if (teamA.logo && !teamA.skipLogos) {
+                const finalLogoImageA = await loadTrimmedLogo(teamA, colorA);
+                drawLogoWithShadow(ctx, finalLogoImageA, logoAX, logoAY, logoMaxSize);
+            }
+
+            if (teamB.logo && !teamB.skipLogos) {
+                const finalLogoImageB = await loadTrimmedLogo(teamB, colorB);
+                drawLogoWithShadow(ctx, finalLogoImageB, logoBX, logoBY, logoMaxSize);
+            }
+        } catch (error) {
+            logger.warn('Failed to load team logos for gradient style', { error: error.message });
         }
-        
-        if (teamB.logo && !teamB.skipLogos) {
-            const finalLogoImageB = await loadTrimmedLogo(teamB, colorB);
-            
-            const logoBX = orientation === 'landscape'
-                ? (width * THUMBNAIL.LOGO_ANCHOR_FAR) - (logoMaxSize / 2)
-                : (width - logoMaxSize) / 2;
-            const logoBY = orientation === 'landscape'
-                ? (height / 2) - (logoMaxSize / 2)
-                : (height * THUMBNAIL.LOGO_ANCHOR_FAR) - (logoMaxSize / 2);
-            
-            drawLogoWithShadow(ctx, finalLogoImageB, logoBX, logoBY, logoMaxSize);
-        }
-    } catch (error) {
-        logger.warn('Failed to load team logos for gradient style', { error: error.message });
     }
-    
+
     // Draw league logo in the center if league logo URL is provided
     if (league && league.logoUrl) {
         try {
@@ -274,7 +278,7 @@ async function generateGradient(teamA, teamB, width, height, league, orientation
             logger.warn('Failed to load league logo for gradient style', { error: error.message });
         }
     }
-    
+
     return canvas.toBuffer('image/png');
 }
 
@@ -282,7 +286,7 @@ async function generateGradient(teamA, teamB, width, height, league, orientation
 // Style 5/6: Grid Background (grey or team colors)
 // ------------------------------------------------------------------------------
 
-async function generateGrid(teamA, teamB, width, height, league, orientation, useTeamColors = false) {
+async function generateGrid(teamA, teamB, width, height, league, orientation, useTeamColors = false, mode) {
     const { colorA, colorB } = adjustColors(teamA, teamB);
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
@@ -359,38 +363,39 @@ async function generateGrid(teamA, teamB, width, height, league, orientation, us
     // Load and draw logos (same positioning as style 2)
     // Use dark background color for logo selection to prioritize logos readable on dark backgrounds
     const darkBackground = '#0a0a0a';
-    try {
-        const logoMaxSize = orientation === 'landscape'
-            ? Math.min(width * THUMBNAIL.LOGO_MAX_W_SCALE_LANDSCAPE, height * THUMBNAIL.LOGO_MAX_H_SCALE_LANDSCAPE)
-            : Math.min(width * THUMBNAIL.LOGO_MAX_W_SCALE_PORTRAIT, height * THUMBNAIL.LOGO_MAX_H_SCALE_PORTRAIT);
-        
-        if (teamA.logo && !teamA.skipLogos) {
-            const finalLogoImageA = await loadTrimmedLogo(teamA, darkBackground);
-            
-            const logoAX = orientation === 'landscape'
-                ? (width * THUMBNAIL.LOGO_ANCHOR_NEAR) - (logoMaxSize / 2)
-                : (width - logoMaxSize) / 2;
-            const logoAY = orientation === 'landscape'
-                ? (height / 2) - (logoMaxSize / 2)
-                : (height * THUMBNAIL.LOGO_ANCHOR_NEAR) - (logoMaxSize / 2);
-            
-            drawLogoWithShadow(ctx, finalLogoImageA, logoAX, logoAY, logoMaxSize);
+    const logoMaxSize = orientation === 'landscape'
+        ? Math.min(width * THUMBNAIL.LOGO_MAX_W_SCALE_LANDSCAPE, height * THUMBNAIL.LOGO_MAX_H_SCALE_LANDSCAPE)
+        : Math.min(width * THUMBNAIL.LOGO_MAX_W_SCALE_PORTRAIT, height * THUMBNAIL.LOGO_MAX_H_SCALE_PORTRAIT);
+    const logoAX = orientation === 'landscape'
+        ? (width * THUMBNAIL.LOGO_ANCHOR_NEAR) - (logoMaxSize / 2)
+        : (width - logoMaxSize) / 2;
+    const logoAY = orientation === 'landscape'
+        ? (height / 2) - (logoMaxSize / 2)
+        : (height * THUMBNAIL.LOGO_ANCHOR_NEAR) - (logoMaxSize / 2);
+    const logoBX = orientation === 'landscape'
+        ? (width * THUMBNAIL.LOGO_ANCHOR_FAR) - (logoMaxSize / 2)
+        : (width - logoMaxSize) / 2;
+    const logoBY = orientation === 'landscape'
+        ? (height / 2) - (logoMaxSize / 2)
+        : (height * THUMBNAIL.LOGO_ANCHOR_FAR) - (logoMaxSize / 2);
+
+    if (mode === 'name') {
+        drawTeamNameCard(ctx, { text: teamA.fullName || teamA.name, color: '#ffffff', x: logoAX, y: logoAY, boxSize: logoMaxSize });
+        drawTeamNameCard(ctx, { text: teamB.fullName || teamB.name, color: '#ffffff', x: logoBX, y: logoBY, boxSize: logoMaxSize });
+    } else {
+        try {
+            if (teamA.logo && !teamA.skipLogos) {
+                const finalLogoImageA = await loadTrimmedLogo(teamA, darkBackground);
+                drawLogoWithShadow(ctx, finalLogoImageA, logoAX, logoAY, logoMaxSize);
+            }
+
+            if (teamB.logo && !teamB.skipLogos) {
+                const finalLogoImageB = await loadTrimmedLogo(teamB, darkBackground);
+                drawLogoWithShadow(ctx, finalLogoImageB, logoBX, logoBY, logoMaxSize);
+            }
+        } catch (error) {
+            logger.warn('Failed to load team logos for grid style', { error: error.message });
         }
-        
-        if (teamB.logo && !teamB.skipLogos) {
-            const finalLogoImageB = await loadTrimmedLogo(teamB, darkBackground);
-            
-            const logoBX = orientation === 'landscape'
-                ? (width * THUMBNAIL.LOGO_ANCHOR_FAR) - (logoMaxSize / 2)
-                : (width - logoMaxSize) / 2;
-            const logoBY = orientation === 'landscape'
-                ? (height / 2) - (logoMaxSize / 2)
-                : (height * THUMBNAIL.LOGO_ANCHOR_FAR) - (logoMaxSize / 2);
-            
-            drawLogoWithShadow(ctx, finalLogoImageB, logoBX, logoBY, logoMaxSize);
-        }
-    } catch (error) {
-        logger.warn('Failed to load team logos for grid style', { error: error.message });
     }
     
     // Draw league logo in the center if league logo URL is provided
@@ -413,7 +418,7 @@ async function generateGrid(teamA, teamB, width, height, league, orientation, us
 // Style 3/4: Minimalist Badge (light/dark)
 // ------------------------------------------------------------------------------
 
-async function generateMinimalist(teamA, teamB, width, height, league, orientation, dark = false) {
+async function generateMinimalist(teamA, teamB, width, height, league, orientation, dark = false, mode) {
     const { colorA, colorB } = adjustColors(teamA, teamB);
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
@@ -439,75 +444,99 @@ async function generateMinimalist(teamA, teamB, width, height, league, orientati
     const circleACenter = orientation === 'landscape' ? width / 5 : height / 5;
     const circleBCenter = orientation === 'landscape' ? (width * 4) / 5 : (height * 4) / 5;
     
-    // Load and draw logos as badges
-    try {
-        if (teamA.logo && !teamA.skipLogos) {
-            const finalLogoImageA = await loadTrimmedLogo(teamA, colorA);
-            
-            const badgeAX = orientation === 'landscape'
-                ? circleACenter - (badgeSize / 2)
-                : centerX - (badgeSize / 2);
-            const badgeAY = orientation === 'landscape'
-                ? centerY - (badgeSize / 2)
-                : circleACenter - (badgeSize / 2);
-            
-            // Draw colored circle behind logo
-            ctx.fillStyle = colorA;
-            ctx.beginPath();
-            ctx.arc(badgeAX + badgeSize / 2, badgeAY + badgeSize / 2, badgeSize * 0.6, 0, Math.PI * 2);
-            ctx.fill();
-            
-            setShadow(ctx, 'minimalBadge');
-            
-            // Maintain aspect ratio and ensure logo fits within circle
-            // Circle radius is badgeSize * 0.6
-            // To fit a square logo in a circle: inscribed square = radius * sqrt(2)
-            const aspectA = finalLogoImageA.width / finalLogoImageA.height;
-            const circleRadius = badgeSize * 0.6;
-            const logoMaxSize = circleRadius * Math.sqrt(2) * 0.95; // 95% of max to leave small margin
-            const { drawWidth: logoWidth, drawHeight: logoHeight } = calculateCenteredDimensions(logoMaxSize, aspectA);
-            const logoX = badgeAX + (badgeSize - logoWidth) / 2;
-            const logoY = badgeAY + (badgeSize - logoHeight) / 2;
-            
-            resetShadow(ctx);
-            
-            ctx.drawImage(finalLogoImageA, logoX, logoY, logoWidth, logoHeight);
+    const badgeAX = orientation === 'landscape'
+        ? circleACenter - (badgeSize / 2)
+        : centerX - (badgeSize / 2);
+    const badgeAY = orientation === 'landscape'
+        ? centerY - (badgeSize / 2)
+        : circleACenter - (badgeSize / 2);
+    const badgeBX = orientation === 'landscape'
+        ? circleBCenter - (badgeSize / 2)
+        : centerX - (badgeSize / 2);
+    const badgeBY = orientation === 'landscape'
+        ? centerY - (badgeSize / 2)
+        : circleBCenter - (badgeSize / 2);
+
+    if (mode === 'name') {
+        const circleRadius = badgeSize * 0.6;
+        const nameBoxSize = circleRadius * Math.sqrt(2) * 0.95;
+
+        ctx.fillStyle = colorA;
+        ctx.beginPath();
+        ctx.arc(badgeAX + badgeSize / 2, badgeAY + badgeSize / 2, circleRadius, 0, Math.PI * 2);
+        ctx.fill();
+        const nameColorA = dark ? '#e9ecef' : '#ffffff';
+        drawTeamNameCard(ctx, {
+            text: teamA.fullName || teamA.name, color: nameColorA,
+            x: badgeAX + (badgeSize - nameBoxSize) / 2, y: badgeAY + (badgeSize - nameBoxSize) / 2, boxSize: nameBoxSize
+        });
+
+        ctx.fillStyle = colorB;
+        ctx.beginPath();
+        ctx.arc(badgeBX + badgeSize / 2, badgeBY + badgeSize / 2, circleRadius, 0, Math.PI * 2);
+        ctx.fill();
+        const nameColorB = dark ? '#e9ecef' : '#ffffff';
+        drawTeamNameCard(ctx, {
+            text: teamB.fullName || teamB.name, color: nameColorB,
+            x: badgeBX + (badgeSize - nameBoxSize) / 2, y: badgeBY + (badgeSize - nameBoxSize) / 2, boxSize: nameBoxSize
+        });
+    } else {
+        // Load and draw logos as badges
+        try {
+            if (teamA.logo && !teamA.skipLogos) {
+                const finalLogoImageA = await loadTrimmedLogo(teamA, colorA);
+
+                // Draw colored circle behind logo
+                ctx.fillStyle = colorA;
+                ctx.beginPath();
+                ctx.arc(badgeAX + badgeSize / 2, badgeAY + badgeSize / 2, badgeSize * 0.6, 0, Math.PI * 2);
+                ctx.fill();
+
+                setShadow(ctx, 'minimalBadge');
+
+                // Maintain aspect ratio and ensure logo fits within circle
+                // Circle radius is badgeSize * 0.6
+                // To fit a square logo in a circle: inscribed square = radius * sqrt(2)
+                const aspectA = finalLogoImageA.width / finalLogoImageA.height;
+                const circleRadius = badgeSize * 0.6;
+                const logoMaxSize = circleRadius * Math.sqrt(2) * 0.95; // 95% of max to leave small margin
+                const { drawWidth: logoWidth, drawHeight: logoHeight } = calculateCenteredDimensions(logoMaxSize, aspectA);
+                const logoX = badgeAX + (badgeSize - logoWidth) / 2;
+                const logoY = badgeAY + (badgeSize - logoHeight) / 2;
+
+                resetShadow(ctx);
+
+                ctx.drawImage(finalLogoImageA, logoX, logoY, logoWidth, logoHeight);
+            }
+
+            if (teamB.logo && !teamB.skipLogos) {
+                const finalLogoImageB = await loadTrimmedLogo(teamB, colorB);
+
+                // Draw colored circle behind logo
+                ctx.fillStyle = colorB;
+                ctx.beginPath();
+                ctx.arc(badgeBX + badgeSize / 2, badgeBY + badgeSize / 2, badgeSize * 0.6, 0, Math.PI * 2);
+                ctx.fill();
+
+                setShadow(ctx, 'minimalBadge');
+
+                // Maintain aspect ratio and ensure logo fits within circle
+                // Circle radius is badgeSize * 0.6
+                // To fit a square logo in a circle: inscribed square = radius * sqrt(2)
+                const aspectB = finalLogoImageB.width / finalLogoImageB.height;
+                const circleRadius = badgeSize * 0.6;
+                const logoMaxSize = circleRadius * Math.sqrt(2) * 0.95; // 95% of max to leave small margin
+                const { drawWidth: logoWidth, drawHeight: logoHeight } = calculateCenteredDimensions(logoMaxSize, aspectB);
+                const logoX = badgeBX + (badgeSize - logoWidth) / 2;
+                const logoY = badgeBY + (badgeSize - logoHeight) / 2;
+
+                resetShadow(ctx);
+
+                ctx.drawImage(finalLogoImageB, logoX, logoY, logoWidth, logoHeight);
+            }
+        } catch (error) {
+            logger.warn('Failed to load team logos for minimalist style', { error: error.message });
         }
-        
-        if (teamB.logo && !teamB.skipLogos) {
-            const finalLogoImageB = await loadTrimmedLogo(teamB, colorB);
-            
-            const badgeBX = orientation === 'landscape'
-                ? circleBCenter - (badgeSize / 2)
-                : centerX - (badgeSize / 2);
-            const badgeBY = orientation === 'landscape'
-                ? centerY - (badgeSize / 2)
-                : circleBCenter - (badgeSize / 2);
-            
-            // Draw colored circle behind logo
-            ctx.fillStyle = colorB;
-            ctx.beginPath();
-            ctx.arc(badgeBX + badgeSize / 2, badgeBY + badgeSize / 2, badgeSize * 0.6, 0, Math.PI * 2);
-            ctx.fill();
-            
-            setShadow(ctx, 'minimalBadge');
-            
-            // Maintain aspect ratio and ensure logo fits within circle
-            // Circle radius is badgeSize * 0.6
-            // To fit a square logo in a circle: inscribed square = radius * sqrt(2)
-            const aspectB = finalLogoImageB.width / finalLogoImageB.height;
-            const circleRadius = badgeSize * 0.6;
-            const logoMaxSize = circleRadius * Math.sqrt(2) * 0.95; // 95% of max to leave small margin
-            const { drawWidth: logoWidth, drawHeight: logoHeight } = calculateCenteredDimensions(logoMaxSize, aspectB);
-            const logoX = badgeBX + (badgeSize - logoWidth) / 2;
-            const logoY = badgeBY + (badgeSize - logoHeight) / 2;
-            
-            resetShadow(ctx);
-            
-            ctx.drawImage(finalLogoImageB, logoX, logoY, logoWidth, logoHeight);
-        }
-    } catch (error) {
-        logger.warn('Failed to load team logos for minimalist style', { error: error.message });
     }
     
     // Draw "VS" text in center
@@ -553,7 +582,7 @@ async function generateMinimalist(teamA, teamB, width, height, league, orientati
 // Style 98/99: 3D Embossed - Split panel with embossed texture and reflections with/without league logo
 // -----------------------------------------------------------------------------------------------------
 
-async function generate3DEmbossed(teamA, teamB, width, height, league, orientation, showLeagueLogo = false) {
+async function generate3DEmbossed(teamA, teamB, width, height, league, orientation, showLeagueLogo = false, mode) {
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
     
@@ -603,18 +632,23 @@ async function generate3DEmbossed(teamA, teamB, width, height, league, orientati
         
         // Load team logo
         let logoImg = null;
-        if (team.logo) {
+        if (team.logo && mode !== 'name') {
             try {
                 logoImg = await loadTrimmedLogo(team, team.color);
             } catch (error) {
-                logger.warn('Failed to load team logo for 3D embossed style', { 
-                    team: team.name, 
-                    error: error.message 
+                logger.warn('Failed to load team logo for 3D embossed style', {
+                    team: team.name,
+                    error: error.message
                 });
             }
         }
-        
-        if (logoImg) {
+
+        if (mode === 'name') {
+            const nameBoxSize = Math.min(panelW, panelH) * 0.5;
+            const nameX = xOffset + (panelW - nameBoxSize) / 2;
+            const nameY = (panelH - nameBoxSize) / 2;
+            drawTeamNameCard(ctx, { text: team.fullName || team.name, color: '#ffffff', x: nameX, y: nameY, boxSize: nameBoxSize });
+        } else if (logoImg) {
             // Calculate aspect ratio preserving dimensions
             const logoAspect = logoImg.width / logoImg.height;
             

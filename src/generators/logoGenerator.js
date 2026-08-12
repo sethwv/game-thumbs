@@ -4,13 +4,14 @@
 // ------------------------------------------------------------------------------
 
 const { createCanvas } = require('canvas');
-const { drawLogoWithShadow, drawCenteredLogo, loadProcessedLogo, selectBestLogo, adjustColors, trimImage } = require('../helpers/imageUtils');
+const { drawLogoWithShadow, drawCenteredLogo, drawTeamNameCard, loadProcessedLogo, selectBestLogo, adjustColors, trimImage } = require('../helpers/imageUtils');
 const { setShadow } = require('../helpers/shadows');
 const logger = require('../helpers/logger');
 const { DIAGONAL_SPLIT, LOGO } = require('../config/constants');
 
 module.exports = {
-    generateLogo
+    generateLogo,
+    generateTeamNameLogo
 };
 
 // ------------------------------------------------------------------------------
@@ -22,38 +23,53 @@ async function generateLogo(teamA, teamB, options = {}) {
     const league = options.league;
     const useLight = options.useLight || false;
     const trim = options.trim !== undefined ? options.trim : true;
-    
+    const mode = options.mode;
+
     let logoBuffer;
     switch (style) {
         case 1:
-            logoBuffer = await generateDiagonalSplit(teamA, teamB, width, height, league, useLight);
+            logoBuffer = await generateDiagonalSplit(teamA, teamB, width, height, league, useLight, mode);
             break;
         case 2:
-            logoBuffer = await generateSideBySide(teamA, teamB, width, height, league, useLight);
+            logoBuffer = await generateSideBySide(teamA, teamB, width, height, league, useLight, mode);
             break;
         case 3:
-            logoBuffer = await generateCircleBadges(teamA, teamB, width, height, league, useLight);
+            logoBuffer = await generateCircleBadges(teamA, teamB, width, height, league, useLight, mode);
             break;
         case 4:
-            logoBuffer = await generateSquareBadges(teamA, teamB, width, height, league, useLight);
+            logoBuffer = await generateSquareBadges(teamA, teamB, width, height, league, useLight, mode);
             break;
         case 5:
-            logoBuffer = await generateCircleBadgesWithLeague(teamA, teamB, width, height, league, useLight);
+            logoBuffer = await generateCircleBadgesWithLeague(teamA, teamB, width, height, league, useLight, mode);
             break;
         case 6:
-            logoBuffer = await generateSquareBadgesWithLeague(teamA, teamB, width, height, league, useLight);
+            logoBuffer = await generateSquareBadgesWithLeague(teamA, teamB, width, height, league, useLight, mode);
             break;
         default:
             throw new Error(`Unknown logo style: ${style}. Valid styles are 1 (split), 2 (side-by-side), 3 (circle badges), 4 (square badges), 5 (circle badges with league), or 6 (square badges with league)`);
     }
-    
+
     // Apply trim if requested
     if (trim) {
         // Don't cache the final composed output trim
         logoBuffer = await trimImage(logoBuffer, false);
     }
-    
+
     return logoBuffer;
+}
+
+// ------------------------------------------------------------------------------
+// mode:"name" single-team logo: a standalone transparent-background image with
+// just the team's name text (white), used in place of downloading the real
+// logo asset.
+// ------------------------------------------------------------------------------
+
+function generateTeamNameLogo(text, width = 800, height = 800) {
+    const canvas = createCanvas(width, height);
+    const ctx = canvas.getContext('2d');
+    const boxSize = Math.min(width, height) * 0.9;
+    drawTeamNameCard(ctx, { text, color: '#ffffff', x: (width - boxSize) / 2, y: (height - boxSize) / 2, boxSize });
+    return canvas.toBuffer('image/png');
 }
 
 // ------------------------------------------------------------------------------
@@ -61,7 +77,7 @@ async function generateLogo(teamA, teamB, options = {}) {
 // Thumbnail style 1 shrunk to logo style 6 footprint with transparent background
 // ------------------------------------------------------------------------------
 
-async function generateDiagonalSplit(teamA, teamB, width, height, league, useLight) {
+async function generateDiagonalSplit(teamA, teamB, width, height, league, useLight, mode) {
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
     
@@ -135,17 +151,19 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league, useLig
         return canvas.toBuffer('image/png');
     }
     
-    const teamALogoUrl = useLight ? teamA.logo : await selectBestLogo(teamA, colorA);
-    const teamBLogoUrl = useLight ? teamB.logo : await selectBestLogo(teamB, colorB);
-    
-    if (!teamA.logo || !teamB.logo) {
-        throw new Error('Both teams must have logos');
+    let logoA = null, logoB = null;
+    if (mode !== 'name') {
+        const teamALogoUrl = useLight ? teamA.logo : await selectBestLogo(teamA, colorA);
+        const teamBLogoUrl = useLight ? teamB.logo : await selectBestLogo(teamB, colorB);
+
+        if (!teamA.logo || !teamB.logo) {
+            throw new Error('Both teams must have logos');
+        }
+
+        logoA = await loadProcessedLogo(teamALogoUrl);
+        logoB = await loadProcessedLogo(teamBLogoUrl);
     }
-    
-    const logoA = await loadProcessedLogo(teamALogoUrl);
-    
-    const logoB = await loadProcessedLogo(teamBLogoUrl);
-    
+
     // Calculate thumbnail dimensions (same size as style 6 badge area)
     const centerX = width / 2;
     const centerY = height / 2;
@@ -192,16 +210,22 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league, useLig
     
     // Draw logos (same size as style 6)
     const logoMaxSize = badgeSize * LOGO.BADGE_LOGO_SCALE;
-    
-    // Team A logo (left side)
+
+    // Team A slot (left side)
     const logoAX = thumbX + (thumbWidth * 0.2) - (logoMaxSize / 2);
     const logoAY = thumbY + (thumbHeight / 2) - (logoMaxSize / 2);
-    drawLogoWithShadow(ctx, logoA, logoAX, logoAY, logoMaxSize);
-    
-    // Team B logo (right side)
+
+    // Team B slot (right side)
     const logoBX = thumbX + (thumbWidth * 0.8) - (logoMaxSize / 2);
     const logoBY = thumbY + (thumbHeight / 2) - (logoMaxSize / 2);
-    drawLogoWithShadow(ctx, logoB, logoBX, logoBY, logoMaxSize);
+
+    if (mode === 'name') {
+        drawTeamNameCard(ctx, { text: teamA.fullName || teamA.name, color: '#ffffff', x: logoAX, y: logoAY, boxSize: logoMaxSize });
+        drawTeamNameCard(ctx, { text: teamB.fullName || teamB.name, color: '#ffffff', x: logoBX, y: logoBY, boxSize: logoMaxSize });
+    } else {
+        drawLogoWithShadow(ctx, logoA, logoAX, logoAY, logoMaxSize);
+        drawLogoWithShadow(ctx, logoB, logoBX, logoBY, logoMaxSize);
+    }
     
     // Draw league logo in center if provided
     if (league && league.logoUrl) {
@@ -226,40 +250,44 @@ async function generateDiagonalSplit(teamA, teamB, width, height, league, useLig
 // Style 2: Side by Side
 // ------------------------------------------------------------------------------
 
-async function generateSideBySide(teamA, teamB, width, height, league, useLight) {
+async function generateSideBySide(teamA, teamB, width, height, league, useLight, mode) {
     // Create canvas with transparent background
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
-    
-    // Select which logo to use (logoAlt by default, unless useLight is true)
-    const teamALogoUrl = useLight ? teamA.logo : (teamA.logoAlt || teamA.logo);
-    const teamBLogoUrl = useLight ? teamB.logo : (teamB.logoAlt || teamB.logo);
-    
-    // Load both logos
-    if (!teamA.logo || !teamB.logo) {
-        throw new Error('Both teams must have logos');
-    }
-    
-    const logoA = await loadProcessedLogo(teamALogoUrl);
-    
-    const logoB = await loadProcessedLogo(teamBLogoUrl);
-    
+
     // Calculate logo size (50% of canvas for each logo)
     const logoSize = Math.min(width, height) * LOGO.SIDEBYSIDE_LOGO_SCALE;
     const spacing = width * 0.005; // 0.5% spacing between logos
-    
+
     // Position logos side by side
     const logoAX = (width / 2) - logoSize - (spacing / 2);
     const logoAY = (height - logoSize) / 2;
-    
+
     const logoBX = (width / 2) + (spacing / 2);
     const logoBY = (height - logoSize) / 2;
-    
-    // Draw teamA logo (left) with aspect ratio maintained
-    drawCenteredLogo(ctx, logoA, logoAX, logoAY, logoSize, 'panel');
 
-    // Draw teamB logo (right) with aspect ratio maintained
-    drawCenteredLogo(ctx, logoB, logoBX, logoBY, logoSize, 'panel');
+    if (mode === 'name') {
+        drawTeamNameCard(ctx, { text: teamA.fullName || teamA.name, color: '#ffffff', x: logoAX, y: logoAY, boxSize: logoSize });
+        drawTeamNameCard(ctx, { text: teamB.fullName || teamB.name, color: '#ffffff', x: logoBX, y: logoBY, boxSize: logoSize });
+    } else {
+        // Select which logo to use (logoAlt by default, unless useLight is true)
+        const teamALogoUrl = useLight ? teamA.logo : (teamA.logoAlt || teamA.logo);
+        const teamBLogoUrl = useLight ? teamB.logo : (teamB.logoAlt || teamB.logo);
+
+        // Load both logos
+        if (!teamA.logo || !teamB.logo) {
+            throw new Error('Both teams must have logos');
+        }
+
+        const logoA = await loadProcessedLogo(teamALogoUrl);
+        const logoB = await loadProcessedLogo(teamBLogoUrl);
+
+        // Draw teamA logo (left) with aspect ratio maintained
+        drawCenteredLogo(ctx, logoA, logoAX, logoAY, logoSize, 'panel');
+
+        // Draw teamB logo (right) with aspect ratio maintained
+        drawCenteredLogo(ctx, logoB, logoBX, logoBY, logoSize, 'panel');
+    }
     
     // Draw league logo as a badge in the bottom center if league logo URL is provided
     if (league && league.logoUrl) {
@@ -286,72 +314,79 @@ async function generateSideBySide(teamA, teamB, width, height, league, useLight)
 // Style 3: Circle Badges
 // ------------------------------------------------------------------------------
 
-async function generateCircleBadges(teamA, teamB, width, height, league, useLight) {
+async function generateCircleBadges(teamA, teamB, width, height, league, useLight, mode) {
     // Create canvas with transparent background
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
-    
+
     // Use adjustColors to ensure colors are distinguishable
     const { colorA, colorB } = adjustColors(teamA, teamB);
-    
-    // Select which logo to use based on background color contrast
-    const teamALogoUrl = await selectBestLogo(teamA, colorA);
-    const teamBLogoUrl = await selectBestLogo(teamB, colorB);
-    
-    // Load both logos
-    if (!teamA.logo || !teamB.logo) {
-        throw new Error('Both teams must have logos');
-    }
-    
-    const logoA = await loadProcessedLogo(teamALogoUrl);
-    
-    const logoB = await loadProcessedLogo(teamBLogoUrl);
-    
+
     // Calculate sizes - circles positioned closer together to avoid overflow
     const badgeSize = Math.min(width, height) * LOGO.CIRCLE_BADGE_SCALE;
     const spacing = width * 0.05; // Reduced from 0.1 to bring circles closer
     const centerX = width / 2;
     const centerY = height / 2;
-    
+
     // Position for teamA (left)
     const badgeAX = centerX - spacing - badgeSize;
     const badgeAY = centerY - (badgeSize / 2);
-    
+
+    // Position for teamB (right)
+    const badgeBX = centerX + spacing;
+    const badgeBY = centerY - (badgeSize / 2);
+
+    let logoA = null, logoB = null;
+    if (mode !== 'name') {
+        // Select which logo to use based on background color contrast
+        const teamALogoUrl = await selectBestLogo(teamA, colorA);
+        const teamBLogoUrl = await selectBestLogo(teamB, colorB);
+
+        // Load both logos
+        if (!teamA.logo || !teamB.logo) {
+            throw new Error('Both teams must have logos');
+        }
+
+        logoA = await loadProcessedLogo(teamALogoUrl);
+        logoB = await loadProcessedLogo(teamBLogoUrl);
+    }
+
     // Draw colored circle behind teamA logo with shadow
     ctx.save();
     setShadow(ctx, 'logoDropStrong');
-    
+
     ctx.fillStyle = colorA;
     ctx.beginPath();
     ctx.arc(badgeAX + badgeSize / 2, badgeAY + badgeSize / 2, badgeSize * LOGO.CIRCLE_RADIUS_SCALE, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
-    
+
     // Draw teamA logo (80% to fit within circle) with aspect ratio maintained
     const logoSize = badgeSize * LOGO.BADGE_LOGO_SCALE;
     const logoContainerX = badgeAX + (badgeSize - logoSize) / 2;
     const logoContainerY = badgeAY + (badgeSize - logoSize) / 2;
-    
-    drawCenteredLogo(ctx, logoA, logoContainerX, logoContainerY, logoSize);
-    
-    // Position for teamB (right)
-    const badgeBX = centerX + spacing;
-    const badgeBY = centerY - (badgeSize / 2);
-    
+
     // Draw colored circle behind teamB logo with shadow
     ctx.save();
     setShadow(ctx, 'logoDropStrong');
-    
+
     ctx.fillStyle = colorB;
     ctx.beginPath();
     ctx.arc(badgeBX + badgeSize / 2, badgeBY + badgeSize / 2, badgeSize * LOGO.CIRCLE_RADIUS_SCALE, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
-    
+
     // Draw teamB logo with aspect ratio maintained
     const logoContainerBX = badgeBX + (badgeSize - logoSize) / 2;
     const logoContainerBY = badgeBY + (badgeSize - logoSize) / 2;
-    drawCenteredLogo(ctx, logoB, logoContainerBX, logoContainerBY, logoSize);
+
+    if (mode === 'name') {
+        drawTeamNameCard(ctx, { text: teamA.fullName || teamA.name, color: '#ffffff', x: logoContainerX, y: logoContainerY, boxSize: logoSize });
+        drawTeamNameCard(ctx, { text: teamB.fullName || teamB.name, color: '#ffffff', x: logoContainerBX, y: logoContainerBY, boxSize: logoSize });
+    } else {
+        drawCenteredLogo(ctx, logoA, logoContainerX, logoContainerY, logoSize);
+        drawCenteredLogo(ctx, logoB, logoContainerBX, logoContainerBY, logoSize);
+    }
     
     // Draw league logo at bottom center if league logo URL is provided
     if (league && league.logoUrl) {
@@ -381,27 +416,29 @@ async function generateCircleBadges(teamA, teamB, width, height, league, useLigh
 // Style 4: Square Badges
 // ------------------------------------------------------------------------------
 
-async function generateSquareBadges(teamA, teamB, width, height, league, useLight) {
+async function generateSquareBadges(teamA, teamB, width, height, league, useLight, mode) {
     // Create canvas with transparent background
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
-    
+
     // Use adjustColors to ensure colors are distinguishable
     const { colorA, colorB } = adjustColors(teamA, teamB);
-    
-    // Select which logo to use based on adjusted team colors
-    const teamALogoUrl = useLight ? teamA.logo : await selectBestLogo(teamA, colorA);
-    const teamBLogoUrl = useLight ? teamB.logo : await selectBestLogo(teamB, colorB);
-    
-    // Load both logos
-    if (!teamA.logo || !teamB.logo) {
-        throw new Error('Both teams must have logos');
+
+    let logoA = null, logoB = null;
+    if (mode !== 'name') {
+        // Select which logo to use based on adjusted team colors
+        const teamALogoUrl = useLight ? teamA.logo : await selectBestLogo(teamA, colorA);
+        const teamBLogoUrl = useLight ? teamB.logo : await selectBestLogo(teamB, colorB);
+
+        // Load both logos
+        if (!teamA.logo || !teamB.logo) {
+            throw new Error('Both teams must have logos');
+        }
+
+        logoA = await loadProcessedLogo(teamALogoUrl);
+        logoB = await loadProcessedLogo(teamBLogoUrl);
     }
-    
-    const logoA = await loadProcessedLogo(teamALogoUrl);
-    
-    const logoB = await loadProcessedLogo(teamBLogoUrl);
-    
+
     // Calculate sizes - two squares that join in the middle to form a rectangle
     const badgeSize = Math.min(width, height) * LOGO.SQUARE_BADGE_SCALE;
     const centerX = width / 2;
@@ -433,15 +470,19 @@ async function generateSquareBadges(teamA, teamB, width, height, league, useLigh
     const logoSize = badgeSize * LOGO.BADGE_LOGO_SCALE;
     const logoContainerX = badgeAX + (badgeSize - logoSize) / 2;
     const logoContainerY = badgeAY + (badgeSize - logoSize) / 2;
-    
-    drawCenteredLogo(ctx, logoA, logoContainerX, logoContainerY, logoSize);
 
     // Draw teamB logo with aspect ratio maintained
     const logoContainerBX = badgeBX + (badgeSize - logoSize) / 2;
     const logoContainerBY = badgeBY + (badgeSize - logoSize) / 2;
-    
-    drawCenteredLogo(ctx, logoB, logoContainerBX, logoContainerBY, logoSize);
-    
+
+    if (mode === 'name') {
+        drawTeamNameCard(ctx, { text: teamA.fullName || teamA.name, color: '#ffffff', x: logoContainerX, y: logoContainerY, boxSize: logoSize });
+        drawTeamNameCard(ctx, { text: teamB.fullName || teamB.name, color: '#ffffff', x: logoContainerBX, y: logoContainerBY, boxSize: logoSize });
+    } else {
+        drawCenteredLogo(ctx, logoA, logoContainerX, logoContainerY, logoSize);
+        drawCenteredLogo(ctx, logoB, logoContainerBX, logoContainerBY, logoSize);
+    }
+
     // Draw league logo at bottom center if league logo URL is provided
     if (league && league.logoUrl) {
         try {
@@ -470,27 +511,29 @@ async function generateSquareBadges(teamA, teamB, width, height, league, useLigh
 // Style 5: Circle Badges with League (three circles)
 // ------------------------------------------------------------------------------
 
-async function generateCircleBadgesWithLeague(teamA, teamB, width, height, league, useLight) {
+async function generateCircleBadgesWithLeague(teamA, teamB, width, height, league, useLight, mode) {
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
-    
+
     const { colorA, colorB } = adjustColors(teamA, teamB);
-    
-    const teamALogoUrl = useLight ? teamA.logo : await selectBestLogo(teamA, colorA);
-    const teamBLogoUrl = useLight ? teamB.logo : await selectBestLogo(teamB, colorB);
-    
-    if (!teamA.logo || !teamB.logo) {
-        throw new Error('Both teams must have logos');
-    }
-    
+
     if (!league || !league.logoUrl) {
         throw new Error('League logo is required for style 5');
     }
-    
-    const logoA = await loadProcessedLogo(teamALogoUrl);
-    
-    const logoB = await loadProcessedLogo(teamBLogoUrl);
-    
+
+    let logoA = null, logoB = null;
+    if (mode !== 'name') {
+        const teamALogoUrl = useLight ? teamA.logo : await selectBestLogo(teamA, colorA);
+        const teamBLogoUrl = useLight ? teamB.logo : await selectBestLogo(teamB, colorB);
+
+        if (!teamA.logo || !teamB.logo) {
+            throw new Error('Both teams must have logos');
+        }
+
+        logoA = await loadProcessedLogo(teamALogoUrl);
+        logoB = await loadProcessedLogo(teamBLogoUrl);
+    }
+
     // For white background, always prefer the default league logo
     // Only use alternate if default is not available
     const leagueLogoUrl = league.logoUrl || league.logoUrlAlt;
@@ -542,30 +585,34 @@ async function generateCircleBadgesWithLeague(teamA, teamB, width, height, leagu
     
     const badges = [
         { logo: leagueLogo, bgColor: leagueBgColor, x: startX },
-        { logo: logoA, bgColor: colorA, x: startX + finalSpacing },
-        { logo: logoB, bgColor: colorB, x: startX + finalSpacing * 2 }
+        { logo: logoA, bgColor: colorA, x: startX + finalSpacing, text: teamA.fullName || teamA.name },
+        { logo: logoB, bgColor: colorB, x: startX + finalSpacing * 2, text: teamB.fullName || teamB.name }
     ];
-    
+
     badges.forEach(badge => {
         const badgeX = badge.x;
         const badgeY = centerY - (badgeSize / 2);
-        
+
         ctx.save();
         setShadow(ctx, 'logoDropStrong');
-        
+
         ctx.fillStyle = badge.bgColor;
         ctx.beginPath();
         ctx.arc(badgeX + badgeSize / 2, badgeY + badgeSize / 2, finalCircleRadius, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
-        
+
         const logoMaxSize = badgeSize * LOGO.BADGE_LOGO_SCALE;
         const logoContainerX = badgeX + (badgeSize - logoMaxSize) / 2;
         const logoContainerY = badgeY + (badgeSize - logoMaxSize) / 2;
-        
-        drawCenteredLogo(ctx, badge.logo, logoContainerX, logoContainerY, logoMaxSize);
+
+        if (mode === 'name' && badge.text) {
+            drawTeamNameCard(ctx, { text: badge.text, color: '#ffffff', x: logoContainerX, y: logoContainerY, boxSize: logoMaxSize });
+        } else {
+            drawCenteredLogo(ctx, badge.logo, logoContainerX, logoContainerY, logoMaxSize);
+        }
     });
-    
+
     return canvas.toBuffer('image/png');
 }
 
@@ -573,27 +620,29 @@ async function generateCircleBadgesWithLeague(teamA, teamB, width, height, leagu
 // Style 6: Square Badges with League (three squares)
 // ------------------------------------------------------------------------------
 
-async function generateSquareBadgesWithLeague(teamA, teamB, width, height, league, useLight) {
+async function generateSquareBadgesWithLeague(teamA, teamB, width, height, league, useLight, mode) {
     const canvas = createCanvas(width, height);
     const ctx = canvas.getContext('2d');
-    
+
     const { colorA, colorB } = adjustColors(teamA, teamB);
-    
-    const teamALogoUrl = useLight ? teamA.logo : await selectBestLogo(teamA, colorA);
-    const teamBLogoUrl = useLight ? teamB.logo : await selectBestLogo(teamB, colorB);
-    
-    if (!teamA.logo || !teamB.logo) {
-        throw new Error('Both teams must have logos');
-    }
-    
+
     if (!league || !league.logoUrl) {
         throw new Error('League logo is required for style 6');
     }
-    
-    const logoA = await loadProcessedLogo(teamALogoUrl);
-    
-    const logoB = await loadProcessedLogo(teamBLogoUrl);
-    
+
+    let logoA = null, logoB = null;
+    if (mode !== 'name') {
+        const teamALogoUrl = useLight ? teamA.logo : await selectBestLogo(teamA, colorA);
+        const teamBLogoUrl = useLight ? teamB.logo : await selectBestLogo(teamB, colorB);
+
+        if (!teamA.logo || !teamB.logo) {
+            throw new Error('Both teams must have logos');
+        }
+
+        logoA = await loadProcessedLogo(teamALogoUrl);
+        logoB = await loadProcessedLogo(teamBLogoUrl);
+    }
+
     // For white background, always prefer the default league logo
     // Only use alternate if default is not available
     const leagueLogoUrl = league.logoUrl || league.logoUrlAlt;
@@ -618,28 +667,32 @@ async function generateSquareBadgesWithLeague(teamA, teamB, width, height, leagu
     
     const badges = [
         { logo: leagueLogo, bgColor: leagueBgColor, x: startX },
-        { logo: logoA, bgColor: colorA, x: startX + badgeSize },
-        { logo: logoB, bgColor: colorB, x: startX + badgeSize * 2 }
+        { logo: logoA, bgColor: colorA, x: startX + badgeSize, text: teamA.fullName || teamA.name },
+        { logo: logoB, bgColor: colorB, x: startX + badgeSize * 2, text: teamB.fullName || teamB.name }
     ];
-    
+
     const badgeY = centerY - (badgeSize / 2);
-    
+
     ctx.save();
     setShadow(ctx, 'logoDropStrong');
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(startX, badgeY, badgeSize * 3, badgeSize);
     ctx.restore();
-    
+
     badges.forEach(badge => {
         ctx.fillStyle = badge.bgColor;
         ctx.fillRect(badge.x, badgeY, badgeSize, badgeSize);
-        
+
         const logoMaxSize = badgeSize * LOGO.BADGE_LOGO_SCALE;
         const logoContainerX = badge.x + (badgeSize - logoMaxSize) / 2;
         const logoContainerY = badgeY + (badgeSize - logoMaxSize) / 2;
-        
-        drawCenteredLogo(ctx, badge.logo, logoContainerX, logoContainerY, logoMaxSize);
+
+        if (mode === 'name' && badge.text) {
+            drawTeamNameCard(ctx, { text: badge.text, color: '#ffffff', x: logoContainerX, y: logoContainerY, boxSize: logoMaxSize });
+        } else {
+            drawCenteredLogo(ctx, badge.logo, logoContainerX, logoContainerY, logoMaxSize);
+        }
     });
-    
+
     return canvas.toBuffer('image/png');
 }

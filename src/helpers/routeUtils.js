@@ -16,7 +16,7 @@ const {
 } = require('./imageUtils');
 const { isEventOverlaysEnabled, getInsecureOverlayConfig } = require('./featureFlags');
 const { validatePublicImageUrl } = require('./urlValidator');
-const { findLeague } = require('../leagues');
+const { findLeague, resolveRenderMode } = require('../leagues');
 const { getTeamDisplayName } = require('./teamUtils');
 const logger = require('./logger');
 
@@ -230,6 +230,7 @@ function makeDefaultTeamHandler(generators) {
         const { req, res, leagueObj, team1, query, dimensions } = ctx;
         const { width, height } = dimensions;
         const { fallback, badge } = query;
+        const mode = resolveRenderMode(leagueObj, query);
 
         // Resolve the team (or set up the league-logo fallback) into a renderer,
         // then badge it via the shared base-image-caching path.
@@ -237,7 +238,7 @@ function makeDefaultTeamHandler(generators) {
         try {
             const resolvedTeam = await providerManager.resolveTeam(leagueObj, team1);
 
-            if (!resolvedTeam.logo && !resolvedTeam.logoAlt) {
+            if (mode !== 'name' && !resolvedTeam.logo && !resolvedTeam.logoAlt) {
                 res.status(404).json({ error: 'Team logo not found' });
                 return { servedEarly: true };
             }
@@ -250,7 +251,11 @@ function makeDefaultTeamHandler(generators) {
                 primaryLogo,
                 resolvedTeam.color || '#1a1d2e',
                 resolvedTeam.alternateColor || '#0f1419',
-                { width, height, teamLogoUrlAlt: altLogo }
+                {
+                    width, height, teamLogoUrlAlt: altLogo,
+                    mode,
+                    teamName: resolvedTeam.fullName || resolvedTeam.name
+                }
             );
         } catch (teamError) {
             await handleTeamNotFoundError(teamError, fallback === 'true', async () => {
@@ -275,7 +280,8 @@ function makeDefaultMatchupHandler(generators) {
             width,
             height,
             style: parseInt(style) || 1,
-            league: logo === 'false' ? null : league
+            league: logo === 'false' ? null : league,
+            mode: resolveRenderMode(leagueObj, query)
         };
 
         return renderMatchup({

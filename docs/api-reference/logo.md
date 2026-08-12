@@ -38,6 +38,7 @@ nav_order: 6
 | `badge` | string | - | Add quality badge overlay: `ALT`, `4K`, `HD`, `FHD`, or `UHD` (matchup only) |
 | `winner` | string | - | Winning team identifier - displays losing team in greyscale (matchup only) |
 | `fallback` | boolean | false | **Single team:** Return league logo. **Matchup:** Use greyscale league logo for missing teams (or skipLogos mode for configured leagues) |
+| `mode` | string | league config | Override the league's configured `mode` (see [Customization](../customization.html#mode-name-render-team-names-instead-of-logos)) for this request: `name` renders a team name text card instead of the real logo asset, `default` forces the real logo even if the league is configured with `mode: "name"`. Single team and matchup only. |
 
 ---
 
