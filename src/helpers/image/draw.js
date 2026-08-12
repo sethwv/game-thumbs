@@ -246,6 +246,77 @@ function adjustColors(teamA, teamB) {
     return { colorA, colorB };
 }
 
+/**
+ * Greedily wrap `text` into lines that each fit within `maxWidth` for the
+ * ctx's currently-set font.
+ */
+function wrapText(ctx, text, maxWidth) {
+    const words = text.split(' ');
+    const lines = [];
+    let current = '';
+
+    for (const word of words) {
+        const candidate = current ? `${current} ${word}` : word;
+        if (current && ctx.measureText(candidate).width > maxWidth) {
+            lines.push(current);
+            current = word;
+        } else {
+            current = candidate;
+        }
+    }
+    if (current) lines.push(current);
+
+    return lines;
+}
+
+/**
+ * Draw a team's name, shrink-to-fit and word-wrapped, centered in the same
+ * square box a logo would otherwise occupy. Used by mode:"name" rendering as
+ * a drop-in replacement for drawLogoWithShadow/drawCenteredLogo.
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {{ text: string, color: string, x: number, y: number, boxSize: number, fontFamily?: string }} opts
+ */
+function drawTeamNameCard(ctx, { text, color, x, y, boxSize, fontFamily = 'Arial, sans-serif' }) {
+    if (!text) return;
+
+    const maxWidth = boxSize * 0.95;
+    const maxHeight = boxSize * 0.95;
+    const minFontSize = Math.max(10, boxSize * 0.07);
+
+    let fontSize = boxSize * 0.3;
+    let lines = [text];
+    let lineHeight = fontSize * 1.15;
+
+    while (fontSize >= minFontSize) {
+        ctx.font = `900 ${Math.round(fontSize)}px ${fontFamily}`;
+        lines = wrapText(ctx, text, maxWidth);
+        lineHeight = fontSize * 1.15;
+
+        const widestLine = Math.max(...lines.map(line => ctx.measureText(line).width));
+        if (lines.length * lineHeight <= maxHeight && widestLine <= maxWidth) break;
+
+        fontSize -= 2;
+    }
+
+    ctx.save();
+    ctx.fillStyle = color;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+    ctx.shadowBlur = 6;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 1;
+
+    const centerX = x + boxSize / 2;
+    const blockHeight = lines.length * lineHeight;
+    const startY = y + boxSize / 2 - blockHeight / 2 + lineHeight / 2;
+
+    lines.forEach((line, i) => {
+        ctx.fillText(line, centerX, startY + i * lineHeight);
+    });
+    ctx.restore();
+}
+
 function getAverageColor(image) {
     // Create a temporary canvas to analyze the logo
     const canvas = createCanvas(image.width, image.height);
@@ -284,6 +355,7 @@ module.exports = {
     drawCenteredLogo,
     drawLogoWithShadow,
     drawLogoMaintainAspect,
+    drawTeamNameCard,
     convertToGreyscale,
     hexToRgb,
     rgbToHex,

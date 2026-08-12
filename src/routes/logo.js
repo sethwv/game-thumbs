@@ -12,7 +12,7 @@
 // ------------------------------------------------------------------------------
 
 const providerManager = require('../helpers/ProviderManager');
-const { generateLogo } = require('../generators/logoGenerator');
+const { generateLogo, generateTeamNameLogo } = require('../generators/logoGenerator');
 const {
     downloadImage,
     downloadImageWithSvgSupport,
@@ -21,6 +21,7 @@ const {
     handleTeamNotFoundError
 } = require('../helpers/imageUtils');
 const { createImageRoute, renderMatchup, applyBadgeWithCaching } = require('../helpers/routeUtils');
+const { resolveRenderMode } = require('../leagues');
 const { DIMENSIONS } = require('../config/constants');
 
 const VALID_SIZES = DIMENSIONS.LOGO_VALID_SIZES;
@@ -81,12 +82,21 @@ async function renderTeamLogo(ctx) {
     const { req, res, leagueObj, team1, query } = ctx;
     const { size, style, trim, variant, fallback, badge } = query;
     const styleValue = parseInt(style) || 0;
+    const mode = resolveRenderMode(leagueObj, query);
 
     let logoBuffer;
     try {
         const resolvedTeam = await providerManager.resolveTeam(leagueObj, team1);
 
-        if (styleValue === 1) {
+        if (mode === 'name') {
+            // Standalone name-card image in place of downloading the real logo asset
+            const dims = { width: DIMENSIONS.LOGO_DEFAULT, height: DIMENSIONS.LOGO_DEFAULT };
+            applySizeOverride(dims, size);
+            logoBuffer = await applyBadgeWithCaching({
+                req, res, badge, badgeScale: 0.18,
+                generate: () => generateTeamNameLogo(resolvedTeam.fullName || resolvedTeam.name, dims.width, dims.height)
+            });
+        } else if (styleValue === 1) {
             // Style 1: reuse matchup diagonal split with skipLogos dummy teams.
             // Pick the logo/background by contrast (alt logo before alt color)
             // so e.g. the Yankees get their white alt logo on the navy primary.
@@ -153,7 +163,8 @@ async function renderMatchupLogo(ctx) {
         style: styleValue,
         league: (logo === 'true' || (logo !== 'false' && hasLeagueLogoByDefault)) ? league : null,
         useLight: useLight === 'true',
-        trim: trim !== 'false'
+        trim: trim !== 'false',
+        mode: resolveRenderMode(leagueObj, query)
     };
     applySizeOverride(logoOptions, size);
 

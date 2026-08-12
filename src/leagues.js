@@ -130,10 +130,28 @@ function getAllLeagues() {
 
 // ------------------------------------------------------------------------------
 
+// Valid render modes. Add new modes here as they're implemented, plus a
+// corresponding branch at the draw call sites that consume the mode.
+const VALID_MODES = ['default', 'name'];
+
+// Resolves the effective render mode for a league, honoring a per-request
+// override (e.g. ?mode=name) ahead of the league's own configured mode.
+function resolveRenderMode(league, query = {}) {
+    const forced = query.mode;
+    if (forced && VALID_MODES.includes(forced)) return forced;
+
+    if (league?.mode && VALID_MODES.includes(league.mode)) return league.mode;
+
+    return 'default';
+}
+
+// ------------------------------------------------------------------------------
+
 module.exports = {
     leagues,
     findLeague,
     getAllLeagues,
+    resolveRenderMode,
 };
 
 // ------------------------------------------------------------------------------
