@@ -11,7 +11,7 @@
     "chalk": "^6.0.0",
     "cors": "^2.8.6",
     "express": "^5.2.1",
-    "express-rate-limit": "^8.5.2",
+    "express-rate-limit": "^8.6.1",
     "fontkit": "^2.0.4",
     "helmet": "^8.2.0",
     "sharp": "^0.35.3",
