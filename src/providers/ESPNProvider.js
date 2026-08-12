@@ -13,7 +13,7 @@ const { extractDominantColors } = require('../helpers/colorUtils');
 const logger = require('../helpers/logger');
 const fsCache = require('../helpers/fsCache');
 const { TeamNotFoundError } = require('../helpers/errors');
-const { REQUEST_TIMEOUT } = require('../helpers/requestConfig');
+const { REQUEST_TIMEOUT, getBrowserHeaders } = require('../helpers/requestConfig');
 
 const ESPN_CORE_API = 'https://sports.core.api.espn.com/v2';
 
@@ -451,9 +451,7 @@ class ESPNProvider extends BaseProvider {
             const url = 'https://sports.core.api.espn.com/v2/sports?limit=1000';
             const response = await axios.get(url, {
                 timeout: 15000,
-                headers: {
-                    'User-Agent': 'game-thumbs-api/1.0'
-                }
+                headers: getBrowserHeaders()
             });
 
             // ESPN Core API returns sports in items array with $ref URLs
@@ -491,9 +489,7 @@ class ESPNProvider extends BaseProvider {
             const url = `https://sports.core.api.espn.com/v2/sports/${sport}/leagues?limit=1000`;
             const response = await axios.get(url, {
                 timeout: 15000,
-                headers: {
-                    'User-Agent': 'game-thumbs-api/1.0'
-                }
+                headers: getBrowserHeaders()
             });
 
             // ESPN Core API returns leagues in items array with $ref URLs
@@ -585,7 +581,7 @@ class ESPNProvider extends BaseProvider {
         try {
             const response = await axios.get(teamApiUrl, {
                 timeout: this.REQUEST_TIMEOUT,
-                headers: { 'User-Agent': 'Mozilla/5.0' }
+                headers: getBrowserHeaders()
             });
 
             let teams = response.data.sports?.[0]?.leagues?.[0]?.teams || [];
@@ -669,7 +665,7 @@ class ESPNProvider extends BaseProvider {
         const groupTeamsUrl = `${ESPN_CORE_API}/sports/${espnSport}/leagues/${espnSlug}/seasons/${seasonYear}/types/2/groups/${groupId}/teams?limit=100&lang=en&region=us`;
         const groupTeamsResponse = await axios.get(groupTeamsUrl, {
             timeout: this.REQUEST_TIMEOUT,
-            headers: { 'User-Agent': 'Mozilla/5.0' }
+            headers: getBrowserHeaders()
         });
 
         const teamIds = (groupTeamsResponse.data.items || [])
@@ -748,7 +744,7 @@ class ESPNProvider extends BaseProvider {
                 const url = `${ESPN_CORE_API}/sports/${espnSport}/leagues/${espnSlug}/groups/${id}?lang=en&region=us`;
                 const response = await axios.get(url, {
                     timeout: this.REQUEST_TIMEOUT,
-                    headers: { 'User-Agent': 'Mozilla/5.0' }
+                    headers: getBrowserHeaders()
                 });
                 const group = response.data;
                 if (group && !group.error && ALL_STAR_NAME_PATTERN.test(group.name || group.abbreviation || '')) {
@@ -802,7 +798,7 @@ class ESPNProvider extends BaseProvider {
         const scoreboardUrl = `https://site.api.espn.com/apis/site/v2/sports/${espnSport}/${espnSlug}/scoreboard?dates=${dateRange}`;
         const scoreboardResponse = await axios.get(scoreboardUrl, {
             timeout: this.REQUEST_TIMEOUT,
-            headers: { 'User-Agent': 'Mozilla/5.0' }
+            headers: getBrowserHeaders()
         });
 
         const teamIds = new Set();
@@ -852,7 +848,7 @@ class ESPNProvider extends BaseProvider {
                 const url = `${ESPN_CORE_API}/sports/${espnSport}/leagues/${espnSlug}/seasons/${seasonYear}/types/${id}?lang=en&region=us`;
                 const response = await axios.get(url, {
                     timeout: this.REQUEST_TIMEOUT,
-                    headers: { 'User-Agent': 'Mozilla/5.0' }
+                    headers: getBrowserHeaders()
                 });
                 const type = response.data;
                 if (type && !type.error && ALL_STAR_NAME_PATTERN.test(type.name || type.abbreviation || '')) {
@@ -898,7 +894,7 @@ class ESPNProvider extends BaseProvider {
                 const url = `https://site.api.espn.com/apis/site/v2/sports/${espnSport}/${espnSlug}/teams/${id}`;
                 const response = await axios.get(url, {
                     timeout: this.REQUEST_TIMEOUT,
-                    headers: { 'User-Agent': 'Mozilla/5.0' }
+                    headers: getBrowserHeaders()
                 });
                 return response.data.team ? { team: response.data.team } : null;
             } catch (error) {
@@ -929,7 +925,7 @@ class ESPNProvider extends BaseProvider {
         try {
             const response = await axios.get(leagueApiUrl, {
                 timeout: this.REQUEST_TIMEOUT,
-                headers: { 'User-Agent': 'Mozilla/5.0' }
+                headers: getBrowserHeaders()
             });
             
             // Cache to filesystem

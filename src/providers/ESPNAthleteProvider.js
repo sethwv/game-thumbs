@@ -27,7 +27,7 @@ const { getTeamMatchScoreWithOverrides } = require('../helpers/teamUtils');
 const logger = require('../helpers/logger');
 const RequestQueue = require('../helpers/RequestQueue');
 const { TeamNotFoundError } = require('../helpers/errors');
-const { REQUEST_TIMEOUT } = require('../helpers/requestConfig');
+const { REQUEST_TIMEOUT, getBrowserHeaders } = require('../helpers/requestConfig');
 
 // Track if we've logged queue initialization (prevent duplicate logs)
 let queueInitLogged = false;
@@ -250,7 +250,7 @@ class ESPNAthleteProvider extends BaseProvider {
             
             const response = await axios.get(leagueApiUrl, {
                 timeout: this.REQUEST_TIMEOUT,
-                headers: { 'User-Agent': 'Mozilla/5.0' }
+                headers: getBrowserHeaders()
             });
             
             const defaultLogo = response.data.logos?.find(logo =>
@@ -580,7 +580,7 @@ class ESPNAthleteProvider extends BaseProvider {
                     () => this.retryWithBackoff(async () => {
                         return await axios.get(athleteApiUrl, {
                             timeout: this.REQUEST_TIMEOUT * 2,
-                            headers: { 'User-Agent': 'Mozilla/5.0' }
+                            headers: getBrowserHeaders()
                         });
                     }),
                     { metadata: { league: league.shortName, page: pageIndex, type: 'athlete-list' } }
@@ -601,7 +601,7 @@ class ESPNAthleteProvider extends BaseProvider {
                                 () => this.retryWithBackoff(async () => {
                                     const athleteResponse = await axios.get(athleteUrl, {
                                         timeout: this.REQUEST_TIMEOUT,
-                                        headers: { 'User-Agent': 'Mozilla/5.0' }
+                                        headers: getBrowserHeaders()
                                     });
                                     return athleteResponse.data;
                                 }),
