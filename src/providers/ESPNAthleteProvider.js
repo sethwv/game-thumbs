@@ -39,6 +39,8 @@ class ESPNAthleteProvider extends BaseProvider {
         this.REQUEST_TIMEOUT = REQUEST_TIMEOUT;
         this.refreshIntervals = new Map(); // Track refresh intervals per league
         this.pendingFetches = new Map(); // Track in-progress fetches to prevent duplicates
+        this.memoryCache = new Map(); // cacheKey -> { data, timestamp } - avoids re-parsing large roster files per request
+        this.pendingReads = new Map(); // cacheKey -> Promise, dedupes concurrent cold-cache disk reads
         this.CACHE_DIR = path.join(process.cwd(), '.cache', 'providers');
         
         // Request queue for rate limiting ESPN API calls
@@ -298,6 +300,36 @@ class ESPNAthleteProvider extends BaseProvider {
         }
     }
 
+    // Get parsed roster data for a cache key, served from an in-memory cache
+    // where possible to avoid re-parsing large (16K+ athlete) JSON files on
+    // every request. Concurrent cold reads for the same key are deduped.
+    async getCachedAthleteFile(cacheKey) {
+        if (this.memoryCache.has(cacheKey)) {
+            const { data, timestamp } = this.memoryCache.get(cacheKey);
+            const isExpired = Date.now() - timestamp >= this.CACHE_DURATION;
+            return { data, timestamp, isExpired };
+        }
+
+        if (this.pendingReads.has(cacheKey)) {
+            return await this.pendingReads.get(cacheKey);
+        }
+
+        const readPromise = (async () => {
+            const result = await this.readCacheFile(cacheKey);
+            if (result) {
+                this.memoryCache.set(cacheKey, { data: result.data, timestamp: result.timestamp });
+            }
+            return result;
+        })();
+
+        this.pendingReads.set(cacheKey, readPromise);
+        try {
+            return await readPromise;
+        } finally {
+            this.pendingReads.delete(cacheKey);
+        }
+    }
+
     // Write cache to file
     async writeCacheFile(cacheKey, data, timestamp) {
         try {
@@ -345,8 +377,8 @@ class ESPNAthleteProvider extends BaseProvider {
                 ? `${league.shortName}_${espnSlug}_athletes`
                 : `${league.shortName}_athletes`;
             
-            const fileCache = await this.readCacheFile(cacheKey);
-            
+            const fileCache = await this.getCachedAthleteFile(cacheKey);
+
             if (fileCache) {
                 // Schedule refresh for this league
                 this.scheduleRefresh(league, espnConfig);
@@ -493,8 +525,8 @@ class ESPNAthleteProvider extends BaseProvider {
             ? `${league.shortName}_${espnSlug}_athletes`
             : `${league.shortName}_athletes`;
         
-        // Check file cache
-        const cached = !forceRefresh ? await this.readCacheFile(cacheKey) : null;
+        // Check file cache (served from memory when already parsed)
+        const cached = !forceRefresh ? await this.getCachedAthleteFile(cacheKey) : null;
         const isCacheFresh = cached && !cached.isExpired;
         
         if (isCacheFresh) {
@@ -508,7 +540,7 @@ class ESPNAthleteProvider extends BaseProvider {
                 staleData = cached.data;
             }
         } else {
-            const fileCache = await this.readCacheFile(cacheKey);
+            const fileCache = await this.getCachedAthleteFile(cacheKey);
             if (fileCache) {
                 staleData = fileCache.data;
             }
@@ -649,10 +681,11 @@ class ESPNAthleteProvider extends BaseProvider {
                 errorRate: finalStats.errorRate
             });
             
-            // Write to file cache
+            // Write to file cache and refresh the in-memory copy immediately
             const timestamp = Date.now();
             this.writeCacheFile(cacheKey, allAthletes, timestamp);
-            
+            this.memoryCache.set(cacheKey, { data: allAthletes, timestamp });
+
             return allAthletes;
         } catch (error) {
             throw this.handleHttpError(error, `Fetching athletes for ${league.shortName}`);
