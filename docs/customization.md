@@ -195,6 +195,8 @@ All `.json` files in the directory will be loaded and merged in alphabetical ord
 | `feederLeagues` | array | Array of league keys to try when team not found (in order) |
 | `fallbackLeague` | string | Legacy fallback league (prefer `feederLeagues` for new configurations) |
 | `skipLogos` | boolean | When `true`, fallback renders colored rectangles with league logo instead of greyscale team logos (see below) |
+| `mode` | string | `"default"` (or omitted) renders team logos as usual. `"name"` renders each team's name as text instead of its logo (see below) |
+| `teamColors` | array | Hex color palette used to deterministically color-code teams instead of relying on a provider's own team colors (see below) |
 | `titleFont` | string | Custom font to use for league thumbs/covers when the title query parameter is specified. Only static TrueType fonts (ttf) are supported. |
 | `subtitleFont` | string | Custom font to use for league thumbs/covers when the subtitle query parameter is specified. Only static TrueType fonts (ttf) are supported. |
 
@@ -314,6 +316,45 @@ For leagues without team data providers (e.g., motorsports, Olympics), you can e
 3. The matchup renders as colored rectangles with the league logo overlaid — no team logos are shown
 
 **Built-in leagues with `skipLogos` enabled:** Olympics, F1, NASCAR, IndyCar
+
+#### mode: "name" (Render Team Names Instead of Logos)
+
+Some leagues don't have usable team logo assets (e.g. youth/amateur leagues where every team is a differently-named local club). Set `"mode": "name"` on a league to render each team's name as text instead of fetching/drawing its logo, on matchup thumbnails/covers and single-team thumbs/covers.
+
+```json
+{
+  "llb": {
+    "name": "Little League Baseball",
+    "logoUrl": "./assets/LLB_LIGHTMODE.png",
+    "mode": "name",
+    "providers": [
+      { "espn": { "espnSlug": "llb", "espnSport": "baseball" } }
+    ]
+  }
+}
+```
+
+**How it works:**
+
+- Team name text is always drawn in white with a dark drop shadow, shrink-to-fit and word-wrapped into the same space a logo would occupy.
+- No network fetch is made for the team's logo asset when `mode: "name"` is active, since it isn't drawn.
+- Applies to the `/thumb`, `/cover`, and `/logo` endpoints, for both matchup and single-team requests. League-only endpoints (no team in the URL) are unaffected.
+
+**Per-request override:** add `?mode=name` (or `?mode=default` to force logos) to any request to override the league's configured `mode` for that request only, regardless of what's set in `leagues.json`.
+
+#### teamColors (Deterministic Team Color Palette)
+
+For leagues where every team shares the same provider-supplied color (or has no meaningful color data at all — e.g. individual-athlete sports like tennis/MMA where "the team" is really a single competitor), set `teamColors` to a palette of hex colors. Each team is deterministically assigned a color and alternate color from that palette based on a stable hash of its identifier, so the same team always renders with the same colors across requests — no configuration per team required.
+
+```json
+{
+  "llb": {
+    "teamColors": ["#ef476f", "#ffd166", "#06d6a0", "#118ab2", "#073b4c"]
+  }
+}
+```
+
+When set, `teamColors` overrides whatever color the provider itself resolved (API-supplied or logo-extracted) for every team in that league. It does not affect teams defined via `teams.json` custom-team overrides.
 
 #### Finding ESPN Slugs
 

@@ -361,8 +361,45 @@ function darkenColor(hexColor, percent) {
     return rgbToHex(newR, newG, newB);
 }
 
+/**
+ * Deterministic 32-bit string hash (djb2), used to pick a stable index into a
+ * color palette for a given team identifier so the same team always lands on
+ * the same color across requests.
+ */
+function hashString(str) {
+    let hash = 5381;
+    for (let i = 0; i < str.length; i++) {
+        hash = ((hash << 5) + hash) + str.charCodeAt(i);
+        hash |= 0; // keep to 32-bit int
+    }
+    return Math.abs(hash);
+}
+
+/**
+ * Deterministically pick a team's color (and a distinct alternate) from a
+ * fixed palette, keyed off a stable team identifier. Used by leagues that
+ * configure `teamColors` in leagues.json instead of relying on provider APIs
+ * or logo-color extraction (e.g. individual-athlete sports where every
+ * competitor otherwise shares the same league branding).
+ * @param {string} identifier - stable per-team key (id/slug/abbreviation/name)
+ * @param {string[]} palette - array of hex colors
+ * @returns {{ color: string, alternateColor: string }|null}
+ */
+function pickTeamColors(identifier, palette) {
+    if (!Array.isArray(palette) || palette.length === 0) return null;
+
+    const index = hashString(String(identifier || '')) % palette.length;
+    const altIndex = (index + Math.ceil(palette.length / 2)) % palette.length;
+
+    return {
+        color: palette[index],
+        alternateColor: palette[altIndex]
+    };
+}
+
 module.exports = {
     extractDominantColors,
+    pickTeamColors,
     rgbToHex,
     getColorBrightness,
     isNeutralColor,

@@ -1829,6 +1829,21 @@
       }
     ]
   },
+  "llb": {
+    "name": "Little League Baseball",
+    "logoUrl": "./assets/LLB_LIGHTMODE.png",
+    "logoUrlDark": "./assets/LLB_DARKMODE.png",
+    "mode": "name",
+    "teamColors": ["#ef476f", "#ffd166", "#06d6a0", "#118ab2", "#073b4c"],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "llb",
+          "espnSport": "baseball"
+        }
+      }
+    ]
+  },
   "__CRICKET__": "===========================================",
   "the100m": {
     "name": "The Hundred",
