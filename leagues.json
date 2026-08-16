@@ -303,14 +303,16 @@
     "name": "UEFA Europa Conference League",
     "aliases": [
       "conference league",
+      "uecl",
       "uefa.conference",
+      "uefa.europa.conf",
       "uefaconferenceleague",
       "uefaeuropaconfleague"
     ],
     "providers": [
       {
         "espn": {
-          "espnSlug": "uefa.conference",
+          "espnSlug": "uefa.europa.conf",
           "espnSport": "soccer"
         }
       }
