@@ -784,6 +784,29 @@
       }
     ]
   },
+  "eredivisie": {
+    "name": "Eredivisie",
+    "aliases": [
+      "ned.1"
+    ],
+    "feederLeagues": [
+      "eerste-divisie"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "ned.1",
+          "espnSport": "soccer"
+        }
+      },
+      {
+        "theSportsDB": {
+          "leagueId": "4337",
+          "leagueName": "Dutch Eredivisie"
+        }
+      }
+    ]
+  },
   "mls": {
     "name": "Major League Soccer",
     "aliases": [
@@ -996,6 +1019,27 @@
         "espn": {
           "espnSlug": "fra.2",
           "espnSport": "soccer"
+        }
+      }
+    ]
+  },
+  "eerste-divisie": {
+    "name": "Eerste Divisie",
+    "aliases": [
+      "eredivisie 2",
+      "ned.2"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "ned.2",
+          "espnSport": "soccer"
+        }
+      },
+      {
+        "theSportsDB": {
+          "leagueId": "4641",
+          "leagueName": "Dutch Eerste Divisie"
         }
       }
     ]
