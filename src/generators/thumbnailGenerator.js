@@ -89,12 +89,20 @@ async function generateImage(teamA, teamB, options) {
             return generateGrid(teamA, teamB, width, height, league, orientation, false, mode);
         case 6:
             return generateGrid(teamA, teamB, width, height, league, orientation, true, mode);
+        case 10:
+            return generateStadium(teamA, teamB, width, height, league, orientation, 'center', false);
+        case 11:
+            return generateStadium(teamA, teamB, width, height, league, orientation, 'split', false);
+        case 12:
+            return generateStadium(teamA, teamB, width, height, league, orientation, 'center', true);
+        case 13:
+            return generateStadium(teamA, teamB, width, height, league, orientation, 'split', true);
         case 98:
             return generate3DEmbossed(teamA, teamB, width, height, league, orientation, true, mode);
         case 99:
             return generate3DEmbossed(teamA, teamB, width, height, league, orientation, false, mode);
         default:
-            throw new Error(`Unknown style: ${style}. Valid styles are 1 (split), 2 (gradient), 3 (minimalist badge), 4 (minimalist badge dark), 5 (grid), 6 (grid team colors), 98 (3D embossed with league logo), 99 (3D embossed)`);
+            throw new Error(`Unknown style: ${style}. Valid styles are 1 (split), 2 (gradient), 3 (minimalist badge), 4 (minimalist badge dark), 5 (grid), 6 (grid team colors), 10 (stadium), 11 (stadium split), 12 (stadium with record), 13 (stadium split with record), 98 (3D embossed with league logo), 99 (3D embossed)`);
     }
 }
 
@@ -575,6 +583,224 @@ async function generateMinimalist(teamA, teamB, width, height, league, orientati
         }
     }
     
+    return canvas.toBuffer('image/png');
+}
+
+// ------------------------------------------------------------------------------
+// Style 10: Stadium Background
+// ------------------------------------------------------------------------------
+
+async function generateStadium(teamA, teamB, width, height, league, orientation, layout = 'center', showRecord = false) {
+    const canvas = createCanvas(width, height);
+    const ctx = canvas.getContext('2d');
+    const isLandscape = orientation === 'landscape';
+    const centerX = width / 2;
+
+    // Dark base
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(0, 0, width, height);
+
+    const stadiumImageUrl = teamA.stadiumImage || teamB.stadiumImage;
+    const stadiumName = teamA.stadiumName || teamB.stadiumName;
+
+    // Stadium image at full opacity, cover-cropped
+    if (stadiumImageUrl) {
+        try {
+            const stadiumImg = await loadProcessedLogo(stadiumImageUrl, { svgSupport: false, trim: false });
+            const imgAspect = stadiumImg.width / stadiumImg.height;
+            const canvasAspect = width / height;
+            let drawWidth, drawHeight;
+            if (imgAspect > canvasAspect) {
+                drawHeight = height;
+                drawWidth = height * imgAspect;
+            } else {
+                drawWidth = width;
+                drawHeight = width / imgAspect;
+            }
+            ctx.drawImage(stadiumImg, (width - drawWidth) / 2, (height - drawHeight) / 2, drawWidth, drawHeight);
+        } catch (error) {
+            logger.warn('Failed to load stadium image for stadium style', { error: error.message });
+        }
+    }
+
+    if (layout === 'split') {
+        // Edge vignette + strong bottom gradient for split layout (11/13)
+        const vignette = ctx.createRadialGradient(
+            centerX, height / 2, Math.min(width, height) * 0.1,
+            centerX, height / 2, Math.max(width, height) * 0.75
+        );
+        vignette.addColorStop(0, 'rgba(0,0,0,0)');
+        vignette.addColorStop(1, 'rgba(0,0,0,0.35)');
+        ctx.fillStyle = vignette;
+        ctx.fillRect(0, 0, width, height);
+
+        const bottomFade = ctx.createLinearGradient(0, height * 0.46, 0, height);
+        bottomFade.addColorStop(0, 'rgba(0,0,0,0)');
+        bottomFade.addColorStop(0.40, 'rgba(0,0,0,0.65)');
+        bottomFade.addColorStop(1, 'rgba(0,0,0,0.95)');
+        ctx.fillStyle = bottomFade;
+        ctx.fillRect(0, 0, width, height);
+    }
+
+    // Logo sizing — portrait uses a tighter height cap to keep logos from crowding the edges
+    const logoMaxSize = isLandscape
+        ? Math.min(width * THUMBNAIL.LOGO_MAX_W_SCALE_LANDSCAPE, height * THUMBNAIL.LOGO_MAX_H_SCALE_LANDSCAPE)
+        : Math.min(width * THUMBNAIL.LOGO_MAX_W_SCALE_PORTRAIT, height * 0.27);
+
+    // Vertical anchor for each logo — portrait anchors spread further apart for breathing room
+    const logoAnchorA = isLandscape ? height * 0.42 : height * 0.27;
+    const logoAnchorB = isLandscape ? height * 0.42 : height * 0.67;
+
+    const logoAX = isLandscape ? (width * THUMBNAIL.LOGO_ANCHOR_NEAR) - (logoMaxSize / 2) : (width - logoMaxSize) / 2;
+    const logoAY = logoAnchorA - (logoMaxSize / 2);
+    const logoBX = isLandscape ? (width * THUMBNAIL.LOGO_ANCHOR_FAR) - (logoMaxSize / 2) : (width - logoMaxSize) / 2;
+    const logoBY = logoAnchorB - (logoMaxSize / 2);
+
+    // Draw logo with a strong drop shadow suited for photo backgrounds
+    function drawLogoOnPhoto(img, x, y) {
+        const aspect = img.width / img.height;
+        let w, h;
+        if (aspect > 1) { w = logoMaxSize; h = logoMaxSize / aspect; }
+        else { h = logoMaxSize; w = logoMaxSize * aspect; }
+        const dx = x + (logoMaxSize - w) / 2;
+        const dy = y + (logoMaxSize - h) / 2;
+        // First pass: wider ambient shadow
+        setShadow(ctx, { color: 'rgba(0,0,0,0.70)', blur: 50, offsetX: 0, offsetY: 0 });
+        ctx.drawImage(img, dx, dy, w, h);
+        // Second pass: directional drop shadow
+        setShadow(ctx, { color: 'rgba(0,0,0,0.90)', blur: 18, offsetX: 5, offsetY: 8 });
+        ctx.drawImage(img, dx, dy, w, h);
+        resetShadow(ctx);
+    }
+
+    if (teamA.logo && !teamA.skipLogos) {
+        try {
+            drawLogoOnPhoto(await loadTrimmedLogo(teamA, '#0a0a0a'), logoAX, logoAY);
+        } catch (error) {
+            logger.warn('Failed to load team A logo for stadium style', { team: teamA.name, error: error.message });
+        }
+    }
+
+    if (teamB.logo && !teamB.skipLogos) {
+        try {
+            drawLogoOnPhoto(await loadTrimmedLogo(teamB, '#0a0a0a'), logoBX, logoBY);
+        } catch (error) {
+            logger.warn('Failed to load team B logo for stadium style', { team: teamB.name, error: error.message });
+        }
+    }
+
+    // Team records — small label below each logo (styles 12/13 only)
+    const recordFontSize = Math.round(Math.min(width, height) * 0.032);
+    if (showRecord) {
+        ctx.font = `bold ${recordFontSize}px Arial, sans-serif`;
+        ctx.textBaseline = 'top';
+        ctx.fillStyle = 'rgba(255,255,255,0.88)';
+        setShadow(ctx, 'vsText');
+
+        if (teamA.record) {
+            ctx.textAlign = 'center';
+            const recAX = isLandscape ? (width * THUMBNAIL.LOGO_ANCHOR_NEAR) : centerX;
+            const recAY = logoAY + logoMaxSize + Math.round(height * 0.012);
+            ctx.fillText(teamA.record, recAX, recAY);
+        }
+
+        if (teamB.record) {
+            ctx.textAlign = 'center';
+            const recBX = isLandscape ? (width * THUMBNAIL.LOGO_ANCHOR_FAR) : centerX;
+            const recBY = logoBY + logoMaxSize + Math.round(height * 0.012);
+            ctx.fillText(teamB.record, recBX, recBY);
+        }
+
+        resetShadow(ctx);
+    }
+
+    // VS — smaller when records are shown to avoid crowding; in portrait shift down past record A
+    const vsAnchorY = isLandscape
+        ? logoAnchorA
+        : showRecord
+            ? (logoAnchorA + logoAnchorB) / 2 + Math.round(height * 0.025)
+            : (logoAnchorA + logoAnchorB) / 2;
+    const vsFontSize = Math.round(showRecord
+        ? (isLandscape ? height * 0.07 : width * 0.08)
+        : (isLandscape ? height * 0.10 : width * 0.12));
+    ctx.font = `900 ${vsFontSize}px Arial, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    setShadow(ctx, 'vsText');
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    ctx.fillText('VS', centerX, vsAnchorY);
+    resetShadow(ctx);
+
+    // Stadium name + city/state
+    const stadiumCity = teamA.stadiumCity || teamB.stadiumCity;
+    const stadiumState = teamA.stadiumState || teamB.stadiumState;
+    const stadiumLocation = [stadiumCity, stadiumState].filter(Boolean).join(', ');
+
+    const nameFontSize = Math.round(Math.min(width, height) * 0.038);
+    const locationFontSize = Math.round(nameFontSize * 0.78);
+    const lineGap = Math.round(nameFontSize * 1.3);
+    const edgePad = Math.round(width * 0.04);
+    const bottomPad = Math.round(height * 0.035);
+
+    // split: pin text to bottom-left corner; center: position below logos (and below records if shown)
+    // When showRecord is true, stadiumNameY must sit below: logo bottom + record gap + record text + name ascent + gap
+    const stadiumNameY = layout === 'split'
+        ? height - bottomPad - lineGap
+        : showRecord
+            ? (isLandscape ? logoAnchorA : logoAnchorB) + (logoMaxSize / 2)
+                + Math.round(height * 0.012) + recordFontSize + nameFontSize + Math.round(height * 0.02)
+            : isLandscape
+                ? logoAnchorA + (logoMaxSize / 2) + Math.round(height * 0.06)
+                : logoAnchorB + (logoMaxSize / 2) + Math.round(height * 0.04);
+    const stadiumLocationY = layout === 'split'
+        ? height - bottomPad
+        : stadiumNameY + lineGap;
+
+    const textX = layout === 'split' ? edgePad : centerX;
+    const textAlign = layout === 'split' ? 'left' : 'center';
+
+    ctx.textAlign = textAlign;
+
+    if (stadiumName) {
+        ctx.font = `bold ${nameFontSize}px Arial, sans-serif`;
+        ctx.textBaseline = 'alphabetic';
+        ctx.fillStyle = 'rgba(255,255,255,0.95)';
+        setShadow(ctx, { color: 'rgba(0,0,0,0.95)', blur: 30, offsetX: 3, offsetY: 5 });
+        // Multiple passes accumulate shadow density
+        ctx.fillText(stadiumName, textX, stadiumNameY);
+        ctx.fillText(stadiumName, textX, stadiumNameY);
+        ctx.fillText(stadiumName, textX, stadiumNameY);
+        ctx.fillText(stadiumName, textX, stadiumNameY);
+    }
+
+    if (stadiumLocation) {
+        ctx.font = `${locationFontSize}px Arial, sans-serif`;
+        ctx.textBaseline = 'alphabetic';
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        setShadow(ctx, { color: 'rgba(0,0,0,0.95)', blur: 24, offsetX: 2, offsetY: 4 });
+        ctx.fillText(stadiumLocation, textX, stadiumLocationY);
+        ctx.fillText(stadiumLocation, textX, stadiumLocationY);
+        ctx.fillText(stadiumLocation, textX, stadiumLocationY);
+        ctx.fillText(stadiumLocation, textX, stadiumLocationY);
+    }
+
+    resetShadow(ctx);
+
+    // League logo — split layout only (bottom-right); omitted for center layout
+    if (layout === 'split' && league && league.logoUrl) {
+        try {
+            const leagueLogo = await loadProcessedLogo(league.logoUrl, { svgSupport: true });
+            const leagueLogoSize = Math.min(width, height) * 0.13;
+            const leagueLogoX = layout === 'split'
+                ? width - leagueLogoSize - edgePad
+                : (width - leagueLogoSize) / 2;
+            const leagueLogoY = height - leagueLogoSize - Math.round(height * 0.025);
+            drawLogoMaintainAspect(ctx, leagueLogo, leagueLogoX, leagueLogoY, leagueLogoSize);
+        } catch (error) {
+            logger.warn('Failed to load league logo for stadium style', { error: error.message });
+        }
+    }
+
     return canvas.toBuffer('image/png');
 }
 

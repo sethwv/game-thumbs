@@ -35,7 +35,7 @@ module.exports = {
                 });
             }
 
-            // Otherwise, return team data
+            // Preserve the existing flat response contract for raw team data.
             const resolvedTeam = await providerManager.resolveTeam(leagueObj, team);
             res.json(resolvedTeam);
         } catch (error) {

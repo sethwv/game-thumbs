@@ -204,6 +204,22 @@ const testCases = [
         saveImage: true,
         filename: 'matchup-thumb-nfl-style6.png'
     },
+    {
+        name: 'Matchup Thumb Style 10 (Stadium) - NFL',
+        endpoint: '/nfl/chiefs/49ers/thumb?style=10',
+        expectedStatus: 200,
+        expectedType: 'image/png',
+        saveImage: true,
+        filename: 'matchup-thumb-nfl-style10.png'
+    },
+    {
+        name: 'Matchup Thumb Style 11 (Stadium Split) - NFL',
+        endpoint: '/nfl/chiefs/49ers/thumb?style=11',
+        expectedStatus: 200,
+        expectedType: 'image/png',
+        saveImage: true,
+        filename: 'matchup-thumb-nfl-style11.png'
+    },
     
     // Cover images
     {
@@ -253,6 +269,22 @@ const testCases = [
         expectedType: 'image/png',
         saveImage: true,
         filename: 'matchup-cover-nfl-style6.png'
+    },
+    {
+        name: 'Matchup Cover Style 12 (Stadium with Record) - NFL',
+        endpoint: '/nfl/chiefs/49ers/cover?style=12',
+        expectedStatus: 200,
+        expectedType: 'image/png',
+        saveImage: true,
+        filename: 'matchup-cover-nfl-style12.png'
+    },
+    {
+        name: 'Matchup Cover Style 13 (Stadium Split with Record) - NFL',
+        endpoint: '/nfl/chiefs/49ers/cover?style=13',
+        expectedStatus: 200,
+        expectedType: 'image/png',
+        saveImage: true,
+        filename: 'matchup-cover-nfl-style13.png'
     },
     
     // Specific route tests
