@@ -49,7 +49,7 @@ const SOFT = process.argv.includes('--soft');
 // ------------------------------------------------------------------------------
 
 const MATCHUP = 'nba/lakers/celtics';
-const THUMB_STYLES = [1, 2, 3, 4, 5, 6, 98, 99];
+const THUMB_STYLES = [1, 2, 3, 4, 5, 6, 10, 11, 12, 13, 98, 99];
 const LOGO_STYLES = [1, 2, 3, 4, 5, 6];
 
 const matrix = [];

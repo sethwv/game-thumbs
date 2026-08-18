@@ -273,7 +273,6 @@ class ESPNProvider extends BaseProvider {
                 : (teamObj.groups ? [teamObj.groups] : []);
 
             const teamData = {
-                _rawSource: { ...bestMatch, franchise: franchiseData },
                 id: teamObj.id,
                 slug: teamObj.slug,
                 city: teamObj.location,
@@ -613,6 +612,51 @@ class ESPNProvider extends BaseProvider {
             return teams;
         } catch (error) {
             throw this.handleHttpError(error, `Fetching teams for ${league.shortName}`);
+        }
+    }
+
+    async fetchFranchiseData(espnSport, espnSlug, teamId) {
+        const cacheKey = `franchise_${espnSlug}_${teamId}`;
+        const cached = fsCache.getJSON('espn', cacheKey, this.CACHE_DURATION);
+        if (cached) {
+            return cached;
+        }
+
+        try {
+            const url = `${ESPN_CORE_API}/sports/${espnSport}/leagues/${espnSlug}/franchises/${teamId}?lang=en&region=us`;
+            const response = await axios.get(url, {
+                timeout: this.REQUEST_TIMEOUT,
+                headers: getBrowserHeaders()
+            });
+            fsCache.setJSON('espn', cacheKey, response.data);
+            return response.data;
+        } catch (error) {
+            logger.warn('Failed to fetch franchise data', { espnSport, espnSlug, teamId, error: error.message });
+            return null;
+        }
+    }
+
+    async fetchTeamRecord(espnSport, espnSlug, teamId) {
+        const cacheDuration = 60 * 60 * 1000;
+        const cacheKey = `record_${espnSlug}_${teamId}`;
+        const cached = fsCache.getJSON('espn', cacheKey, cacheDuration);
+        if (cached !== null && cached !== undefined) {
+            return cached;
+        }
+
+        try {
+            const url = `https://site.api.espn.com/apis/site/v2/sports/${espnSport}/${espnSlug}/teams/${teamId}`;
+            const response = await axios.get(url, {
+                timeout: this.REQUEST_TIMEOUT,
+                headers: getBrowserHeaders()
+            });
+            const record = response.data?.team?.record?.items
+                ?.find(item => item.type === 'total')?.summary ?? null;
+            fsCache.setJSON('espn', cacheKey, record);
+            return record;
+        } catch (error) {
+            logger.warn('Failed to fetch team record', { espnSport, espnSlug, teamId, error: error.message });
+            return null;
         }
     }
 

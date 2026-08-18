@@ -417,7 +417,6 @@ class NCAAProvider extends BaseProvider {
 
                 // Return standardized team object
                 return {
-                    _rawSource: { schoolSlug, logoUrl: url },
                     name: teamIdentifier, // Use input name as-is
                     abbreviation: schoolSlug.toUpperCase().substring(0, 4),
                     logo: `data:image/png;base64,${buffer.toString('base64')}`, // Data URL with PNG
