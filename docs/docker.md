@@ -87,6 +87,37 @@ Configure the server behavior using environment variables:
 | `ALLOW_CUSTOM_BADGES` | Allow custom badge parameter entries on matchup generation endpoints. | `false` |
 | `ALLOW_EVENT_OVERLAYS` | Enable the league event overlay feature on `/:league/thumb` and `/:league/cover`. When `true`, the `title`, `subtitle`, and `iconurl` query parameters are honored, default fonts are loaded at startup, and per-league custom fonts are registered. When disabled, those query parameters are ignored. | `false` |
 | `ALLOW_INSECURE_OVERLAY_URLS` | Controls whether `iconurl` may reference private/loopback/local addresses. `false` (default): only public DNS targets allowed. `true`: validation skipped entirely. Comma-separated list (e.g. `192.168.1.5,printer.local`): only those hostnames bypass validation, everything else is still checked. | `false` |
+| `METRICS_ENABLED` | Enable the Prometheus-compatible `GET /metrics` endpoint. Set to `true` to enable. | `false` (disabled) |
+
+### Prometheus Metrics
+
+Set `METRICS_ENABLED=true` to expose `GET /metrics` in Prometheus text format on the application port. The endpoint is not registered by default and returns the normal 444 response while disabled.
+
+```bash
+docker run -p 3000:3000 \
+  -e METRICS_ENABLED=true \
+  ghcr.io/sethwv/game-thumbs:latest
+```
+
+Prometheus can scrape the container through its existing HTTP port:
+
+```yaml
+scrape_configs:
+  - job_name: game-thumbs
+    static_configs:
+      - targets: ['game-thumbs:3000']
+```
+
+The exporter includes standard Node.js process metrics and these application metrics:
+
+| Metric | Labels | Description |
+|--------|--------|-------------|
+| `game_thumbs_http_requests_total` | `method`, `status_code`, `league`, `endpoint`, `cache` | Total application requests. |
+| `game_thumbs_http_request_duration_seconds` | `method`, `status_code`, `league`, `endpoint`, `cache` | Application request latency histogram. |
+
+`league` is the canonical configured league or `_none`/`_unknown`, `endpoint` is a normalized operation such as `thumb`, `logo`, `raw`, or `health`, and `cache` is `hit`, `miss`, or `not_applicable`. Team names, raw URLs, query strings, and client IPs are intentionally excluded to keep Prometheus cardinality bounded. Scrapes of `/metrics` do not count as application traffic. Counters reset when the container restarts.
+
+The endpoint does not authenticate requests. Restrict access to `/metrics` with your reverse proxy or network policy when it is enabled.
 
 ### Caching
 

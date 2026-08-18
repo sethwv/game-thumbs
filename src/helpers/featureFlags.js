@@ -15,6 +15,10 @@ function isEventOverlaysEnabled() {
     return isEnabled('ALLOW_EVENT_OVERLAYS');
 }
 
+function isMetricsEnabled() {
+    return isEnabled('METRICS_ENABLED');
+}
+
 // Returns the insecure overlay URL config:
 //   null           → validate all (flag unset or false)
 //   true           → skip validation entirely (ALLOW_INSECURE_OVERLAY_URLS=true)
@@ -34,5 +38,6 @@ function getInsecureOverlayConfig() {
 
 module.exports = {
     isEventOverlaysEnabled,
+    isMetricsEnabled,
     getInsecureOverlayConfig
 };

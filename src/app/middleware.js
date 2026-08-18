@@ -11,6 +11,7 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const logger = require('../helpers/logger');
 const { checkCacheMiddleware } = require('../helpers/imageCache');
+const { metricsMiddleware } = require('./metrics');
 
 const IMAGE_PATHS = ['thumb', 'logo', 'cover', 'teamlogo', 'leaguelogo', 'leaguethumb', 'leaguecover'];
 
@@ -88,6 +89,9 @@ function applyMiddleware(app) {
         next();
     });
 
+    // Observe before cache middleware so cache hits are included in request metrics.
+    app.use(metricsMiddleware);
+
     // Check cache first to determine if we need strict rate limiting
     app.use((req, res, next) => {
         if (['thumb', 'logo', 'cover'].some(path => req.path.includes(path))) {
@@ -158,6 +162,9 @@ function applyMiddleware(app) {
 
     // Apply rate limiting
     app.use((req, res, next) => {
+        if (req.path === '/metrics') {
+            return next();
+        }
         if (IMAGE_PATHS.some(path => req.path.includes(path))) {
             return imageGenerationLimiter(req, res, next);
         }
