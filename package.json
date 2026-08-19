@@ -28,6 +28,7 @@
     
     "extract:hockeytech": "node -e \"require('./src/providers/HockeyTechProvider').HockeyTechProvider.displayAllCredentials()\"",
     "extract:supabase": "node -e \"require('./src/providers/SupabaseProvider').SupabaseProvider.displayAllCredentials()\"",
+    "generate:teamarr-leagues": "node scripts/generate-teamarr-leagues.js",
 
     "test": "for file in test/*.test.js; do [ -f \"$file\" ] && node \"$file\" || exit 1; done",
     "test:endpoints": "node test/endpoints.test.js",

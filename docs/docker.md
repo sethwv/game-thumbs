@@ -60,6 +60,14 @@ docker build -t game-thumbs .
 docker run -p 3000:3000 game-thumbs
 ```
 
+The image build downloads Teamarr's `dev` schema and generates its compatible TheSportsDB team-league overlay. The build therefore requires outbound access to `raw.githubusercontent.com`. To use another schema URL, pass it as a build argument:
+
+```bash
+docker build \
+  --build-arg TEAMARR_SCHEMA_URL=https://raw.githubusercontent.com/Pharaoh-Labs/teamarr/dev/teamarr/database/schema.sql \
+  -t game-thumbs .
+```
+
 Or without Docker:
 
 ```bash

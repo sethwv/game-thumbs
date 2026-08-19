@@ -37,6 +37,10 @@ RUN apt-get update \
 # Copy application code (after dependencies for better caching)
 COPY . .
 
+# Teamarr's dev schema supplies additional TSDB team leagues for this image.
+ARG TEAMARR_SCHEMA_URL=https://raw.githubusercontent.com/Pharaoh-Labs/teamarr/dev/teamarr/database/schema.sql
+RUN TEAMARR_SCHEMA_URL=${TEAMARR_SCHEMA_URL} yarn generate:teamarr-leagues
+
 # Bundle the post-deploy notification hook at a stable path so orchestrators
 # (e.g. a Komodo post-deploy step) can run it via `docker exec` against this
 # container, without bind-mounting a host file the daemon may not be able to see.

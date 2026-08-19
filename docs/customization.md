@@ -26,6 +26,20 @@ Both files can be mounted as Docker volumes to customize the API without modifyi
 
 **Important:** These files are **additive** - they merge with the built-in data rather than replacing it. You only need to specify the teams or leagues you want to customize. All built-in data remains available.
 
+### Teamarr TSDB Leagues
+
+Docker images generate an additional built-in league overlay from Teamarr's `dev` database schema during the image build. It includes Teamarr's TheSportsDB `team_vs_team` leagues and is loaded after `leagues.json`, but before a legacy mounted `leagues.json` and files mounted under `json/leagues/`.
+
+The generated overlay is stored at `/app/generated/leagues_teamarr.json`, not `/app/json/leagues/`, so mounting custom leagues does not hide it. Existing hand-maintained league fields and provider priority take precedence on matching keys. Identical provider entries are deduplicated.
+
+For a local source checkout, generate the same overlay before starting the app:
+
+```bash
+yarn generate:teamarr-leagues
+```
+
+The command downloads Teamarr's moving `dev` schema. It generates only team leagues compatible with the TheSportsDB team provider, currently excluding Teamarr's boxing card and racing event entries.
+
 ---
 
 ## Custom Team Overrides

@@ -17,6 +17,8 @@ nav_order: 4
 
 ## Professional Leagues
 
+Docker images also include compatible TheSportsDB team leagues generated from Teamarr's `dev` schema at build time. That upstream list changes independently of this documentation; run `yarn generate:teamarr-leagues` to inspect the exact generated configuration for a build.
+
 | League Name | Code | Provider | Feeder Leagues |
 |-------------|------|----------|----------------|
 | National Basketball Association | `nba` | ESPN | |
