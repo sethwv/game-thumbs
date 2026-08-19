@@ -5,13 +5,13 @@ const { mergeLeaguesData } = require('../src/helpers/jsonMerger');
 const schema = `
 INSERT OR REPLACE INTO leagues (
     league_code, provider, provider_league_id, provider_league_name,
-    display_name, sport, league_alias, event_type
+    display_name, sport, league_alias, logo_url, logo_url_dark, event_type
 ) VALUES
-    ('uru.2', 'tsdb', '5072', 'Uruguayan Segunda División', 'AUF Segunda', 'soccer', NULL, 'team_vs_team'),
-    ('quoted', 'tsdb', '1', 'Teamarr O''Brien, United', 'Quoted League', 'soccer', 'QL', 'team_vs_team'),
-    ('boxing', 'tsdb', '4445', 'Boxing', 'Boxing', 'boxing', NULL, 'event_card'),
-    ('imsa', 'tsdb', '4488', 'IMSA SportsCar Championship', 'IMSA', 'racing', NULL, 'event'),
-    ('nfl', 'espn', 'football/nfl', NULL, 'NFL', 'football', 'NFL', 'team_vs_team');
+    ('uru.2', 'tsdb', '5072', 'Uruguayan Segunda División', 'AUF Segunda', 'soccer', NULL, 'https://example.com/light.png', 'https://example.com/dark.png', 'team_vs_team'),
+    ('quoted', 'tsdb', '1', 'Teamarr O''Brien, United', 'Quoted League', 'soccer', 'QL', NULL, NULL, 'team_vs_team'),
+    ('boxing', 'tsdb', '4445', 'Boxing', 'Boxing', 'boxing', NULL, NULL, NULL, 'event_card'),
+    ('imsa', 'tsdb', '4488', 'IMSA SportsCar Championship', 'IMSA', 'racing', NULL, NULL, NULL, 'event'),
+    ('nfl', 'espn', 'football/nfl', NULL, 'NFL', 'football', 'NFL', NULL, NULL, 'team_vs_team');
 `;
 
 const { leagues, tsdbCount, excludedCount } = buildLeagues(schema);
@@ -23,6 +23,9 @@ assert.deepStrictEqual(leagues.quoted.providers[0].theSportsDB, {
     leagueName: "Teamarr O'Brien, United"
 });
 assert.strictEqual(leagues['uru.2'].shortName, 'URU.2');
+assert.strictEqual(leagues['uru.2'].logoUrl, 'https://example.com/light.png');
+assert.strictEqual(leagues['uru.2'].logoUrlDark, 'https://example.com/dark.png');
+assert.strictEqual(leagues.quoted.logoUrl, undefined);
 assert.throws(() => extractLeagueRows('CREATE TABLE leagues (league_code TEXT);'), /Could not find/);
 
 const manual = {

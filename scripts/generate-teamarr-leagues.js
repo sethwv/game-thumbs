@@ -12,6 +12,8 @@ const REQUIRED_COLUMNS = [
     'provider_league_name',
     'display_name',
     'league_alias',
+    'logo_url',
+    'logo_url_dark',
     'event_type'
 ];
 
@@ -163,7 +165,7 @@ function buildLeagues(schema) {
             throw new Error(`Teamarr TSDB league is missing required data: ${row.league_code || 'unknown'}`);
         }
 
-        leagues[row.league_code] = {
+        const league = {
             name: row.display_name,
             shortName: row.league_alias || row.league_code.toUpperCase(),
             providers: [
@@ -175,6 +177,9 @@ function buildLeagues(schema) {
                 }
             ]
         };
+        if (row.logo_url) league.logoUrl = row.logo_url;
+        if (row.logo_url_dark) league.logoUrlDark = row.logo_url_dark;
+        leagues[row.league_code] = league;
     }
 
     if (Object.keys(leagues).length === 0) {

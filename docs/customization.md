@@ -38,7 +38,7 @@ For a local source checkout, generate the same overlay before starting the app:
 yarn generate:teamarr-leagues
 ```
 
-The command downloads Teamarr's moving `dev` schema. It generates only team leagues compatible with the TheSportsDB team provider, currently excluding Teamarr's boxing card and racing event entries.
+The command downloads Teamarr's moving `dev` schema. It generates only team leagues compatible with the TheSportsDB team provider, currently excluding Teamarr's boxing card and racing event entries. When Teamarr configures light or dark league artwork, the generated `logoUrl` or `logoUrlDark` takes precedence over artwork fetched from TheSportsDB.
 
 ---
 
