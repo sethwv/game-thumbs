@@ -1638,6 +1638,17 @@
       }
     ]
   },
+  "gohl": {
+    "name": "Greater Ontario Hockey League",
+    "logoUrl": "https://www.gohl.ca/wp-content/uploads/sites/2/2025/09/cropped-GOHLLogoTeamNavBar.png",
+    "providers": [
+      {
+        "hockeyTech": {
+          "websiteUrl": "https://www.gohl.ca/"
+        }
+      }
+    ]
+  },
   "sjhl": {
     "name": "Saskatchewan Junior Hockey League",
     "logoUrl": "https://www.sjhl.ca/wp-content/uploads/sites/2/2019/08/SJHL_Logo_512px.png",
