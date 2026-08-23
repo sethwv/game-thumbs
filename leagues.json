@@ -2544,6 +2544,10 @@
   "NASCAR": {
     "name": "NASCAR",
     "providers": [],
+    "aliases":[
+      "nascar cup series",
+      "nascar cup"
+    ],
     "logoUrl": "./assets/NASCAR.png",
     "skipLogos": true
   },
