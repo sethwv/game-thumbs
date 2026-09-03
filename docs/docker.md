@@ -120,10 +120,13 @@ The exporter includes standard Node.js process metrics and these application met
 
 | Metric | Labels | Description |
 |--------|--------|-------------|
-| `game_thumbs_http_requests_total` | `method`, `status_code`, `league`, `endpoint`, `cache` | Total application requests. |
-| `game_thumbs_http_request_duration_seconds` | `method`, `status_code`, `league`, `endpoint`, `cache` | Application request latency histogram. |
+| `game_thumbs_http_requests_total` | `league` | Total application requests by canonical league. |
+| `game_thumbs_http_requests_by_endpoint_total` | `endpoint` | Total application requests by normalized endpoint. |
+| `game_thumbs_http_responses_total` | `status_class` | Total application responses by status class. |
+| `game_thumbs_image_cache_requests_total` | `cache` | Total image requests by application cache result. |
+| `game_thumbs_http_request_duration_seconds` | `endpoint` | Application request latency histogram by normalized endpoint. |
 
-`league` is the canonical configured league or `_none`/`_unknown`, `endpoint` is a normalized operation such as `thumb`, `logo`, `raw`, or `health`, and `cache` is `hit`, `miss`, or `not_applicable`. Team names, raw URLs, query strings, and client IPs are intentionally excluded to keep Prometheus cardinality bounded. Scrapes of `/metrics` do not count as application traffic. Counters reset when the container restarts.
+`league` is the canonical configured league or `_none`/`_unknown`, `endpoint` is a normalized operation such as `thumb`, `logo`, `raw`, or `health`, `status_class` is `1xx` through `5xx`, and `cache` is `hit` or `miss`. These dimensions are intentionally recorded in separate metrics, so league requests cannot be filtered by endpoint, response, or cache result. Team names, raw URLs, query strings, client IPs, and exact status codes are excluded to keep Prometheus cardinality bounded. Scrapes of `/metrics` do not count as application traffic. Counters reset when the container restarts.
 
 The endpoint does not authenticate requests. Restrict access to `/metrics` with your reverse proxy or network policy when it is enabled.
 

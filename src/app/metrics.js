@@ -13,7 +13,10 @@ const IMAGE_ENDPOINTS = new Set([
 const reservedPaths = new Set(['health', 'info', 'metrics', 'favicon.ico', 'apple-touch-icon.png', 'apple-touch-icon-precomposed.png']);
 let leagueNames;
 
-let requestCount;
+let requestCountByLeague;
+let requestCountByEndpoint;
+let responseCount;
+let imageCacheCount;
 let requestDuration;
 
 function createLeagueNameMap() {
@@ -37,22 +40,39 @@ function normalizeLeagueName(value) {
 }
 
 function initializeMetrics() {
-    if (!isMetricsEnabled() || requestCount) return;
+    if (!isMetricsEnabled() || requestCountByLeague) return;
 
     leagueNames = createLeagueNameMap();
     client.collectDefaultMetrics({ register: registry });
 
-    const labelNames = ['method', 'status_code', 'league', 'endpoint', 'cache'];
-    requestCount = new client.Counter({
+    requestCountByLeague = new client.Counter({
         name: 'game_thumbs_http_requests_total',
-        help: 'Total HTTP requests handled by Game Thumbs.',
-        labelNames,
+        help: 'Total HTTP requests handled by Game Thumbs, grouped by league.',
+        labelNames: ['league'],
+        registers: [registry]
+    });
+    requestCountByEndpoint = new client.Counter({
+        name: 'game_thumbs_http_requests_by_endpoint_total',
+        help: 'Total HTTP requests handled by Game Thumbs, grouped by endpoint.',
+        labelNames: ['endpoint'],
+        registers: [registry]
+    });
+    responseCount = new client.Counter({
+        name: 'game_thumbs_http_responses_total',
+        help: 'Total HTTP responses handled by Game Thumbs, grouped by status class.',
+        labelNames: ['status_class'],
+        registers: [registry]
+    });
+    imageCacheCount = new client.Counter({
+        name: 'game_thumbs_image_cache_requests_total',
+        help: 'Total image requests handled by Game Thumbs, grouped by application cache result.',
+        labelNames: ['cache'],
         registers: [registry]
     });
     requestDuration = new client.Histogram({
         name: 'game_thumbs_http_request_duration_seconds',
         help: 'HTTP request duration in seconds for Game Thumbs.',
-        labelNames,
+        labelNames: ['endpoint'],
         registers: [registry]
     });
 }
@@ -79,23 +99,25 @@ function getCacheStatus(req, endpoint) {
     return req._logged || req._servedFromRouteCache ? 'hit' : 'miss';
 }
 
+function getStatusClass(statusCode) {
+    const statusClass = Math.floor(statusCode / 100);
+    return statusClass >= 1 && statusClass <= 5 ? `${statusClass}xx` : 'other';
+}
+
 function metricsMiddleware(req, res, next) {
-    if (!requestCount || req.path === '/metrics') return next();
+    if (!requestCountByLeague || req.path === '/metrics') return next();
 
     const start = process.hrtime.bigint();
     res.once('finish', () => {
         const endpoint = getEndpoint(req, res.statusCode);
-        const labels = {
-            method: req.method,
-            status_code: String(res.statusCode),
-            league: getLeague(req),
-            endpoint,
-            cache: getCacheStatus(req, endpoint)
-        };
+        const cache = getCacheStatus(req, endpoint);
         const duration = Number(process.hrtime.bigint() - start) / 1e9;
 
-        requestCount.inc(labels);
-        requestDuration.observe(labels, duration);
+        requestCountByLeague.inc({ league: getLeague(req) });
+        requestCountByEndpoint.inc({ endpoint });
+        responseCount.inc({ status_class: getStatusClass(res.statusCode) });
+        if (cache !== 'not_applicable') imageCacheCount.inc({ cache });
+        requestDuration.observe({ endpoint }, duration);
     });
 
     next();

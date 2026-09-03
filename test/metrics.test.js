@@ -90,15 +90,30 @@ async function run() {
         assert.match(firstScrape.headers['content-type'], /^text\/plain; version=0\.0\.4/);
         assert.match(firstScrape.body, /^# HELP process_cpu_user_seconds_total/m);
         assert.match(firstScrape.body, /^# HELP game_thumbs_http_requests_total/m);
+        assert.match(firstScrape.body, /^# HELP game_thumbs_http_requests_by_endpoint_total/m);
+        assert.match(firstScrape.body, /^# HELP game_thumbs_http_responses_total/m);
+        assert.match(firstScrape.body, /^# HELP game_thumbs_image_cache_requests_total/m);
         assert.match(firstScrape.body, /^# HELP game_thumbs_http_request_duration_seconds/m);
 
-        const labels = ['cache="not_applicable"', 'endpoint="health"', 'league="_none"', 'method="GET"', 'status_code="200"'];
-        const requestCount = metricValue(firstScrape.body, 'game_thumbs_http_requests_total', labels);
+        const requestCount = metricValue(firstScrape.body, 'game_thumbs_http_requests_total', ['league="_none"']);
         assert(requestCount >= 2, 'Health requests should be observed');
+        assert(metricValue(firstScrape.body, 'game_thumbs_http_requests_by_endpoint_total', ['endpoint="health"']) >= 2);
+        assert(metricValue(firstScrape.body, 'game_thumbs_http_responses_total', ['status_class="2xx"']) >= 2);
+        assert.match(firstScrape.body, /^game_thumbs_http_request_duration_seconds_bucket\{le="[^"]+",endpoint="health"\}/m);
+
+        const imageResponse = await request('/invalid/team/logo');
+        assert.strictEqual(imageResponse.statusCode, 400);
+
+        const imageScrape = await request('/metrics');
+        assert.strictEqual(metricValue(imageScrape.body, 'game_thumbs_http_requests_total', ['league="_unknown"']), 1);
+        assert.strictEqual(metricValue(imageScrape.body, 'game_thumbs_http_requests_by_endpoint_total', ['endpoint="logo"']), 1);
+        assert.strictEqual(metricValue(imageScrape.body, 'game_thumbs_http_responses_total', ['status_class="4xx"']), 1);
+        assert.strictEqual(metricValue(imageScrape.body, 'game_thumbs_image_cache_requests_total', ['cache="miss"']), 1);
+        assert.doesNotMatch(imageScrape.body, /(?:method|status_code)=/);
 
         const secondScrape = await request('/metrics');
         assert.strictEqual(
-            metricValue(secondScrape.body, 'game_thumbs_http_requests_total', labels),
+            metricValue(secondScrape.body, 'game_thumbs_http_requests_total', ['league="_none"']),
             requestCount,
             'Metrics scrapes must not increment application request totals'
         );

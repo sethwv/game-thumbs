@@ -2,7 +2,7 @@
   "annotations": {
     "list": []
   },
-  "description": "Usage analytics for Game Thumbs. Requires Prometheus to scrape GET /metrics with METRICS_ENABLED=true. Counters reset when the application restarts; Prometheus rate() and increase() handle resets when enough samples are available. Cache panels measure the application image cache, not a browser or CDN cache.",
+  "description": "Usage analytics for Game Thumbs. Requires Prometheus to scrape GET /metrics with METRICS_ENABLED=true. Counters reset when the application restarts; Prometheus rate() and increase() handle resets when enough samples are available. League, endpoint, response, and cache metrics are independently aggregated, so they cannot be filtered together. Cache panels measure the application image cache, not a browser or CDN cache.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -24,7 +24,7 @@
       "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
       "id": 1,
       "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
-      "targets": [{ "expr": "sum(increase(game_thumbs_http_requests_total{job=~\"$job\", instance=~\"$instance\", league=~\"$league\", endpoint=~\"$endpoint\", endpoint!=\"health\"}[$__range]))", "refId": "A" }],
+      "targets": [{ "expr": "sum(increase(game_thumbs_http_requests_total{job=~\"$job\", instance=~\"$instance\"}[$__range]))", "refId": "A" }],
       "title": "Requests in Selected Range",
       "type": "stat"
     },
@@ -42,7 +42,7 @@
       "gridPos": { "h": 5, "w": 6, "x": 6, "y": 0 },
       "id": 2,
       "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
-      "targets": [{ "expr": "sum(increase(game_thumbs_http_requests_total{job=~\"$job\", instance=~\"$instance\", league=~\"$league\", endpoint=~\"$endpoint\", endpoint!=\"health\", status_code=~\"2..|3..\"}[$__range])) / clamp_min(sum(increase(game_thumbs_http_requests_total{job=~\"$job\", instance=~\"$instance\", league=~\"$league\", endpoint=~\"$endpoint\", endpoint!=\"health\"}[$__range])), 1)", "refId": "A" }],
+      "targets": [{ "expr": "sum(increase(game_thumbs_http_responses_total{job=~\"$job\", instance=~\"$instance\", status_class=~\"2xx|3xx\"}[$__range])) / clamp_min(sum(increase(game_thumbs_http_responses_total{job=~\"$job\", instance=~\"$instance\"}[$__range])), 1)", "refId": "A" }],
       "title": "Successful Responses",
       "type": "stat"
     },
@@ -60,7 +60,7 @@
       "gridPos": { "h": 5, "w": 6, "x": 12, "y": 0 },
       "id": 3,
       "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
-      "targets": [{ "expr": "sum(increase(game_thumbs_http_requests_total{job=~\"$job\", instance=~\"$instance\", league=~\"$league\", endpoint=~\"$endpoint\", endpoint!=\"health\", cache=\"hit\"}[$__range])) / clamp_min(sum(increase(game_thumbs_http_requests_total{job=~\"$job\", instance=~\"$instance\", league=~\"$league\", endpoint=~\"$endpoint\", endpoint!=\"health\", cache=~\"hit|miss\"}[$__range])), 1)", "refId": "A" }],
+      "targets": [{ "expr": "sum(increase(game_thumbs_image_cache_requests_total{job=~\"$job\", instance=~\"$instance\", cache=\"hit\"}[$__range])) / clamp_min(sum(increase(game_thumbs_image_cache_requests_total{job=~\"$job\", instance=~\"$instance\"}[$__range])), 1)", "refId": "A" }],
       "title": "Application Cache Hit Rate",
       "type": "stat"
     },
@@ -73,7 +73,7 @@
       "gridPos": { "h": 5, "w": 6, "x": 18, "y": 0 },
       "id": 4,
       "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
-      "targets": [{ "expr": "sum by (status_code) (increase(game_thumbs_http_requests_total{job=~\"$job\", instance=~\"$instance\", league=~\"$league\", endpoint=~\"$endpoint\", endpoint!=\"health\", status_code!~\"2..|3..\"}[$__range]))", "legendFormat": "{{status_code}}", "refId": "A" }],
+      "targets": [{ "expr": "sum by (status_class) (increase(game_thumbs_http_responses_total{job=~\"$job\", instance=~\"$instance\", status_class!~\"2xx|3xx\"}[$__range]))", "legendFormat": "{{status_class}}", "refId": "A" }],
       "title": "Non-success Requests",
       "type": "stat"
     },
@@ -83,7 +83,7 @@
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 5 },
       "id": 5,
       "options": { "legend": { "calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "right", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
-      "targets": [{ "expr": "sum by (endpoint) (increase(game_thumbs_http_requests_total{job=~\"$job\", instance=~\"$instance\", league=~\"$league\", endpoint=~\"$endpoint\", endpoint!=\"health\"}[1h]))", "legendFormat": "{{endpoint}}", "refId": "A" }],
+      "targets": [{ "expr": "sum by (endpoint) (increase(game_thumbs_http_requests_by_endpoint_total{job=~\"$job\", instance=~\"$instance\", endpoint!=\"health\"}[1h]))", "legendFormat": "{{endpoint}}", "refId": "A" }],
       "title": "Requests per Hour by Endpoint",
       "type": "timeseries"
     },
@@ -93,7 +93,7 @@
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 5 },
       "id": 6,
       "options": { "legend": { "calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "right", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
-      "targets": [{ "expr": "topk(10, sum by (league) (increase(game_thumbs_http_requests_total{job=~\"$job\", instance=~\"$instance\", league=~\"$league\", endpoint=~\"$endpoint\", endpoint!=\"health\"}[1h])))", "legendFormat": "{{league}}", "refId": "A" }],
+      "targets": [{ "expr": "topk(10, sum by (league) (increase(game_thumbs_http_requests_total{job=~\"$job\", instance=~\"$instance\"}[1h])))", "legendFormat": "{{league}}", "refId": "A" }],
       "title": "Top Leagues by Requests per Hour",
       "type": "timeseries"
     },
@@ -103,7 +103,7 @@
       "gridPos": { "h": 8, "w": 8, "x": 0, "y": 13 },
       "id": 7,
       "options": { "displayMode": "gradient", "legend": { "displayMode": "hidden", "placement": "bottom", "showLegend": false }, "orientation": "horizontal", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "showUnfilled": true, "text": {}, "valueMode": "color" },
-      "targets": [{ "expr": "sort_desc(sum by (endpoint) (increase(game_thumbs_http_requests_total{job=~\"$job\", instance=~\"$instance\", league=~\"$league\", endpoint=~\"$endpoint\", endpoint!=\"health\"}[$__range])))", "legendFormat": "{{endpoint}}", "refId": "A" }],
+      "targets": [{ "expr": "sort_desc(sum by (endpoint) (increase(game_thumbs_http_requests_by_endpoint_total{job=~\"$job\", instance=~\"$instance\", endpoint!=\"health\"}[$__range])))", "legendFormat": "{{endpoint}}", "refId": "A" }],
       "title": "Request Totals by Endpoint",
       "type": "bargauge"
     },
@@ -113,7 +113,7 @@
       "gridPos": { "h": 8, "w": 8, "x": 8, "y": 13 },
       "id": 8,
       "options": { "displayMode": "gradient", "legend": { "displayMode": "hidden", "placement": "bottom", "showLegend": false }, "orientation": "horizontal", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "showUnfilled": true, "text": {}, "valueMode": "color" },
-      "targets": [{ "expr": "sort_desc(sum by (league) (increase(game_thumbs_http_requests_total{job=~\"$job\", instance=~\"$instance\", league=~\"$league\", endpoint=~\"$endpoint\", endpoint!=\"health\"}[$__range])))", "legendFormat": "{{league}}", "refId": "A" }],
+      "targets": [{ "expr": "sort_desc(sum by (league) (increase(game_thumbs_http_requests_total{job=~\"$job\", instance=~\"$instance\"}[$__range])))", "legendFormat": "{{league}}", "refId": "A" }],
       "title": "Request Totals by League",
       "type": "bargauge"
     },
@@ -123,20 +123,9 @@
       "gridPos": { "h": 8, "w": 8, "x": 16, "y": 13 },
       "id": 9,
       "options": { "displayMode": "gradient", "legend": { "displayMode": "hidden", "placement": "bottom", "showLegend": false }, "orientation": "horizontal", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "showUnfilled": true, "text": {}, "valueMode": "color" },
-      "targets": [{ "expr": "sort_desc(sum by (cache) (increase(game_thumbs_http_requests_total{job=~\"$job\", instance=~\"$instance\", league=~\"$league\", endpoint=~\"$endpoint\", endpoint!=\"health\", cache=~\"hit|miss\"}[$__range])))", "legendFormat": "{{cache}}", "refId": "A" }],
+      "targets": [{ "expr": "sort_desc(sum by (cache) (increase(game_thumbs_image_cache_requests_total{job=~\"$job\", instance=~\"$instance\"}[$__range])))", "legendFormat": "{{cache}}", "refId": "A" }],
       "title": "Image Requests by Application Cache Result",
       "type": "bargauge"
-    },
-    {
-      "datasource": { "type": "prometheus", "uid": "$datasource" },
-      "fieldConfig": { "defaults": { "color": { "mode": "palette-classic" }, "custom": { "align": "auto", "cellOptions": { "type": "auto" }, "filterable": true, "inspect": false }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }, "unit": "short" }, "overrides": [] },
-      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 21 },
-      "id": 10,
-      "options": { "cellHeight": "sm", "showHeader": true, "sortBy": [{ "desc": true, "displayName": "Value" }] },
-      "targets": [{ "expr": "sum by (league, endpoint) (increase(game_thumbs_http_requests_total{job=~\"$job\", instance=~\"$instance\", league=~\"$league\", endpoint=~\"$endpoint\", endpoint!=\"health\"}[$__range]))", "format": "table", "instant": true, "refId": "A" }],
-      "title": "League and Endpoint Request Totals",
-      "transformations": [{ "id": "labelsToFields", "options": { "valueLabel": "Value" } }, { "id": "organize", "options": { "excludeByName": { "Time": true }, "indexByName": {}, "renameByName": { "endpoint": "Endpoint", "league": "League", "Value": "Requests" } } }, { "id": "sortBy", "options": { "fields": {}, "sort": [{ "desc": true, "field": "Requests" }] } }],
-      "type": "table"
     },
     {
       "datasource": { "type": "prometheus", "uid": "$datasource" },
@@ -144,8 +133,8 @@
       "gridPos": { "h": 9, "w": 12, "x": 12, "y": 21 },
       "id": 11,
       "options": { "legend": { "calcs": ["lastNotNull", "max"], "displayMode": "table", "placement": "right", "showLegend": true }, "tooltip": { "mode": "multi", "sort": "desc" } },
-      "targets": [{ "expr": "sum by (status_code) (increase(game_thumbs_http_requests_total{job=~\"$job\", instance=~\"$instance\", league=~\"$league\", endpoint=~\"$endpoint\", endpoint!=\"health\"}[1h]))", "legendFormat": "{{status_code}}", "refId": "A" }],
-      "title": "Responses per Hour by Status Code",
+      "targets": [{ "expr": "sum by (status_class) (increase(game_thumbs_http_responses_total{job=~\"$job\", instance=~\"$instance\"}[1h]))", "legendFormat": "{{status_class}}", "refId": "A" }],
+      "title": "Responses per Hour by Status Class",
       "type": "timeseries"
     }
   ],
@@ -194,38 +183,6 @@
         "name": "instance",
         "options": [],
         "query": { "query": "label_values(game_thumbs_http_requests_total{job=~\"$job\"}, instance)", "refId": "Prometheus-instance-Variable-Query" },
-        "refresh": 1,
-        "sort": 1,
-        "type": "query"
-      },
-      {
-        "allValue": ".*",
-        "current": { "selected": true, "text": "All", "value": "$__all" },
-        "datasource": { "type": "prometheus", "uid": "$datasource" },
-        "definition": "label_values(game_thumbs_http_requests_total{job=~\"$job\", instance=~\"$instance\"}, league)",
-        "hide": 0,
-        "includeAll": true,
-        "label": "League",
-        "multi": true,
-        "name": "league",
-        "options": [],
-        "query": { "query": "label_values(game_thumbs_http_requests_total{job=~\"$job\", instance=~\"$instance\"}, league)", "refId": "Prometheus-league-Variable-Query" },
-        "refresh": 1,
-        "sort": 1,
-        "type": "query"
-      },
-      {
-        "allValue": ".*",
-        "current": { "selected": true, "text": "All", "value": "$__all" },
-        "datasource": { "type": "prometheus", "uid": "$datasource" },
-        "definition": "label_values(game_thumbs_http_requests_total{job=~\"$job\", instance=~\"$instance\"}, endpoint)",
-        "hide": 0,
-        "includeAll": true,
-        "label": "Endpoint",
-        "multi": true,
-        "name": "endpoint",
-        "options": [],
-        "query": { "query": "label_values(game_thumbs_http_requests_total{job=~\"$job\", instance=~\"$instance\"}, endpoint)", "refId": "Prometheus-endpoint-Variable-Query" },
         "refresh": 1,
         "sort": 1,
         "type": "query"
