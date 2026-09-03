@@ -606,7 +606,7 @@ async function generateStadium(teamA, teamB, width, height, league, orientation,
     // Stadium image at full opacity, cover-cropped
     if (stadiumImageUrl) {
         try {
-            const stadiumImg = await loadProcessedLogo(stadiumImageUrl, { svgSupport: false, trim: false });
+            const stadiumImg = await loadProcessedLogo(stadiumImageUrl, { svgSupport: false, trim: false, removeBackground: false });
             const imgAspect = stadiumImg.width / stadiumImg.height;
             const canvasAspect = width / height;
             let drawWidth, drawHeight;

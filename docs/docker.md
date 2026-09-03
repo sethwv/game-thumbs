@@ -132,6 +132,7 @@ The endpoint does not authenticate requests. Restrict access to `/metrics` with 
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `IMAGE_CACHE_HOURS` | How long to cache generated images (in hours). Set to `0` to disable caching. | `24` |
+| `DISABLE_LOGO_BACKGROUND_REMOVAL` | Set to `true` to return team and league logo assets unchanged, without background detection or removal. | `false` |
 
 **Note:** When `IMAGE_CACHE_HOURS=0`, every request generates a new image. Useful for testing but not recommended for production.
 

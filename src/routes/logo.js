@@ -14,8 +14,7 @@
 const providerManager = require('../helpers/ProviderManager');
 const { generateLogo, generateTeamNameLogo } = require('../generators/logoGenerator');
 const {
-    downloadImage,
-    downloadImageWithSvgSupport,
+    downloadProcessedLogo,
     buildSkipLogosTeam,
     selectLogoAndColorForSingleTeam,
     handleTeamNotFoundError
@@ -74,7 +73,7 @@ async function renderLeagueLogo(ctx) {
         return { servedEarly: true };
     }
 
-    return { buffer: await downloadImageWithSvgSupport(leagueLogoUrl) };
+    return { buffer: await downloadProcessedLogo(leagueLogoUrl, { svgSupport: true }) };
 }
 
 // Case 2: Single team logo (/:league/:team1/logo)
@@ -117,7 +116,7 @@ async function renderTeamLogo(ctx) {
         } else if (resolvedTeam._logoPng) {
             // If team has pre-converted PNG (e.g., from SVG), use that directly
             // _logoPng is a data URL, downloadImage can handle it
-            logoBuffer = await downloadImage(resolvedTeam._logoPng);
+            logoBuffer = await downloadProcessedLogo(resolvedTeam._logoPng);
         } else {
             // Determine which logo URL to use based on variant parameter
             let logoUrl;
@@ -135,13 +134,13 @@ async function renderTeamLogo(ctx) {
                 return { servedEarly: true };
             }
 
-            logoBuffer = await downloadImageWithSvgSupport(logoUrl);
+            logoBuffer = await downloadProcessedLogo(logoUrl, { svgSupport: true });
         }
     } catch (teamError) {
         await handleTeamNotFoundError(teamError, fallback === 'true', async () => {
             const darkLogoPreferred = variant === 'dark';
             const leagueLogoUrl = await providerManager.getLeagueLogoUrl(leagueObj, darkLogoPreferred);
-            logoBuffer = await downloadImageWithSvgSupport(leagueLogoUrl);
+            logoBuffer = await downloadProcessedLogo(leagueLogoUrl, { svgSupport: true });
         });
     }
 
