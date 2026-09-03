@@ -29,7 +29,7 @@ function ensureDirectoryExists(dirPath) {
  * @param {string} mergeType - Type of merge: 'teams' or 'leagues'
  * @returns {object} Merged JSON object
  */
-function loadAndMergeJSON(baseFileName, directoryName, mergeType = 'teams') {
+function loadAndMergeJSON(baseFileName, directoryName, mergeType = 'teams', builtInOverlayFileNames = []) {
     const basePath = path.join(__dirname, '..', '..');
     const baseFilePath = path.join(basePath, baseFileName);
     const directoryPath = path.join(basePath, directoryName);
@@ -38,6 +38,7 @@ function loadAndMergeJSON(baseFileName, directoryName, mergeType = 'teams') {
     ensureDirectoryExists(directoryPath);
     
     let mergedData = {};
+    let externalData = null;
     
     // Load base file (required)
     try {
@@ -63,19 +64,39 @@ function loadAndMergeJSON(baseFileName, directoryName, mergeType = 'teams') {
             // If base file content differs from internal, merge internal as base and current base as override
             if (JSON.stringify(mergedData) !== JSON.stringify(internalData)) {
                 logger.info(`Detected external ${baseFileName} mount (backward compatibility mode)`);
-                const externalData = mergedData;
+                externalData = mergedData;
                 mergedData = internalData;
-                
-                if (mergeType === 'teams') {
-                    mergedData = mergeTeamsData(mergedData, externalData);
-                } else if (mergeType === 'leagues') {
-                    mergedData = mergeLeaguesData(mergedData, externalData);
-                } else {
-                    mergedData = { ...mergedData, ...externalData };
-                }
             }
         } catch (error) {
             // Ignore if internal file doesn't exist or can't be read
+        }
+    }
+
+    // Built-in overlays are included in images but kept outside user-mounted directories.
+    for (const overlayFileName of builtInOverlayFileNames) {
+        const overlayPath = path.join(basePath, overlayFileName);
+        try {
+            const overlayData = JSON.parse(fs.readFileSync(overlayPath, 'utf8'));
+            if (mergeType === 'leagues') {
+                mergedData = mergeLeaguesData(mergedData, overlayData, true);
+            } else if (mergeType === 'teams') {
+                mergedData = mergeTeamsData(mergedData, overlayData);
+            } else {
+                mergedData = { ...mergedData, ...overlayData };
+            }
+        } catch (error) {
+            logger.warn(`Failed to load built-in overlay ${overlayFileName}: ${error.message}`);
+        }
+    }
+
+    // A legacy single-file mount remains an external override, after built-in overlays.
+    if (externalData) {
+        if (mergeType === 'teams') {
+            mergedData = mergeTeamsData(mergedData, externalData);
+        } else if (mergeType === 'leagues') {
+            mergedData = mergeLeaguesData(mergedData, externalData);
+        } else {
+            mergedData = { ...mergedData, ...externalData };
         }
     }
     
@@ -206,6 +227,16 @@ function mergeTeamEntry(internal, external) {
     return merged;
 }
 
+function stableStringify(value) {
+    if (Array.isArray(value)) {
+        return `[${value.map(stableStringify).join(',')}]`;
+    }
+    if (value && typeof value === 'object') {
+        return `{${Object.keys(value).sort().map(key => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(',')}}`;
+    }
+    return JSON.stringify(value);
+}
+
 /**
  * Merge leagues data
  * External leagues enhance or override internal leagues
@@ -214,7 +245,7 @@ function mergeTeamEntry(internal, external) {
  * @param {object} external - External leagues data
  * @returns {object} Merged leagues data
  */
-function mergeLeaguesData(internal, external) {
+function mergeLeaguesData(internal, external, preserveExistingFields = false) {
     const merged = { ...internal };
     
     for (const leagueKey in external) {
@@ -226,10 +257,9 @@ function mergeLeaguesData(internal, external) {
             merged[leagueKey] = externalLeague;
         } else {
             // Merge league data
-            merged[leagueKey] = {
-                ...internalLeague,
-                ...externalLeague
-            };
+            merged[leagueKey] = preserveExistingFields
+                ? { ...externalLeague, ...internalLeague }
+                : { ...internalLeague, ...externalLeague };
             
             // Merge aliases if both exist
             if (internalLeague.aliases && externalLeague.aliases) {
@@ -255,10 +285,17 @@ function mergeLeaguesData(internal, external) {
             
             // Merge providers if both exist
             if (internalLeague.providers && externalLeague.providers) {
-                merged[leagueKey].providers = [
+                const providers = [
                     ...internalLeague.providers,
                     ...externalLeague.providers
                 ];
+                const seenProviders = new Set();
+                merged[leagueKey].providers = providers.filter(provider => {
+                    const key = stableStringify(provider);
+                    if (seenProviders.has(key)) return false;
+                    seenProviders.add(key);
+                    return true;
+                });
             }
         }
     }
@@ -269,7 +306,8 @@ function mergeLeaguesData(internal, external) {
 module.exports = {
     loadAndMergeJSON,
     mergeTeamsData,
-    mergeLeaguesData
+    mergeLeaguesData,
+    stableStringify
 };
 
 // ------------------------------------------------------------------------------

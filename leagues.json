@@ -303,14 +303,16 @@
     "name": "UEFA Europa Conference League",
     "aliases": [
       "conference league",
+      "uecl",
       "uefa.conference",
+      "uefa.europa.conf",
       "uefaconferenceleague",
       "uefaeuropaconfleague"
     ],
     "providers": [
       {
         "espn": {
-          "espnSlug": "uefa.conference",
+          "espnSlug": "uefa.europa.conf",
           "espnSport": "soccer"
         }
       }
@@ -784,6 +786,29 @@
       }
     ]
   },
+  "eredivisie": {
+    "name": "Eredivisie",
+    "aliases": [
+      "ned.1"
+    ],
+    "feederLeagues": [
+      "eerste-divisie"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "ned.1",
+          "espnSport": "soccer"
+        }
+      },
+      {
+        "theSportsDB": {
+          "leagueId": "4337",
+          "leagueName": "Dutch Eredivisie"
+        }
+      }
+    ]
+  },
   "mls": {
     "name": "Major League Soccer",
     "aliases": [
@@ -996,6 +1021,27 @@
         "espn": {
           "espnSlug": "fra.2",
           "espnSport": "soccer"
+        }
+      }
+    ]
+  },
+  "eerste-divisie": {
+    "name": "Eerste Divisie",
+    "aliases": [
+      "eredivisie 2",
+      "ned.2"
+    ],
+    "providers": [
+      {
+        "espn": {
+          "espnSlug": "ned.2",
+          "espnSport": "soccer"
+        }
+      },
+      {
+        "theSportsDB": {
+          "leagueId": "4641",
+          "leagueName": "Dutch Eerste Divisie"
         }
       }
     ]
@@ -1588,6 +1634,17 @@
       {
         "hockeyTech": {
           "websiteUrl": "https://bchl.ca/"
+        }
+      }
+    ]
+  },
+  "gohl": {
+    "name": "Greater Ontario Hockey League",
+    "logoUrl": "https://www.gohl.ca/wp-content/uploads/sites/2/2025/09/cropped-GOHLLogoTeamNavBar.png",
+    "providers": [
+      {
+        "hockeyTech": {
+          "websiteUrl": "https://www.gohl.ca/"
         }
       }
     ]
@@ -2487,6 +2544,10 @@
   "NASCAR": {
     "name": "NASCAR",
     "providers": [],
+    "aliases":[
+      "nascar cup series",
+      "nascar cup"
+    ],
     "logoUrl": "./assets/NASCAR.png",
     "skipLogos": true
   },

@@ -11,12 +11,14 @@ const logger = require('./helpers/logger');
 const { applyMiddleware } = require('./app/middleware');
 const { registerRoutes } = require('./app/routeLoader');
 const { startServer } = require('./app/lifecycle');
+const { initializeMetrics } = require('./app/metrics');
 
 const app = express();
 
 function init(port) {
     logger.startup('Game Thumbs API - Starting Server');
 
+    initializeMetrics();
     applyMiddleware(app);
 
     // Preload team overrides to show configuration at startup

@@ -77,6 +77,12 @@ jobs:
           RESULTS_FILE=$(find test/output -name "*.json" 2>/dev/null | head -n 1)
 
           if [ -z "$RESULTS_FILE" ] || [ ! -f "$RESULTS_FILE" ]; then
+            if [ "${{ steps.test.outcome }}" = "success" ]; then
+              echo "### 🧪 ${{ matrix.test-file }}" >> $GITHUB_STEP_SUMMARY
+              echo "Passed (no JSON result file emitted)." >> $GITHUB_STEP_SUMMARY
+              exit 0
+            fi
+
             echo "## ❌ Test Results Not Found" >> $GITHUB_STEP_SUMMARY
             echo "Test file: \`${{ matrix.test-file }}\`" >> $GITHUB_STEP_SUMMARY
             echo "Expected: \`$RESULTS_FILE\`" >> $GITHUB_STEP_SUMMARY

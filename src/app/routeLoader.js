@@ -9,6 +9,8 @@
 const fs = require('fs');
 const path = require('path');
 const logger = require('../helpers/logger');
+const { isMetricsEnabled } = require('../helpers/featureFlags');
+const { metricsHandler } = require('./metrics');
 
 function registerRoute(app, routePath, handler, method = 'get') {
     app[method](routePath, handler);
@@ -24,6 +26,11 @@ function registerRoutes(app) {
             timestamp: new Date().toISOString()
         });
     });
+
+    if (isMetricsEnabled()) {
+        app.get('/metrics', metricsHandler);
+        logger.info('Prometheus metrics endpoint enabled at /metrics');
+    }
 
     const routesPath = path.join(__dirname, '..', 'routes');
 

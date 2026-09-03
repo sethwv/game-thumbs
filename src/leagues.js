@@ -12,8 +12,8 @@ const { isEventOverlaysEnabled } = require('./helpers/featureFlags');
 
 const overlaysEnabled = isEventOverlaysEnabled();
 
-// Load base leagues.json + all files from json/leagues/ directory
-const leaguesRaw = loadAndMergeJSON('leagues.json', 'json/leagues', 'leagues');
+// Load built-in leagues, the image-generated Teamarr overlay, then user overrides.
+const leaguesRaw = loadAndMergeJSON('leagues.json', 'json/leagues', 'leagues', ['generated/leagues_teamarr.json']);
 
 // Filter leagues based on environment variable flags
 // Leagues with an "env_var" property are only enabled if that environment variable is set to a truthy value

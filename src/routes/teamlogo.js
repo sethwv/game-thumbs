@@ -5,7 +5,7 @@
 
 const providerManager = require('../helpers/ProviderManager');
 const { findLeague } = require('../leagues');
-const { downloadImage } = require('../helpers/imageUtils');
+const { downloadProcessedLogo } = require('../helpers/imageUtils');
 const { sendCachedOrGenerate, handleImageRouteError } = require('../helpers/routeUtils');
 const logger = require('../helpers/logger');
 
@@ -50,7 +50,7 @@ module.exports = {
             }
 
             // Download the image
-            const logoBuffer = await downloadImage(logoUrl);
+            const logoBuffer = await downloadProcessedLogo(logoUrl);
 
             // Send successful response
             sendCachedOrGenerate(req, res, logoBuffer);

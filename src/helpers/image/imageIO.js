@@ -11,11 +11,18 @@ const fs = require('fs').promises;
 const fsSync = require('fs');
 const path = require('path');
 const logger = require('../logger');
+const fsCache = require('../fsCache');
 const { REQUEST_TIMEOUT, getHockeytechAssetProxyConfig } = require('../requestConfig');
 
 // Cache settings from environment
 const CACHE_HOURS = parseInt(process.env.IMAGE_CACHE_HOURS || '24', 10);
 const CACHE_ENABLED = CACHE_HOURS > 0;
+const BACKGROUND_REMOVAL_ENABLED = process.env.DISABLE_LOGO_BACKGROUND_REMOVAL?.trim().toLowerCase() !== 'true';
+const BACKGROUND_REMOVAL_CACHE_VERSION = 'v4';
+const WHITE_BACKGROUND_MIN_CHANNEL = 235;
+const WHITE_BACKGROUND_TOLERANCE = 64;
+const MIN_BACKGROUND_EDGE_COVERAGE = 0.92;
+const BACKGROUND_PREVIEW_SIZE = 64;
 
 // Cache directory for trimmed logos (project root /.cache/trimmed). Ensure it
 // exists so trimImage can write to it; startup clearing happens in the
@@ -142,6 +149,178 @@ async function downloadImageWithSvgSupport(urlOrPath) {
     return downloadImage(urlOrPath);
 }
 
+function colorDistanceAt(data, index, background) {
+    return Math.max(
+        Math.abs(data[index] - background[0]),
+        Math.abs(data[index + 1] - background[1]),
+        Math.abs(data[index + 2] - background[2])
+    );
+}
+
+function isNearWhite(data, index) {
+    return data[index] >= WHITE_BACKGROUND_MIN_CHANNEL
+        && data[index + 1] >= WHITE_BACKGROUND_MIN_CHANNEL
+        && data[index + 2] >= WHITE_BACKGROUND_MIN_CHANNEL;
+}
+
+function isColored(data, index) {
+    return Math.max(data[index], data[index + 1], data[index + 2])
+        - Math.min(data[index], data[index + 1], data[index + 2]) > 8;
+}
+
+function getEdgePixels(width, height) {
+    const edgePixels = [];
+    for (let x = 0; x < width; x++) {
+        edgePixels.push(x * 4, ((height - 1) * width + x) * 4);
+    }
+    for (let y = 1; y < height - 1; y++) {
+        edgePixels.push(y * width * 4, (y * width + width - 1) * 4);
+    }
+
+    return edgePixels;
+}
+
+function getWhiteEdgeBackground(data, edgePixels) {
+    let count = 0;
+    let red = 0;
+    let green = 0;
+    let blue = 0;
+    for (const index of edgePixels) {
+        if (data[index + 3] <= 250 || !isNearWhite(data, index)) continue;
+        count++;
+        red += data[index];
+        green += data[index + 1];
+        blue += data[index + 2];
+    }
+    if (count / edgePixels.length < MIN_BACKGROUND_EDGE_COVERAGE) {
+        return null;
+    }
+
+    return [Math.round(red / count), Math.round(green / count), Math.round(blue / count)];
+}
+
+function cacheBackgroundResult(cacheKey, buffer, cache) {
+    if (cache && CACHE_ENABLED) {
+        fsCache.setBuffer('logo-backgrounds', cacheKey, buffer);
+    }
+    return buffer;
+}
+
+/**
+ * Remove a uniform near-white background only when it is connected to the image
+ * edge. Enclosed white logo details remain untouched.
+ */
+async function removeDetectedWhiteBackground(imageBuffer, { cache = true } = {}) {
+    if (!imageBuffer || !Buffer.isBuffer(imageBuffer)) {
+        throw new Error('Invalid image buffer provided for background removal');
+    }
+    if (!BACKGROUND_REMOVAL_ENABLED) return imageBuffer;
+
+    const cacheKey = `${BACKGROUND_REMOVAL_CACHE_VERSION}:${crypto.createHash('md5').update(imageBuffer).digest('hex')}`;
+    if (cache && CACHE_ENABLED) {
+        const cached = fsCache.getBuffer('logo-backgrounds', cacheKey);
+        if (cached) return cached;
+    }
+
+    const image = await loadImage(imageBuffer);
+    const previewScale = Math.min(1, BACKGROUND_PREVIEW_SIZE / Math.max(image.width, image.height));
+    const previewWidth = Math.max(1, Math.round(image.width * previewScale));
+    const previewHeight = Math.max(1, Math.round(image.height * previewScale));
+    const previewCanvas = createCanvas(previewWidth, previewHeight);
+    const previewCtx = previewCanvas.getContext('2d');
+    previewCtx.drawImage(image, 0, 0, previewWidth, previewHeight);
+    const preview = previewCtx.getImageData(0, 0, previewWidth, previewHeight);
+    if (!getWhiteEdgeBackground(preview.data, getEdgePixels(previewWidth, previewHeight))) {
+        return cacheBackgroundResult(cacheKey, imageBuffer, cache);
+    }
+
+    const canvas = createCanvas(image.width, image.height);
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(image, 0, 0);
+
+    const imageData = ctx.getImageData(0, 0, image.width, image.height);
+    const { data } = imageData;
+    const edgePixels = getEdgePixels(image.width, image.height);
+    const background = getWhiteEdgeBackground(data, edgePixels);
+    if (!background) return cacheBackgroundResult(cacheKey, imageBuffer, cache);
+    const matchesBackground = index => data[index + 3] > 0
+        && colorDistanceAt(data, index, background) <= WHITE_BACKGROUND_TOLERANCE
+        && (isNearWhite(data, index) || isColored(data, index));
+
+    let foregroundPixels = 0;
+    for (let index = 0; index < data.length; index += 4) {
+        if (data[index + 3] > 0 && !matchesBackground(index)) foregroundPixels++;
+    }
+    if (foregroundPixels === 0) return cacheBackgroundResult(cacheKey, imageBuffer, cache);
+
+    const visited = new Uint8Array(image.width * image.height);
+    const queue = [];
+    for (const index of edgePixels) {
+        const pixel = index / 4;
+        if (matchesBackground(index) && !visited[pixel]) {
+            visited[pixel] = 1;
+            queue.push(pixel);
+        }
+    }
+
+    let removed = 0;
+    for (let cursor = 0; cursor < queue.length; cursor++) {
+        const pixel = queue[cursor];
+        const x = pixel % image.width;
+        const y = Math.floor(pixel / image.width);
+        const index = pixel * 4;
+        data[index + 3] = 0;
+        removed++;
+
+        const neighbors = [pixel - 1, pixel + 1, pixel - image.width, pixel + image.width];
+        for (const neighbor of neighbors) {
+            const neighborX = neighbor % image.width;
+            if (neighbor < 0 || neighbor >= visited.length || (Math.abs(neighborX - x) > 1)) continue;
+            const neighborIndex = neighbor * 4;
+            if (!visited[neighbor] && matchesBackground(neighborIndex)) {
+                visited[neighbor] = 1;
+                queue.push(neighbor);
+            }
+        }
+    }
+
+    if (removed === 0) return cacheBackgroundResult(cacheKey, imageBuffer, cache);
+
+    // Fully clear the connected background. Restore a fractional alpha only for
+    // its one-pixel anti-aliased boundary next to real foreground, which avoids
+    // leaving low-opacity JPEG noise spread across the image.
+    for (const pixel of queue) {
+        const x = pixel % image.width;
+        const y = Math.floor(pixel / image.width);
+        const index = pixel * 4;
+        const neighbors = [pixel - 1, pixel + 1, pixel - image.width, pixel + image.width];
+        const touchesForeground = neighbors.some(neighbor => {
+            const neighborX = neighbor % image.width;
+            return neighbor >= 0
+                && neighbor < visited.length
+                && Math.abs(neighborX - x) <= 1
+                && !visited[neighbor]
+                && data[neighbor * 4 + 3] > 0;
+        });
+        if (touchesForeground) {
+            const distance = colorDistanceAt(data, index, background);
+            data[index + 3] = Math.round(255 * (distance / WHITE_BACKGROUND_TOLERANCE));
+        }
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+    const processedBuffer = canvas.toBuffer('image/png');
+    return cacheBackgroundResult(cacheKey, processedBuffer, cache);
+}
+
+async function downloadProcessedLogo(url, { svgSupport = false, removeBackground = true } = {}) {
+    let buffer = svgSupport ? await downloadImageWithSvgSupport(url) : await downloadImage(url);
+    if (removeBackground) {
+        buffer = await removeDetectedWhiteBackground(buffer);
+    }
+    return buffer;
+}
+
 function trimImage(imageBuffer, enableCache = true) {
     return new Promise(async (resolve, reject) => {
         try {
@@ -252,8 +431,8 @@ function trimImage(imageBuffer, enableCache = true) {
  * @param {boolean} [opts.trim=true] - trim transparent padding before loading
  * @returns {Promise<Image>} canvas Image ready to draw
  */
-async function loadProcessedLogo(url, { svgSupport = false, trim = true } = {}) {
-    let buffer = svgSupport ? await downloadImageWithSvgSupport(url) : await downloadImage(url);
+async function loadProcessedLogo(url, { svgSupport = false, trim = true, removeBackground = true } = {}) {
+    let buffer = await downloadProcessedLogo(url, { svgSupport, removeBackground });
     if (trim) {
         buffer = await trimImage(buffer, true);
     }
@@ -265,6 +444,8 @@ module.exports = {
     TRIMMED_CACHE_DIR,
     downloadImage,
     downloadImageWithSvgSupport,
+    downloadProcessedLogo,
+    removeDetectedWhiteBackground,
     trimImage,
     loadProcessedLogo
 };

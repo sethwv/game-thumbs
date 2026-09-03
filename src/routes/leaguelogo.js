@@ -5,7 +5,7 @@
 
 const providerManager = require('../helpers/ProviderManager');
 const { findLeague } = require('../leagues');
-const { downloadImageWithSvgSupport } = require('../helpers/imageUtils');
+const { downloadProcessedLogo } = require('../helpers/imageUtils');
 const { sendCachedOrGenerate, handleImageRouteError } = require('../helpers/routeUtils');
 const logger = require('../helpers/logger');
 
@@ -48,7 +48,7 @@ module.exports = {
             }
 
             // Download the image
-            const logoBuffer = await downloadImageWithSvgSupport(leagueLogoUrl);
+            const logoBuffer = await downloadProcessedLogo(leagueLogoUrl, { svgSupport: true });
 
             // Send successful response
             sendCachedOrGenerate(req, res, logoBuffer);

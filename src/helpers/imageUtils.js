@@ -51,6 +51,7 @@ module.exports = {
     // Image utilities
     downloadImage: imageIO.downloadImage,
     downloadImageWithSvgSupport: imageIO.downloadImageWithSvgSupport,
+    downloadProcessedLogo: imageIO.downloadProcessedLogo,
     loadProcessedLogo: imageIO.loadProcessedLogo,
     trimImage: imageIO.trimImage,
 

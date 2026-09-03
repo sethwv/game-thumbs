@@ -534,6 +534,10 @@ function getTeamMatchScore(input, team) {
     
     let maxScore = 0;
     const expandedInputs = expandLocationAbbreviations(input);
+    const officialClubName = normalize(input).replace(/ football club$/, '');
+    if (officialClubName && officialClubName !== normalize(input)) {
+        expandedInputs.push(officialClubName);
+    }
 
     for (const expandedInput of expandedInputs) {
         const compactInput = normalizeCompact(expandedInput);

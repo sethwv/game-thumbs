@@ -60,6 +60,14 @@ docker build -t game-thumbs .
 docker run -p 3000:3000 game-thumbs
 ```
 
+The image build downloads Teamarr's `dev` schema and generates its compatible TheSportsDB team-league overlay. The build therefore requires outbound access to `raw.githubusercontent.com`. To use another schema URL, pass it as a build argument:
+
+```bash
+docker build \
+  --build-arg TEAMARR_SCHEMA_URL=https://raw.githubusercontent.com/Pharaoh-Labs/teamarr/dev/teamarr/database/schema.sql \
+  -t game-thumbs .
+```
+
 Or without Docker:
 
 ```bash
@@ -87,12 +95,47 @@ Configure the server behavior using environment variables:
 | `ALLOW_CUSTOM_BADGES` | Allow custom badge parameter entries on matchup generation endpoints. | `false` |
 | `ALLOW_EVENT_OVERLAYS` | Enable the league event overlay feature on `/:league/thumb` and `/:league/cover`. When `true`, the `title`, `subtitle`, and `iconurl` query parameters are honored, default fonts are loaded at startup, and per-league custom fonts are registered. When disabled, those query parameters are ignored. | `false` |
 | `ALLOW_INSECURE_OVERLAY_URLS` | Controls whether `iconurl` may reference private/loopback/local addresses. `false` (default): only public DNS targets allowed. `true`: validation skipped entirely. Comma-separated list (e.g. `192.168.1.5,printer.local`): only those hostnames bypass validation, everything else is still checked. | `false` |
+| `METRICS_ENABLED` | Enable the Prometheus-compatible `GET /metrics` endpoint. Set to `true` to enable. | `false` (disabled) |
+
+### Prometheus Metrics
+
+Set `METRICS_ENABLED=true` to expose `GET /metrics` in Prometheus text format on the application port. The endpoint is not registered by default and returns the normal 444 response while disabled.
+
+```bash
+docker run -p 3000:3000 \
+  -e METRICS_ENABLED=true \
+  ghcr.io/sethwv/game-thumbs:latest
+```
+
+Prometheus can scrape the container through its existing HTTP port:
+
+```yaml
+scrape_configs:
+  - job_name: game-thumbs
+    static_configs:
+      - targets: ['game-thumbs:3000']
+```
+
+The exporter includes standard Node.js process metrics and these application metrics:
+
+| Metric | Labels | Description |
+|--------|--------|-------------|
+| `game_thumbs_http_requests_total` | `league` | Total application requests by canonical league. |
+| `game_thumbs_http_requests_by_endpoint_total` | `endpoint` | Total application requests by normalized endpoint. |
+| `game_thumbs_http_responses_total` | `status_class` | Total application responses by status class. |
+| `game_thumbs_image_cache_requests_total` | `cache` | Total image requests by application cache result. |
+| `game_thumbs_http_request_duration_seconds` | `endpoint` | Application request latency histogram by normalized endpoint. |
+
+`league` is the canonical configured league or `_none`/`_unknown`, `endpoint` is a normalized operation such as `thumb`, `logo`, `raw`, or `health`, `status_class` is `1xx` through `5xx`, and `cache` is `hit` or `miss`. These dimensions are intentionally recorded in separate metrics, so league requests cannot be filtered by endpoint, response, or cache result. Team names, raw URLs, query strings, client IPs, and exact status codes are excluded to keep Prometheus cardinality bounded. Scrapes of `/metrics` do not count as application traffic. Counters reset when the container restarts.
+
+The endpoint does not authenticate requests. Restrict access to `/metrics` with your reverse proxy or network policy when it is enabled.
 
 ### Caching
 
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `IMAGE_CACHE_HOURS` | How long to cache generated images (in hours). Set to `0` to disable caching. | `24` |
+| `DISABLE_LOGO_BACKGROUND_REMOVAL` | Set to `true` to return team and league logo assets unchanged, without background detection or removal. | `false` |
 
 **Note:** When `IMAGE_CACHE_HOURS=0`, every request generates a new image. Useful for testing but not recommended for production.
 

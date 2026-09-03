@@ -10,6 +10,9 @@ node_modules
 # Custom JSON configuration directories
 json/
 
+# Generated during local or Docker Teamarr schema integration
+generated/
+
 # Logs directory
 logs/
 *.log

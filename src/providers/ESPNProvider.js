@@ -206,6 +206,13 @@ class ESPNProvider extends BaseProvider {
             // Return standardized format
             const teamObj = bestMatch.team;
 
+            // Fetch franchise and record data from ESPN APIs in parallel
+            const { espnSport, espnSlug } = espnConfig;
+            const [franchiseData, record] = await Promise.all([
+                this.fetchFranchiseData(espnSport, espnSlug, teamObj.id),
+                this.fetchTeamRecord(espnSport, espnSlug, teamObj.id)
+            ]);
+
             // Find logo with rel: ["full", "default"]
             const defaultLogo = teamObj.logos?.find(logo =>
                 logo.rel?.includes('full') && logo.rel?.includes('default')
@@ -259,7 +266,7 @@ class ESPNProvider extends BaseProvider {
             if (!primaryColor) primaryColor = '#000000';
             if (!alternateColor) alternateColor = '#ffffff';
 
-            // Individually-fetched teams (see fetchExtraTeams) return `groups` as a
+            // Individually-fetched teams (see fetchTeamsByIds) return `groups` as a
             // single object rather than the array the bulk teams list returns.
             const teamGroups = Array.isArray(teamObj.groups)
                 ? teamObj.groups
@@ -277,7 +284,12 @@ class ESPNProvider extends BaseProvider {
                 logo: logoUrl,
                 logoAlt: darkLogo?.href,
                 color: primaryColor,
-                alternateColor: alternateColor
+                alternateColor: alternateColor,
+                stadiumName: franchiseData?.venue?.fullName ?? null,
+                stadiumImage: franchiseData?.venue?.images?.[0]?.href ?? null,
+                stadiumCity: franchiseData?.venue?.address?.city ?? null,
+                stadiumState: franchiseData?.venue?.address?.state ?? null,
+                record: record ?? null
             };
 
             // Apply overrides from teams.json
@@ -600,6 +612,51 @@ class ESPNProvider extends BaseProvider {
             return teams;
         } catch (error) {
             throw this.handleHttpError(error, `Fetching teams for ${league.shortName}`);
+        }
+    }
+
+    async fetchFranchiseData(espnSport, espnSlug, teamId) {
+        const cacheKey = `franchise_${espnSlug}_${teamId}`;
+        const cached = fsCache.getJSON('espn', cacheKey, this.CACHE_DURATION);
+        if (cached) {
+            return cached;
+        }
+
+        try {
+            const url = `${ESPN_CORE_API}/sports/${espnSport}/leagues/${espnSlug}/franchises/${teamId}?lang=en&region=us`;
+            const response = await axios.get(url, {
+                timeout: this.REQUEST_TIMEOUT,
+                headers: getBrowserHeaders()
+            });
+            fsCache.setJSON('espn', cacheKey, response.data);
+            return response.data;
+        } catch (error) {
+            logger.warn('Failed to fetch franchise data', { espnSport, espnSlug, teamId, error: error.message });
+            return null;
+        }
+    }
+
+    async fetchTeamRecord(espnSport, espnSlug, teamId) {
+        const cacheDuration = 60 * 60 * 1000;
+        const cacheKey = `record_${espnSlug}_${teamId}`;
+        const cached = fsCache.getJSON('espn', cacheKey, cacheDuration);
+        if (cached !== null && cached !== undefined) {
+            return cached;
+        }
+
+        try {
+            const url = `https://site.api.espn.com/apis/site/v2/sports/${espnSport}/${espnSlug}/teams/${teamId}`;
+            const response = await axios.get(url, {
+                timeout: this.REQUEST_TIMEOUT,
+                headers: getBrowserHeaders()
+            });
+            const record = response.data?.team?.record?.items
+                ?.find(item => item.type === 'total')?.summary ?? null;
+            fsCache.setJSON('espn', cacheKey, record);
+            return record;
+        } catch (error) {
+            logger.warn('Failed to fetch team record', { espnSport, espnSlug, teamId, error: error.message });
+            return null;
         }
     }
 
