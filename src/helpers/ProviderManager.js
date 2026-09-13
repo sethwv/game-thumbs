@@ -350,6 +350,54 @@ class ProviderManager {
     }
 
     /**
+     * Check whether an identifier explicitly names the selected league as a team.
+     * This intentionally mirrors league lookup normalization without aliases or
+     * fuzzy matching, so a league team is only selected when requested directly.
+     */
+    isLeagueTeamIdentifier(league, teamIdentifier) {
+        const { normalizeCompact } = require('./teamUtils');
+        const normalizedIdentifier = normalizeCompact(teamIdentifier);
+        if (!normalizedIdentifier) return false;
+
+        const identifiers = [league.shortName, league.name];
+        for (const providerConfig of league.providers || []) {
+            const espnConfig = providerConfig.espn || providerConfig.espnConfig;
+            if (espnConfig?.espnSlug) {
+                identifiers.push(espnConfig.espnSlug);
+            }
+        }
+
+        return identifiers.some(identifier => normalizeCompact(identifier) === normalizedIdentifier);
+    }
+
+    /**
+     * Build a team-shaped representation of a league for matchup rendering.
+     */
+    async getLeagueTeam(league) {
+        const { logoUrl, logoUrlAlt } = await this.getLeagueLogoPair(league);
+        if (!logoUrl) {
+            throw new Error(`League logo not found for ${league.shortName}`);
+        }
+
+        const { extractDominantColors } = require('./colorUtils');
+        const [color, alternateColor] = await extractDominantColors(logoUrl, 2);
+        const identifier = league.shortName.toLowerCase();
+
+        return {
+            id: `league:${identifier}`,
+            slug: identifier,
+            name: league.name || league.shortName,
+            fullName: league.name || league.shortName,
+            abbreviation: league.shortName.toUpperCase(),
+            logo: logoUrl,
+            logoAlt: logoUrlAlt !== logoUrl ? logoUrlAlt : null,
+            color,
+            alternateColor,
+            providerId: 'league'
+        };
+    }
+
+    /**
      * Resolve a team using the appropriate provider
      * @param {Object} league - League object
      * @param {string} teamIdentifier - Team name, abbreviation, or identifier
@@ -413,6 +461,14 @@ class ProviderManager {
                 }
                 return customTeam;
             }
+        }
+
+        if (this.isLeagueTeamIdentifier(league, teamIdentifier)) {
+            const leagueTeam = await this.getLeagueTeam(league);
+            if (!suppressLogging) {
+                logger.teamResolved('league', league.shortName, leagueTeam.name);
+            }
+            return leagueTeam;
         }
         
         // Skip if we've already tried this league (prevents infinite loops)

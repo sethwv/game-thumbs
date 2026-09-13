@@ -23,6 +23,7 @@ nav_order: 6
 - `team` / `team1` / `team2` - Team identifier (name, city, or abbreviation)
   - **Athlete Sports (Tennis, MMA):** Use athlete names (e.g., `djokovic`, `serena-williams`)
   - **Doubles/Teams:** Use `+` to combine multiple athletes (e.g., `djokovic+federer`)
+  - **League teams:** Use the selected league's short code, ESPN slug, or full name to render its logo and colors as a team. For example, `/nhl/nhl/tor/logo` renders the NHL against Toronto.
 
 ---
 

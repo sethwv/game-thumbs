@@ -15,6 +15,8 @@ nav_order: 7
 - `/:league/:team/thumb[.png]` - Team thumbnail (team color gradient with logo)
 - `/:league/:team1/:team2/thumb[.png]` - Matchup thumbnail (split design, 1440x1080)
 
+A league can also be used as a team by supplying its short code, ESPN slug, or full name. For example, `/nhl/nhl/thumb` generates an NHL-branded team thumbnail.
+
 ---
 
 ## Parameters
