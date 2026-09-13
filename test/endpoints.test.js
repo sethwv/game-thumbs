@@ -60,6 +60,14 @@ const testCases = [
         expectedType: 'application/json',
         saveImage: false
     },
+    {
+        name: 'Raw League Team Data - NHL',
+        endpoint: '/nhl/nhl/raw',
+        expectedStatus: 200,
+        expectedType: 'application/json',
+        saveImage: false,
+        validateBody: data => data.abbreviation === 'NHL' && data.logo && data.color && data.alternateColor
+    },
     
     // League logos
     {
@@ -130,6 +138,14 @@ const testCases = [
         saveImage: true,
         filename: 'matchup-logo-nba.png'
     },
+    {
+        name: 'League Team Matchup Logo - NHL vs Toronto',
+        endpoint: '/nhl/nhl/tor/logo',
+        expectedStatus: 200,
+        expectedType: 'image/png',
+        saveImage: true,
+        filename: 'matchup-logo-nhl-tor.png'
+    },
     
     // Thumbnails
     {
@@ -147,6 +163,14 @@ const testCases = [
         expectedType: 'image/png',
         saveImage: true,
         filename: 'team-thumb-nfl-chiefs.png'
+    },
+    {
+        name: 'League Team Thumb - NHL',
+        endpoint: '/nhl/nhl/thumb',
+        expectedStatus: 200,
+        expectedType: 'image/png',
+        saveImage: true,
+        filename: 'league-team-thumb-nhl.png'
     },
     {
         name: 'Matchup Thumb - NFL',
@@ -425,9 +449,12 @@ async function runTest(testCase) {
         // Validate JSON if expected
         if (testCase.expectedType === 'application/json') {
             try {
-                JSON.parse(response.body.toString());
+                const data = JSON.parse(response.body.toString());
+                if (testCase.validateBody && !testCase.validateBody(data)) {
+                    throw new Error('Response body failed validation');
+                }
             } catch (e) {
-                throw new Error('Invalid JSON response');
+                throw new Error(e.message === 'Response body failed validation' ? e.message : 'Invalid JSON response');
             }
         }
 

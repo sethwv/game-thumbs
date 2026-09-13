@@ -9,14 +9,14 @@ nav_order: 9
 
 **Endpoint:** `/:league/:team/raw`
 
-Returns raw JSON data for a team from the provider.
+Returns raw JSON data for a team or a synthetic league team.
 
 ---
 
 ## Parameters
 
 - `league` - Sport league code (see [Supported Leagues](supported-leagues.html))
-- `team` - Team identifier (name, city, or abbreviation)
+- `team` - Team identifier (name, city, or abbreviation). A league's own short code, ESPN slug, or full name also resolves to a synthetic league team using that league's logo and colors.
 
 ---
 
@@ -26,6 +26,7 @@ Returns raw JSON data for a team from the provider.
 curl http://localhost:3000/nba/lakers/raw
 curl http://localhost:3000/nfl/chiefs/raw
 curl http://localhost:3000/ncaaf/alabama/raw
+curl http://localhost:3000/nhl/nhl/raw
 ```
 
 ---
