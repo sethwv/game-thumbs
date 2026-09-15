@@ -75,6 +75,7 @@
   },
   "wnba": {
     "name": "Women's National Basketball Association",
+    "leagueTeamColor": "#222222",
     "providers": [
       {
         "espn": {

@@ -391,8 +391,8 @@ class ProviderManager {
             abbreviation: league.shortName.toUpperCase(),
             logo: logoUrl,
             logoAlt: logoUrlAlt !== logoUrl ? logoUrlAlt : null,
-            color,
-            alternateColor,
+            color: league.leagueTeamColor || color,
+            alternateColor: league.leagueTeamAlternateColor || alternateColor,
             providerId: 'league'
         };
     }
