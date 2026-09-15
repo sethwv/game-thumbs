@@ -35,6 +35,10 @@ async function testLeagueTeamResolution() {
             alternateColor: '#00ff87',
             providerId: 'league'
         });
+
+        const configuredTeam = await providerManager.resolveTeam({ ...league, leagueTeamColor: '#101820' }, 'epl');
+        assert.strictEqual(configuredTeam.color, '#101820');
+        assert.strictEqual(configuredTeam.alternateColor, '#00ff87');
     } finally {
         colorUtils.extractDominantColors = originalExtractDominantColors;
     }
