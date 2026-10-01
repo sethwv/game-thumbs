@@ -36,7 +36,7 @@ nav_order: 6
 | `size` | integer | 1024 | Output size: 256, 512, 1024, or 2048 (matchup, or league/team with `style=1`) |
 | `logo` | boolean | false | Include league logo (matchup only) |
 | `trim` | boolean | true | Trim whitespace (matchup, or league/team with `style=1`) |
-| `badge` | string | - | Add quality badge overlay: `ALT`, `4K`, `HD`, `FHD`, or `UHD` (matchup only) |
+| `badge` | string | - | Badge overlay(s), comma-separated (up to 4): keywords (`4K`, `HD`, `ALT`, network, language), rank numbers (`10` or `%2310` renders `#10`), optional `@tl`/`@tr`/`@bl`/`@br` position suffix. See [Badge Overlays](thumb.html#badge-overlays) |
 | `winner` | string | - | Winning team identifier - displays losing team in greyscale (matchup only) |
 | `fallback` | boolean | false | **Single team:** Return league logo. **Matchup:** Use greyscale league logo for missing teams (or skipLogos mode for configured leagues) |
 | `mode` | string | league config | Override the league's configured `mode` (see [Customization](../customization.html#mode-name-render-team-names-instead-of-logos)) for this request: `name` renders a team name text card instead of the real logo asset, `default` forces the real logo even if the league is configured with `mode: "name"`. Single team and matchup only. |
@@ -94,6 +94,7 @@ GET /nba/raptors/lakers/logo?style=3
 GET /mlb/bluejays/redsox/logo?size=2048
 GET /nhl/oilers/flames/logo?badge=4K
 GET /mls/toronto-fc/montreal/logo?badge=ALT&style=2
+GET /ncaa/miamihurricanes/olemiss/logo?fallback=true&badge=10,6
 ```
 
 ### Fallback Behavior

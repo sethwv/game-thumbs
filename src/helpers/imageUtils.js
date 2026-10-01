@@ -5,7 +5,7 @@
 //   ./image/draw.js            - canvas drawing, centering, greyscale, colors
 //   ./image/imageIO.js         - download / trim / load
 //   ./image/logoResolution.js  - logo selection, team resolution/fallback, winner
-//   ./image/badge.js           - badge validation + overlay
+//   ./image/badge.js           - badge validation, parsing + multi-badge overlay
 // ------------------------------------------------------------------------------
 
 const fsSync = require('fs');
@@ -67,7 +67,8 @@ module.exports = {
     applyWinnerEffect: logoResolution.applyWinnerEffect,
 
     // Badge overlay
-    addBadgeOverlay: badge.addBadgeOverlay,
+    addBadgesOverlay: badge.addBadgesOverlay,
+    parseBadges: badge.parseBadges,
     isValidBadge: badge.isValidBadge,
 
     // Color utilities

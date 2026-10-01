@@ -10,8 +10,8 @@ const { getCachedImage, addToCache } = require('./imageCache');
 const {
     resolveTeamsWithFallback,
     handleTeamNotFoundError,
-    addBadgeOverlay,
-    isValidBadge,
+    addBadgesOverlay,
+    parseBadges,
     applyWinnerEffect
 } = require('./imageUtils');
 const { isEventOverlaysEnabled, getInsecureOverlayConfig } = require('./featureFlags');
@@ -77,23 +77,40 @@ function handleImageRouteError(error, req, res, context) {
 }
 
 // ------------------------------------------------------------------------------
-// Badge overlay with base-image caching. If `badge` is a valid keyword, the
-// un-badged base image is cached under the badge-stripped URL (so repeat
-// requests with different badges reuse one render), then the badge is overlaid.
-// If `badge` is absent/invalid, just returns the generated buffer.
+// Badge overlay with base-image caching. `badge` supports a comma-separated
+// list (or repeated params) of up to 4 keywords — see parseBadges. If at least
+// one entry is valid, the un-badged base image is cached under the badge-
+// stripped URL (so repeat requests with different badges reuse one render),
+// then the badges are overlaid. If `badge` is absent or has no valid entries,
+// just returns the generated buffer.
 //   generate() -> Promise<Buffer>   (renders the un-badged image)
 //   returns Promise<Buffer>
 // ------------------------------------------------------------------------------
+
+// Remove every badge parameter from a URL to get the base (un-badged) cache
+// key. Rebuilt param-by-param so '?badge=X&a=1' -> '?a=1' (not '&a=1') and
+// repeated badge params are all stripped.
+function stripBadgeParam(originalUrl) {
+    const qIndex = originalUrl.indexOf('?');
+    if (qIndex === -1) return originalUrl;
+
+    const path = originalUrl.slice(0, qIndex);
+    const params = originalUrl.slice(qIndex + 1)
+        .split('&')
+        .filter(param => param !== '' && !/^badge=/i.test(param));
+    return params.length ? `${path}?${params.join('&')}` : path;
+}
+
 async function applyBadgeWithCaching({ req, res, badge, badgeScale, generate }) {
-    if (!isValidBadge(badge)) {
+    const badges = parseBadges(badge);
+    if (badges.length === 0) {
         return await generate();
     }
 
-    // Remove badge parameter from URL to get the base (un-badged) cache key
-    const baseImageUrl = req.originalUrl.replace(/[?&]badge=[^&]*/i, '').replace(/\?$/, '');
+    const baseImageUrl = stripBadgeParam(req.originalUrl);
     const cachedBase = getCachedImage(baseImageUrl);
     if (cachedBase) {
-        return await addBadgeOverlay(cachedBase, badge.toUpperCase(), { badgeScale });
+        return await addBadgesOverlay(cachedBase, badges, { badgeScale });
     }
 
     const buffer = await generate();
@@ -102,7 +119,7 @@ async function applyBadgeWithCaching({ req, res, badge, badgeScale, generate }) 
     } catch (cacheError) {
         logger.error('Failed to cache base image', { Error: cacheError.message });
     }
-    return await addBadgeOverlay(buffer, badge.toUpperCase(), { badgeScale });
+    return await addBadgesOverlay(buffer, badges, { badgeScale });
 }
 
 // ------------------------------------------------------------------------------
