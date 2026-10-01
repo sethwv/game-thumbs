@@ -242,7 +242,10 @@ async function addBadgesOverlay(imageBuffer, badges, options = {}) {
         ? ['top-right']
         : DEFAULT_POSITION_ORDER.filter(pos => !taken.has(pos));
     let nextSlot = 0;
-    const positions = badges.map(({ position }) => position || fillOrder[nextSlot++ % fillOrder.length]);
+    // If all corners have been pinned, put any remaining badges in a defined
+    // corner instead of indexing an empty fillOrder array.
+    const available = fillOrder.length ? fillOrder : DEFAULT_POSITION_ORDER;
+    const positions = badges.map(({ position }) => position || available[nextSlot++ % available.length]);
 
     // Group pills by corner, preserving list order within each group
     const groups = new Map();
