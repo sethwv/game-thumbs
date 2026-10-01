@@ -15,6 +15,8 @@ nav_order: 7
 - `/:league/:team/thumb[.png]` - Team thumbnail (team color gradient with logo)
 - `/:league/:team1/:team2/thumb[.png]` - Matchup thumbnail (split design, 1440x1080)
 
+A league can also be used as a team by supplying its short code, ESPN slug, or full name. For example, `/nhl/nhl/thumb` generates an NHL-branded team thumbnail.
+
 ---
 
 ## Parameters
@@ -33,13 +35,53 @@ nav_order: 7
 | `aspect` | string | `4-3` | Aspect ratio: `4-3` (1440x1080), `16-9` (1920x1080), or `1-1` (1080x1080) |
 | `style` | integer | 1 | Visual style 1-6 (matchup only); community styles 98 and 99 also available |
 | `logo` | boolean | true | Include league logo (matchup only) |
-| `badge` | string | - | Add quality badge overlay: `ALT`, `4K`, `HD`, `FHD`, or `UHD` (matchup only) |
+| `badge` | string | - | Badge overlay(s), comma-separated (up to 4): keywords (`4K`, `HD`, `ALT`, network, language), rank numbers (`10` or `%2310` renders `#10`), optional `@tl`/`@tr`/`@bl`/`@br` position suffix. See [Badge Overlays](#badge-overlays) |
 | `winner` | string | - | Winning team identifier - displays losing team in greyscale (matchup only) |
 | `fallback` | boolean | false | **Single team:** Return league thumb. **Matchup:** Use greyscale league logo for missing teams |
 | `mode` | string | league config | Override the league's configured `mode` (see [Customization](../customization.html#mode-name-render-team-names-instead-of-logos)) for this request: `name` renders team names as text instead of logos, `default` forces logos even if the league is configured with `mode: "name"`. Single team and matchup only. |
 | `title` | string | - | **League Thumb:** A title to display on the league thumb for sports that are not based on matchups (motorsports, etc.). Requires `ALLOW_EVENT_OVERLAYS=true`. |
 | `subtitle` | string | - | **League Thumb:** A subtitle to display on the league thumb for sports that are not based on matchups (motorsports, etc.). Requires `ALLOW_EVENT_OVERLAYS=true`. |
 | `iconurl` | string | - | **League Thumb:** Optional image URL to display on the league thumb for sports that are not based on matchups (motorsports, etc.). Must be an `http://` or `https://` URL with a public hostname; private and loopback targets are rejected unless `ALLOW_INSECURE_OVERLAY_URLS=true`. Requires `ALLOW_EVENT_OVERLAYS=true`. |
+
+---
+
+## Badge Overlays
+
+**Applies to:** matchup, team, and league thumbnails
+
+Add up to **4** badge overlays with the `badge` query parameter, comma-separated:
+
+```
+GET /ncaa/miamihurricanes/olemiss/thumb?style=1&logo=true&fallback=true&badge=10,6
+```
+
+**Badge types:**
+
+| Type | Examples | Renders | Notes |
+|------|----------|---------|-------|
+| Quality | `4K`, `HD`, `FHD`, `UHD` | as given | |
+| Alternate feed | `ALT`, `MANNINGCAST`, `PRIMEVISION` | as given | |
+| Event | `PLAYOFFS`, `PRESEASON` | as given | |
+| Language | `EN`, `ES`, `FR`, `DE`, `IT` (+ longer forms) | as given | |
+| Network | `ESPN`, `FOX`, `NBC`, `CBS`, `ABC`, `NFLN`, `MLBN`, `NBA TV`, `CW`, `PEACOCK` | as given | |
+| **Rank** | `10`, `6`, or `%2310` (`#` must be URL-encoded) | `#10`, `#6` | 1-2 digits, e.g. AP poll standings |
+
+{: .note }
+> A bare `#` starts the URL fragment, so pass ranks as plain digits (`badge=10,6`) or URL-encode the hash (`badge=%2310,%236`) — both render as `#10` / `#6`.
+
+**Positioning:** a single badge renders in the top-right corner (existing behavior). Multiple badges are distributed across corners in reading order — top-left, top-right, bottom-left, bottom-right — so `badge=10,6` places each team's rank over its own half of the thumbnail. Pin any badge to a corner with a position suffix: `@tl`, `@tr`, `@bl`, or `@br` (long forms like `@top-left` also work). Badges sharing a corner are laid out side by side.
+
+```
+GET /nfl/chiefs/49ers/thumb?badge=4K                    -> 4K in the top-right
+GET /nba/lakers/celtics/thumb?badge=10,6               -> #10 top-left, #6 top-right
+GET /nba/lakers/celtics/thumb?badge=%2310,%236         -> same as above
+GET /nfl/chiefs/49ers/thumb?badge=4K@br,10,6           -> ranks top-left/top-right, 4K bottom-right
+GET /nba/lakers/celtics/thumb?badge=PLAYOFFS,10,6,4K   -> one badge per corner
+```
+
+**Live example:** [![NCAA matchup with rank badges](https://game-thumbs.swvn.io/ncaa/miamihurricanes/olemiss/thumb?style=1&logo=true&fallback=true&badge=10,6)](https://game-thumbs.swvn.io/ncaa/miamihurricanes/olemiss/thumb?style=1&logo=true&fallback=true&badge=10,6)
+
+Invalid badge values are ignored (the thumbnail renders without them), matching the single-badge behavior. Custom badge text outside the keywords above requires `ALLOW_CUSTOM_BADGES=true` on the server.
 
 ---
 
@@ -96,6 +138,7 @@ GET /mlb/bluejays/yankees/thumb?logo=false
 GET /nhl/oilers/flames/thumb?style=99
 GET /mls/toronto-fc/lafc/thumb?badge=4K
 GET /nhl/canucks/bruins/thumb?badge=HD&style=3
+GET /ncaa/miamihurricanes/olemiss/thumb?fallback=true&badge=10,6
 GET /nhl/jets/blackhawks/thumb?style=5
 GET /nhl/senators/rangers/thumb?style=6
 ```

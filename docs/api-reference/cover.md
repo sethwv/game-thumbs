@@ -33,7 +33,7 @@ nav_order: 8
 | `aspect` | string | `3-4` | Aspect ratio: `3-4` (1080x1440), `9-16` (1080x1920), or `1-1` (1080x1080) |
 | `style` | integer | 1 | Visual style 1-6 (matchup only); community styles 98 and 99 also available |
 | `logo` | boolean | true | Include league logo (matchup only) |
-| `badge` | string | - | Add quality badge overlay: `ALT`, `4K`, `HD`, `FHD`, or `UHD` (matchup only) |
+| `badge` | string | - | Badge overlay(s), comma-separated (up to 4): keywords (`4K`, `HD`, `ALT`, network, language), rank numbers (`10` or `%2310` renders `#10`), optional `@tl`/`@tr`/`@bl`/`@br` position suffix. See [Badge Overlays](thumb.html#badge-overlays) |
 | `winner` | string | - | Winning team identifier - displays losing team in greyscale (matchup only) |
 | `fallback` | boolean | false | **Single team:** Return league cover. **Matchup:** Use greyscale league logo for missing teams |
 | `mode` | string | league config | Override the league's configured `mode` (see [Customization](../customization.html#mode-name-render-team-names-instead-of-logos)) for this request: `name` renders team names as text instead of logos, `default` forces logos even if the league is configured with `mode: "name"`. Single team and matchup only. |
@@ -96,6 +96,7 @@ GET /mlb/bluejays/orioles/cover?logo=false
 GET /nhl/oilers/jets/cover?style=99
 GET /mls/toronto-fc/montreal/cover?badge=UHD
 GET /nhl/canucks/flames/cover?badge=4K&style=2
+GET /ncaa/miamihurricanes/olemiss/cover?fallback=true&badge=10,6
 GET /nhl/senators/sabres/cover?style=5
 GET /mls/vancouver/seattle/cover?style=6
 ```

@@ -60,6 +60,14 @@ const testCases = [
         expectedType: 'application/json',
         saveImage: false
     },
+    {
+        name: 'Raw League Team Data - NHL',
+        endpoint: '/nhl/nhl/raw',
+        expectedStatus: 200,
+        expectedType: 'application/json',
+        saveImage: false,
+        validateBody: data => data.abbreviation === 'NHL' && data.logo && data.color && data.alternateColor
+    },
     
     // League logos
     {
@@ -130,6 +138,14 @@ const testCases = [
         saveImage: true,
         filename: 'matchup-logo-nba.png'
     },
+    {
+        name: 'League Team Matchup Logo - NHL vs Toronto',
+        endpoint: '/nhl/nhl/tor/logo',
+        expectedStatus: 200,
+        expectedType: 'image/png',
+        saveImage: true,
+        filename: 'matchup-logo-nhl-tor.png'
+    },
     
     // Thumbnails
     {
@@ -149,12 +165,74 @@ const testCases = [
         filename: 'team-thumb-nfl-chiefs.png'
     },
     {
+        name: 'League Team Thumb - NHL',
+        endpoint: '/nhl/nhl/thumb',
+        expectedStatus: 200,
+        expectedType: 'image/png',
+        saveImage: true,
+        filename: 'league-team-thumb-nhl.png'
+    },
+    {
         name: 'Matchup Thumb - NFL',
         endpoint: '/nfl/chiefs/49ers/thumb',
         expectedStatus: 200,
         expectedType: 'image/png',
         saveImage: true,
         filename: 'matchup-thumb-nfl.png'
+    },
+    {
+        name: 'Matchup Thumb Single Badge - NFL',
+        endpoint: '/nfl/chiefs/49ers/thumb?badge=4K',
+        expectedStatus: 200,
+        expectedType: 'image/png',
+        saveImage: true,
+        filename: 'matchup-thumb-badge-single.png',
+        description: 'Single badge renders top-right (backward compatible)'
+    },
+    {
+        name: 'Matchup Thumb Rank Badges - NCAA',
+        endpoint: '/ncaa/miamihurricanes/olemiss/thumb?fallback=true&badge=10,6',
+        expectedStatus: 200,
+        expectedType: 'image/png',
+        saveImage: true,
+        filename: 'matchup-thumb-badge-ranks.png',
+        description: 'Bare-digit rank badges render as #10/#6 without ALLOW_CUSTOM_BADGES'
+    },
+    {
+        name: 'Matchup Thumb Rank Badges Encoded Hash - NCAA',
+        endpoint: '/ncaa/miamihurricanes/olemiss/thumb?fallback=true&badge=%2310,%236',
+        expectedStatus: 200,
+        expectedType: 'image/png',
+        saveImage: true,
+        filename: 'matchup-thumb-badge-ranks-encoded.png',
+        description: 'URL-encoded # ranks (%2310) render identically to bare digits'
+    },
+    {
+        name: 'Matchup Thumb Pinned Badge Position - NFL',
+        endpoint: '/nfl/chiefs/49ers/thumb?badge=4K@br,1,2',
+        expectedStatus: 200,
+        expectedType: 'image/png',
+        saveImage: true,
+        filename: 'matchup-thumb-badge-pinned.png',
+        description: 'Position suffix pins 4K bottom-right; unpinned ranks fill top corners'
+    },
+    {
+        name: 'Matchup Thumb Four Badges - NFL',
+        endpoint: '/nfl/chiefs/49ers/thumb?badge=PLAYOFFS,1,2,4K',
+        expectedStatus: 200,
+        expectedType: 'image/png',
+        saveImage: true,
+        filename: 'matchup-thumb-badge-four.png',
+        description: 'Four badges spread across all four corners'
+    },
+    {
+        name: 'Matchup Thumb Invalid Badge Entries - NFL',
+        endpoint: '/nfl/chiefs/49ers/thumb?badge=NOTABADGE,4K',
+        expectedStatus: 200,
+        expectedType: 'image/png',
+        saveImage: true,
+        filename: 'matchup-thumb-badge-invalid.png',
+        description: 'Invalid entries dropped, valid badge still renders'
     },
     {
         name: 'Matchup Thumb 16:9 - NBA',
@@ -425,9 +503,12 @@ async function runTest(testCase) {
         // Validate JSON if expected
         if (testCase.expectedType === 'application/json') {
             try {
-                JSON.parse(response.body.toString());
+                const data = JSON.parse(response.body.toString());
+                if (testCase.validateBody && !testCase.validateBody(data)) {
+                    throw new Error('Response body failed validation');
+                }
             } catch (e) {
-                throw new Error('Invalid JSON response');
+                throw new Error(e.message === 'Response body failed validation' ? e.message : 'Invalid JSON response');
             }
         }
 
