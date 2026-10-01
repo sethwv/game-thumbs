@@ -79,6 +79,8 @@ GET /nfl/chiefs/49ers/thumb?badge=4K@br,10,6           -> ranks top-left/top-rig
 GET /nba/lakers/celtics/thumb?badge=PLAYOFFS,10,6,4K   -> one badge per corner
 ```
 
+**Live example:** [![NCAA matchup with rank badges](https://game-thumbs.swvn.io/ncaa/miamihurricanes/olemiss/thumb?style=1&logo=true&fallback=true&badge=10,6)](https://game-thumbs.swvn.io/ncaa/miamihurricanes/olemiss/thumb?style=1&logo=true&fallback=true&badge=10,6)
+
 Invalid badge values are ignored (the thumbnail renders without them), matching the single-badge behavior. Custom badge text outside the keywords above requires `ALLOW_CUSTOM_BADGES=true` on the server.
 
 ---

@@ -97,6 +97,8 @@ GET /mls/toronto-fc/montreal/logo?badge=ALT&style=2
 GET /ncaa/miamihurricanes/olemiss/logo?fallback=true&badge=10,6
 ```
 
+**Live badge example:** [![NCAA matchup logo with rank badges](https://game-thumbs.swvn.io/ncaa/miamihurricanes/olemiss/logo?fallback=true&badge=10,6)](https://game-thumbs.swvn.io/ncaa/miamihurricanes/olemiss/logo?fallback=true&badge=10,6)
+
 ### Fallback Behavior
 
 When `fallback=true` is set, the API gracefully handles missing data instead of returning errors.
