@@ -16,6 +16,11 @@ const { TeamNotFoundError } = require('../helpers/errors');
 const { REQUEST_TIMEOUT, getBrowserHeaders } = require('../helpers/requestConfig');
 
 const ESPN_CORE_API = 'https://sports.core.api.espn.com/v2';
+const ESPN_CRICKET_SCORE_PANEL_API = 'https://site.web.api.espn.com/apis/site/v2/sports/cricket/scorepanel';
+const ESPN_CRICKET_LOGO = 'https://a.espncdn.com/redesign/assets/img/icons/ESPN-icon-cricket.png';
+const SPORT_LEAGUE_CACHE_VERSION = 2;
+// ESPN does not consistently include cricket in its general sports catalog.
+const ADDITIONAL_ESPN_SPORTS = ['cricket'];
 
 // Bounded scan of ESPN's small, stable group IDs (conferences/divisions/special
 // groupings) to find whichever one is named "All-Star" for a given league.
@@ -140,6 +145,15 @@ class ESPNProvider extends BaseProvider {
                         }
                     }
 
+                    // ESPN's cricket score panel supplies national-team
+                    // abbreviations but no team slugs. Treat an exact
+                    // abbreviation as an exact team match.
+                    if (bestScore < 1000 && compactInput === normalizeCompact(teamObj.abbreviation || '')) {
+                        bestMatch = team;
+                        bestScore = 1000;
+                        continue;
+                    }
+
                     // Secondary fast-path: compact city + nickname with state removed (e.g., "ferrisbulldogs")
                     const compactCity = normalizeCompact(teamObj.location || '');
                     const compactNick = normalizeCompact(teamObj.nickname || '');
@@ -208,10 +222,12 @@ class ESPNProvider extends BaseProvider {
 
             // Fetch franchise and record data from ESPN APIs in parallel
             const { espnSport, espnSlug } = espnConfig;
-            const [franchiseData, record] = await Promise.all([
-                this.fetchFranchiseData(espnSport, espnSlug, teamObj.id),
-                this.fetchTeamRecord(espnSport, espnSlug, teamObj.id)
-            ]);
+            const [franchiseData, record] = league._isESPNFallback && espnSport === 'cricket'
+                ? [null, null]
+                : await Promise.all([
+                    this.fetchFranchiseData(espnSport, espnSlug, teamObj.id),
+                    this.fetchTeamRecord(espnSport, espnSlug, teamObj.id)
+                ]);
 
             // Find logo with rel: ["full", "default"]
             const defaultLogo = teamObj.logos?.find(logo =>
@@ -223,11 +239,14 @@ class ESPNProvider extends BaseProvider {
                 logo.rel?.includes('full') && logo.rel?.includes('dark')
             );
 
-            const logoUrl = defaultLogo?.href || teamObj.logos?.[0]?.href;
+            const logoUrl = defaultLogo?.href || teamObj.logos?.[0]?.href || teamObj.logo;
+            const darkLogoUrl = darkLogo?.href || teamObj.logoDark;
             
             // Extract colors from logo if not provided by API
-            let primaryColor = teamObj.color ? `#${teamObj.color}` : null;
-            let alternateColor = teamObj.alternateColor ? `#${teamObj.alternateColor}` : null;
+            let primaryColor = teamObj.color ? (teamObj.color.startsWith('#') ? teamObj.color : `#${teamObj.color}`) : null;
+            let alternateColor = teamObj.alternateColor
+                ? (teamObj.alternateColor.startsWith('#') ? teamObj.alternateColor : `#${teamObj.alternateColor}`)
+                : null;
             
             if ((!primaryColor || !alternateColor) && logoUrl) {
                 // Check filesystem cache for previously extracted colors
@@ -282,7 +301,7 @@ class ESPNProvider extends BaseProvider {
                 conference: teamGroups.find(g => g.id)?.name,
                 division: teamGroups.find(g => g.parent?.id)?.name,
                 logo: logoUrl,
-                logoAlt: darkLogo?.href,
+                logoAlt: darkLogoUrl,
                 color: primaryColor,
                 alternateColor: alternateColor,
                 stadiumName: franchiseData?.venue?.fullName ?? null,
@@ -322,6 +341,12 @@ class ESPNProvider extends BaseProvider {
         }
         if (league.logoUrl) {
             return league.logoUrl;
+        }
+
+        // Cricket series appear only on ESPN's score panel. They have neither
+        // a Core API league record nor a series logo endpoint.
+        if (league._isESPNFallback && espnConfig.espnSport === 'cricket') {
+            return ESPN_CRICKET_LOGO;
         }
 
         // Otherwise, fetch from ESPN API
@@ -388,7 +413,9 @@ class ESPNProvider extends BaseProvider {
 
         for (const sport of sports) {
             try {
-                const leagues = await this.fetchLeaguesForSport(sport);
+                const leagues = sport === 'cricket'
+                    ? await this.fetchCricketLeagues()
+                    : await this.fetchLeaguesForSport(sport);
                 if (leagues.size > 0) {
                     this.sportLeagueMap.set(sport, leagues);
                     totalLeagues += leagues.size;
@@ -414,6 +441,9 @@ class ESPNProvider extends BaseProvider {
         try {
             const data = await fs.readFile(this.SPORT_LEAGUE_CACHE_FILE, 'utf8');
             const parsed = JSON.parse(data);
+            if (parsed.version !== SPORT_LEAGUE_CACHE_VERSION) {
+                return null;
+            }
             
             // Convert arrays back to Sets
             const sportLeagueMap = new Map();
@@ -442,6 +472,7 @@ class ESPNProvider extends BaseProvider {
             }
             
             const cacheData = {
+                version: SPORT_LEAGUE_CACHE_VERSION,
                 sportLeagueMap: sportLeagueObj,
                 timestamp: Date.now()
             };
@@ -457,7 +488,7 @@ class ESPNProvider extends BaseProvider {
      * @returns {Promise<string[]>} Array of sport slugs
      */
     async fetchAllSports() {
-        const sports = [];
+        const sports = new Set(ADDITIONAL_ESPN_SPORTS);
 
         try {
             const url = 'https://sports.core.api.espn.com/v2/sports?limit=1000';
@@ -475,7 +506,7 @@ class ESPNProvider extends BaseProvider {
                         // Extract slug between /sports/ and ?
                         const match = sportUrl.match(/\/sports\/([^?]+)/);
                         if (match && match[1]) {
-                            sports.push(match[1]);
+                            sports.add(match[1]);
                         }
                     }
                 }
@@ -485,7 +516,7 @@ class ESPNProvider extends BaseProvider {
             logger.error('Failed to fetch sports from ESPN Core API', { error: error.message });
         }
 
-        return sports;
+        return Array.from(sports);
     }
 
     /**
@@ -524,6 +555,76 @@ class ESPNProvider extends BaseProvider {
         }
 
         return leagues;
+    }
+
+    /**
+     * Fetch the cricket series ESPN lists on its daily score panel. Cricket has
+     * no usable Core API league catalog, but each score-panel block includes
+     * ESPN's own league slug or ID.
+     * @returns {Promise<Set<string>>} ESPN league identifiers, unchanged
+     */
+    async fetchCricketLeagues() {
+        const leagues = new Set();
+
+        try {
+            const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+            const response = await axios.get(ESPN_CRICKET_SCORE_PANEL_API, {
+                timeout: 15000,
+                headers: getBrowserHeaders(),
+                params: { dates: today }
+            });
+
+            for (const scoreGroup of response.data?.scores || []) {
+                for (const league of scoreGroup.leagues || []) {
+                    const identifier = league.slug ?? league.id;
+                    if (identifier !== undefined && identifier !== null && identifier !== '') {
+                        leagues.add(String(identifier));
+                    }
+                }
+            }
+        } catch (error) {
+            logger.warn('Failed to fetch cricket leagues from ESPN score panel', { error: error.message });
+        }
+
+        return leagues;
+    }
+
+    /**
+     * Return the teams competing in a cricket series on ESPN's score panel.
+     * Cricket series do not have the usual /teams endpoint.
+     * @param {string} leagueSlug - ESPN's cricket series identifier
+     * @returns {Promise<Array>} Team entries in ESPN's normal { team: {...} } shape
+     */
+    async fetchCricketTeams(leagueSlug) {
+        const teams = new Map();
+
+        try {
+            const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+            const response = await axios.get(ESPN_CRICKET_SCORE_PANEL_API, {
+                timeout: this.REQUEST_TIMEOUT,
+                headers: getBrowserHeaders(),
+                params: { dates: today }
+            });
+
+            for (const scoreGroup of response.data?.scores || []) {
+                const isRequestedLeague = scoreGroup.leagues?.some(league =>
+                    String(league.slug ?? league.id) === String(leagueSlug)
+                );
+                if (!isRequestedLeague) continue;
+
+                for (const event of scoreGroup.events || []) {
+                    for (const competitor of event.competitions?.[0]?.competitors || []) {
+                        if (competitor.team?.id) {
+                            teams.set(String(competitor.team.id), { team: competitor.team });
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            logger.warn('Failed to fetch cricket teams from ESPN score panel', { league: leagueSlug, error: error.message });
+        }
+
+        return Array.from(teams.values());
     }
 
     /**
@@ -588,6 +689,13 @@ class ESPNProvider extends BaseProvider {
             throw new Error(`League ${league.shortName} is missing ESPN configuration`);
         }
         const { espnSport, espnSlug } = espnConfig;
+
+        if (league._isESPNFallback && espnSport === 'cricket') {
+            const teams = await this.fetchCricketTeams(espnSlug);
+            fsCache.setJSON('espn', cacheKey, teams);
+            return teams;
+        }
+
         const teamApiUrl = `https://site.api.espn.com/apis/site/v2/sports/${espnSport}/${espnSlug}/teams?limit=1000`;
 
         try {
