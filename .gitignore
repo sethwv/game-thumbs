@@ -60,6 +60,7 @@ HIGHLIGHTS.md
 
 # Beads / Dolt files (added by bd init)
 .beads/
+.beads.gate.lock
 .dolt/
 *.db
 .beads-credential-key
