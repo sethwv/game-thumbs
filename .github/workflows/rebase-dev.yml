@@ -81,13 +81,10 @@ jobs:
                   git checkout --theirs "$file"
                   git add "$file"
                   RESOLVED="$RESOLVED\n- \`$file\` (accepted main version)"
-                # For package.json and package-lock.json, try to merge both
-                elif [[ "$file" == "package.json" ]] || [[ "$file" == "package-lock.json" ]]; then
-                  echo "🔀 Attempting to merge package file: $file"
-                  # Accept theirs and we'll regenerate lock file if needed
-                  git checkout --theirs "$file"
-                  git add "$file"
-                  RESOLVED="$RESOLVED\n- \`$file\` (accepted main version)"
+                # Dependency conflicts need a reviewed manifest and regenerated lockfile.
+                elif [[ "$file" == "package.json" ]] || [[ "$file" == "yarn.lock" ]] || [[ "$file" == "package-lock.json" ]]; then
+                  echo "❌ Resolve dependency conflict manually: $file"
+                  FAILED="$FAILED\n- \`$file\`"
                 else
                   # For other files, try accepting theirs (changes from main)
                   echo "🔀 Accepting changes from main for: $file"

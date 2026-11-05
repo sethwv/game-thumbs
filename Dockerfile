@@ -1,5 +1,5 @@
 # Use Node.js LTS version (Debian-based for better multi-arch support)
-FROM node:lts-slim
+FROM node:24.22.2-slim@sha256:c86ecead9e55a5210ac1727de38a4ca840bf03dcaf34dc9749addbf383b1920c
 
 # OCI annotations for image metadata
 LABEL org.opencontainers.image.title="game-thumbs"

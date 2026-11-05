@@ -17,6 +17,7 @@ on:
       - 'json/**'
       - 'leagues.json'
       - 'package.json'
+      - 'yarn.lock'
       - 'test/snapshots/**'
   workflow_dispatch:
 
@@ -39,8 +40,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: '24.22.2'
+          cache: 'yarn'
 
       - name: Record head SHA
         id: head
@@ -51,7 +52,7 @@ jobs:
         run: git checkout -f ${{ github.event.pull_request.base.sha }}
 
       - name: Install dependencies (base)
-        run: npm install
+        run: yarn install --frozen-lockfile
 
       - name: Render baseline (base commit)
         run: |
@@ -74,7 +75,7 @@ jobs:
         run: git checkout -f ${{ steps.head.outputs.sha }}
 
       - name: Install dependencies (head)
-        run: npm install
+        run: yarn install --frozen-lockfile
 
       - name: Restore baseline manifest
         run: cp /tmp/baseline-manifest.json test/snapshots/manifest.json

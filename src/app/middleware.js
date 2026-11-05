@@ -5,7 +5,6 @@
 // intact. Extracted verbatim from express.js init().
 // ------------------------------------------------------------------------------
 
-const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
@@ -37,8 +36,6 @@ function applyMiddleware(app) {
     app.use(helmet({
         crossOriginResourcePolicy: { policy: "cross-origin" }
     }));
-    app.use(express.json());
-    app.use(express.urlencoded({ extended: true }));
 
     // Collapse consecutive slashes in paths (e.g. nhl///logo.png → nhl/logo.png)
     app.use((req, res, next) => {

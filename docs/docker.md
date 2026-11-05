@@ -75,7 +75,9 @@ npm install
 node src/index.js
 ```
 
-Node.js 18+ is required. Canvas native dependencies must be installed first — see the [Contributing Guide](https://github.com/sethwv/game-thumbs/blob/main/CONTRIBUTING.md) for platform-specific setup.
+Use a supported Node.js release with the Node2Shell fix, such as Node 24.22.1 or later in the 24.x release line. Canvas native dependencies must be installed first. See the [Contributing Guide](https://github.com/sethwv/game-thumbs/blob/main/CONTRIBUTING.md) for platform-specific setup.
+
+The image pins its Node base image. Review Docker Dependabot updates and rebuild and publish the image when security updates are released. A published image and an existing container do not update automatically when the Dockerfile changes. After publishing an updated image, pull it, recreate the container, and verify the running version with `docker exec game-thumbs node --version`. The `latest` tag is published by the version-tag release workflow; a `dev` build alone does not update it.
 
 ---
 
