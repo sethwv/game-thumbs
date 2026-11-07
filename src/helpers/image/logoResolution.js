@@ -72,32 +72,31 @@ async function generateFallbackTeamObject(leagueLogoUrl, teamName = 'Unknown Tea
             error: error.message
         });
 
-        // Generate minimal text-based logo: single bold letter on transparent background
-        const canvas = createCanvas(400, 400);
-        const ctx = canvas.getContext('2d');
-
-        // Transparent background (no fill)
-
-        // Draw single letter (first character of team name)
-        const letter = teamName.charAt(0).toUpperCase();
-        ctx.fillStyle = '#999999';
-        ctx.font = 'bold 280px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(letter, 200, 200);
-
-        const fallbackBuffer = canvas.toBuffer('image/png');
-        const base64Logo = `data:image/png;base64,${fallbackBuffer.toString('base64')}`;
-
-        return {
-            name: teamName,
-            logo: base64Logo,
-            logoAlt: base64Logo,
-            color: '#d3d3d3',
-            alternateColor: '#b8b8b8',
-            isFallback: true
-        };
+        return generateTextFallbackTeam(teamName);
     }
+}
+
+function generateTextFallbackTeam(teamName) {
+    const canvas = createCanvas(400, 400);
+    const ctx = canvas.getContext('2d');
+    const letter = teamName.charAt(0).toUpperCase();
+    ctx.fillStyle = '#999999';
+    ctx.font = 'bold 280px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(letter, 200, 200);
+
+    const fallbackBuffer = canvas.toBuffer('image/png');
+    const base64Logo = `data:image/png;base64,${fallbackBuffer.toString('base64')}`;
+
+    return {
+        name: teamName,
+        logo: base64Logo,
+        logoAlt: base64Logo,
+        color: '#d3d3d3',
+        alternateColor: '#b8b8b8',
+        isFallback: true
+    };
 }
 
 /**
@@ -308,11 +307,12 @@ async function resolveTeamsWithFallback(providerManager, leagueObj, team1Identif
                 isFallback: true
             };
         } catch (error) {
-            logger.warn('Failed to generate fallback with league logo', {
+            logger.warn('Failed to generate fallback with league logo, using text fallback', {
                 leagueLogoUrl,
                 error: error.message
             });
-            throw error;
+            resolvedTeam1 = generateTextFallbackTeam(team1Identifier);
+            resolvedTeam2 = generateTextFallbackTeam(team2Identifier);
         }
     } else if (result1.failed || result2.failed) {
         const fallbackPromises = [];

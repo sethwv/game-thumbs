@@ -4,7 +4,7 @@
 // Treats individual fighters/athletes as "teams" for thumbnail generation.
 //
 // ESPN does not carry boxing, but TheSportsDB does (league id 4445, sport
-// "Fighting"). The free API key ('3') does NOT expose a roster endpoint
+// "Fighting"). The free API does NOT expose a roster endpoint
 // (lookup_all_players returns null), so unlike ESPNAthleteProvider we cannot
 // prefetch and match locally. Instead we resolve per-request via
 // searchplayers.php?p=<name>, guarded by sport to reject wrong-sport matches.
@@ -44,7 +44,7 @@ class TheSportsDBAthleteProvider extends BaseProvider {
         this.NEGATIVE_CACHE_DURATION = 24 * 60 * 60 * 1000;
         this.REQUEST_TIMEOUT = REQUEST_TIMEOUT;
         // Use premium API key from env var if available, otherwise free tier.
-        this.API_KEY = process.env.THESPORTSDB_API_KEY || '3';
+        this.API_KEY = process.env.THESPORTSDB_API_KEY || '123';
 
         // Combat-sports palette (dark blues), mirrors ESPNAthleteProvider.
         // Extracting colors from a fighter photo yields skin tones, so we use a

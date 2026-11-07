@@ -248,7 +248,7 @@ Override the default API keys for data providers that offer premium access:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `THESPORTSDB_API_KEY` | API key for TheSportsDB. The free-tier key (`3`) works for most leagues; a Patreon key unlocks higher rate limits and additional data. | `3` |
+| `THESPORTSDB_API_KEY` | API key for TheSportsDB. Defaults to the public test key (`123`); a premium key may provide higher rate limits and additional data. | `123` |
 | `HOCKEYTECH_API_KEY` | API key for HockeyTech (used for CHL, AHL, and other hockey leagues). The bundled public key covers most deployments. | `f1aa699db3d81487` |
 | `CBL_SUPABASE_API_KEY` | API key for the Supabase-backed CBL athlete provider. When not set, this provider is inactive. | Not set (disabled) |
 

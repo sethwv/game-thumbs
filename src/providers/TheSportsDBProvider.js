@@ -19,7 +19,7 @@ class TheSportsDBProvider extends BaseProvider {
         this.CACHE_DURATION = 72 * 60 * 60 * 1000; // 72 hours
         this.REQUEST_TIMEOUT = REQUEST_TIMEOUT;
         // Use premium API key from env var if available, otherwise use free tier
-        this.API_KEY = process.env.THESPORTSDB_API_KEY || '3';
+        this.API_KEY = process.env.THESPORTSDB_API_KEY || '123';
     }
 
     getProviderId() {

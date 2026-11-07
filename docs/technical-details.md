@@ -89,7 +89,7 @@ Game Thumbs uses a modular provider architecture to fetch team and athlete data 
 
 **Leagues**: Boxing  
 **Type**: Athlete-based sports (individual / combat sports ESPN does not carry)  
-**API**: `thesportsdb.com/api/v1` (free key `3`, or premium via `THESPORTSDB_API_KEY`)  
+**API**: `thesportsdb.com/api/v1` (public test key `123`, or a configured key via `THESPORTSDB_API_KEY`)
 **Features**:
 - Resolves fighters per request via `searchplayers.php?p=<name>` (no roster prefetch: the free key's `lookup_all_players` endpoint is not available)
 - **Sport guard**: filters results to the configured `sport` (e.g. "Fighting") plus an optional `teamFilter` substring (e.g. "Boxing"), so a wrong-sport best match is rejected rather than returned
