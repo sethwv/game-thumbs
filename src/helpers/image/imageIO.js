@@ -125,6 +125,10 @@ async function downloadImage(urlOrPath, { allowSvg = false } = {}) {
  * @returns {Promise<Buffer>} Image buffer
  */
 async function downloadImageWithSvgSupport(urlOrPath) {
+    if (!urlOrPath || typeof urlOrPath !== 'string') {
+        throw new Error(`Invalid URL or path: ${urlOrPath}`);
+    }
+
     // Check if it's an SVG by URL extension
     const isSvgUrl = urlOrPath.toLowerCase().endsWith('.svg');
 
