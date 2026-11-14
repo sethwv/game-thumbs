@@ -1615,7 +1615,7 @@
   },
   "ahl": {
     "name": "American Hockey League",
-    "logoUrl": "https://theahl.com/wp-content/uploads/sites/3/2024/09/cropped-AHL_Primary22.png",
+    "logoUrl": "./assets/AHL.png",
     "aliases": [
       "american ahl",
       "american hockey league"
