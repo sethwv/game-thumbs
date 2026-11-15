@@ -1,11 +1,26 @@
 version: 2
 updates:
   - package-ecosystem: "npm"
-    # open-pull-requests-limit: 10
+    open-pull-requests-limit: 10
     directory: "/"
+    target-branch: "dev"
     schedule:
       interval: "weekly"
+  # Security updates use the default branch and are triggered by alerts, not the schedule.
+  # The limit disables version updates without disabling security updates.
+  - package-ecosystem: "npm"
+    directory: "/"
+    open-pull-requests-limit: 0
+    labels:
+      - "dependencies"
+      - "security"
+    schedule:
+      interval: "daily"
   - package-ecosystem: "docker"
     directory: "/"
+    open-pull-requests-limit: 0
+    labels:
+      - "dependencies"
+      - "security"
     schedule:
-      interval: "weekly"
+      interval: "daily"
