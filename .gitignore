@@ -55,7 +55,6 @@ CLAUDE.md
 .DS_Store
 Thumbs.db
 .github/copilot-instructions.md
-CHANGELOG.md
 HIGHLIGHTS.md
 
 # Beads / Dolt files (added by bd init)
