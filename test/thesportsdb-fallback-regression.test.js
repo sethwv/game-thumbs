@@ -38,6 +38,26 @@ async function main() {
         assert.strictEqual((await athleteProvider.fetchLeagueData({ shortName: 'boxing' }, '4445')).strBadge, 'league.png');
         assert(urls.every(url => url.includes('/json/123/')));
 
+        const { findLeague } = require('../src/leagues');
+        const afl = await findLeague('afl');
+        assert.strictEqual(await findLeague('Australian Football League'), afl);
+        assert.strictEqual(await findLeague('Australian AFL'), afl);
+        assert.deepStrictEqual(teamsProvider.getLeagueConfig(afl), { leagueId: '4456', leagueName: 'Australian AFL' });
+        axios.get = async url => {
+            urls.push(url);
+            if (url.includes('search_all_teams.php')) return { data: { teams: [
+                { idTeam: '1', strTeam: 'Essendon Bombers', strBadge: 'essendon.png', strColour1: 'ff0000', strColour2: '000000' },
+                { idTeam: '2', strTeam: 'Brisbane Lions', strBadge: 'brisbane.png', strColour1: 'ff0000', strColour2: '0000ff' }
+            ] } };
+            if (url.includes('lookupleague.php')) return { data: { leagues: [{ strBadge: 'afl.png' }] } };
+            throw new Error(`Unexpected URL: ${url}`);
+        };
+        assert.strictEqual((await teamsProvider.resolveTeam(afl, 'Essendon Bombers')).logo, 'essendon.png');
+        assert.strictEqual((await teamsProvider.resolveTeam(afl, 'Brisbane Lions')).logo, 'brisbane.png');
+        assert.strictEqual(await teamsProvider.getLeagueLogoUrl(afl), 'afl.png');
+        assert(urls.slice(-3, -1).every(url => url.endsWith('/search_all_teams.php?l=Australian%20AFL')));
+        assert(urls[urls.length - 1].endsWith('/lookupleague.php?id=4456'));
+
         await assert.rejects(downloadImageWithSvgSupport(null), /Invalid URL or path: null/);
         const canvas = createCanvas(20, 20);
         const ctx = canvas.getContext('2d');

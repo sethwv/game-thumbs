@@ -26,6 +26,7 @@ Docker images also include compatible TheSportsDB team leagues generated from Te
 | NBA G League | `nbag` | ESPN | |
 | Unrivaled Basketball | `ubl` | TSDB | |
 | National Football League | `nfl` | ESPN | |
+| Australian Football League | `afl` | TheSportsDB | |
 | United Football League | `ufl` | ESPN | |
 | Major League Baseball | `mlb` | ESPN | |
 | World Baseball Classic | `wbc` | ESPN | Fallback: MLB |

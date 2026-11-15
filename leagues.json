@@ -11,6 +11,20 @@
       }
     ]
   },
+  "afl": {
+    "name": "Australian Football League",
+    "aliases": [
+      "Australian AFL"
+    ],
+    "providers": [
+      {
+        "theSportsDB": {
+          "leagueId": "4456",
+          "leagueName": "Australian AFL"
+        }
+      }
+    ]
+  },
   "nba": {
     "name": "National Basketball Association",
     "providers": [
