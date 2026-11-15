@@ -1,0 +1,70 @@
+name: Update changelog
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: changelog-${{ github.event_name == 'workflow_dispatch' && github.ref_name || github.event.repository.default_branch }}
+  cancel-in-progress: false
+
+jobs:
+  changelog:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check release type
+        id: release_type
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          if [[ "$EVENT_NAME" == release && "${RELEASE_TAG,,}" =~ (^|[._-])dev([._-]|$) ]]; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Check out target branch
+        if: steps.release_type.outputs.run == 'true'
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.ref_name || github.event.repository.default_branch }}
+          path: target
+      - name: Build changelog from all releases
+        if: steps.release_type.outputs.run == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          TARGET_BRANCH: ${{ github.event_name == 'workflow_dispatch' && github.ref_name || github.event.repository.default_branch }}
+        run: |
+          gh api --paginate --slurp "repos/$REPOSITORY/releases?per_page=100" |
+            jq -r '
+              [ .[][] | select(.draft != true)
+                | select(.tag_name | test("(^|[._-])dev([._-]|$)"; "i") | not) ]
+              | sort_by(.published_at, .tag_name) | reverse
+              | "# Changelog\n\nAll notable changes to this project are documented in this file."
+                + (map("\n\n## [" + .tag_name + "](" + .html_url + ") - " + .published_at[0:10]
+                  + ((.body // "" | gsub("\r\n"; "\n") | sub("^\\s+"; "") | sub("\\s+$"; "")) as $body
+                     | if $body == "" then "" else "\n\n" + $body end)) | join(""))
+            ' > target/CHANGELOG.md
+          branch_hash=$(printf '%s' "$TARGET_BRANCH" | sha256sum | cut -c1-12)
+          echo "PR_BRANCH=automation/changelog-$branch_hash" >> "$GITHUB_ENV"
+      - name: Open or update changelog pull request
+        if: steps.release_type.outputs.run == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          path: target
+          token: ${{ github.token }}
+          base: ${{ github.event_name == 'workflow_dispatch' && github.ref_name || github.event.repository.default_branch }}
+          branch: ${{ env.PR_BRANCH }}
+          delete-branch: true
+          add-paths: CHANGELOG.md
+          commit-message: 'docs(changelog): update release history'
+          author: 'github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>'
+          committer: 'github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>'
+          title: 'docs(changelog): update release history'
+          body: 'Rebuild the changelog from all published non-dev GitHub releases.'
