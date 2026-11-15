@@ -179,7 +179,7 @@ GET /iihf/canada/usa/thumb
 Game Thumbs supports **athlete-based** combat sports and individual sports where athletes are treated as "teams" for matchup generation.
 
 {: .important }
-> **Feature Flag Required:** Combat sports leagues require the `LEAGUES_ENABLE_MMA=true` environment variable to be enabled. See [Docker Setup - League Feature Flags](docker.html#league-feature-flags) for details.
+> **Feature Flag Required:** The ESPN MMA leagues below require `LEAGUES_ENABLE_MMA=true`. Boxing, WWE, AEW and BKFC do not require this flag. See [Docker Setup - League Feature Flags](docker.html#league-feature-flags) for details.
 
 ### Mixed Martial Arts (MMA)
 
@@ -195,6 +195,19 @@ GET /ufc/jon-jones/stipe-miocic/thumb
 GET /pfl/kayla-harrison/larissa-pacheco/logo
 GET /bellator/ryan-bader/corey-anderson/cover
 ```
+
+### Wrestling and bare-knuckle fighting
+
+WWE (`wwe`), All Elite Wrestling (`aew`) and Bare Knuckle Fighting Championship (`bkfc`) use TheSportsDB athlete search. Use full names for the most reliable results:
+
+```
+GET /wwe/Cody%20Rhodes/Roman%20Reigns/thumb
+GET /aew/Kenny%20Omega/Jon%20Moxley/cover
+GET /bkfc/Mike%20Perry/Conor%20McGregor/thumb
+GET /wwe/Cody%20Rhodes+Roman%20Reigns/Jon%20Moxley/thumb
+```
+
+Athletes are not restricted to their current promotion, so transfers and retired wrestlers can still match. When equally good name matches are returned, athletes listed under the requested promotion are preferred. The free API can return only one result across all sports, so a valid athlete may not be found, and promotion membership is not guaranteed. Composite images may have an empty slot if an athlete image cannot be downloaded.
 
 ### Tennis
 

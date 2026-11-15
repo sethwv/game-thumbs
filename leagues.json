@@ -183,6 +183,42 @@
       }
     ]
   },
+  "wwe": {
+    "name": "World Wrestling Entertainment",
+    "logoUrl": "./assets/WWE.png",
+    "providers": [
+      {
+        "thesportsdbathlete": {
+          "sport": "Fighting",
+          "preferredTeams": ["WWE", "Raw", "Smackdown", "NXT"]
+        }
+      }
+    ]
+  },
+  "aew": {
+    "name": "All Elite Wrestling",
+    "logoUrl": "./assets/AEW.png",
+    "providers": [
+      {
+        "thesportsdbathlete": {
+          "sport": "Fighting",
+          "preferredTeams": ["All Elite Wrestling", "AEW"]
+        }
+      }
+    ]
+  },
+  "bkfc": {
+    "name": "Bare Knuckle Fighting Championship",
+    "logoUrl": "./assets/BKFC.png",
+    "providers": [
+      {
+        "thesportsdbathlete": {
+          "sport": "Fighting",
+          "preferredTeams": ["Bare Knuckle", "BKFC"]
+        }
+      }
+    ]
+  },
   "boxing": {
     "name": "Boxing",
     "logoUrl": "./assets/BOXING.png",

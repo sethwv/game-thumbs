@@ -13,6 +13,7 @@
 // - sport:      Required. strSport guard (e.g. "Fighting").
 // - teamFilter: Optional. Substring that strTeam must contain (e.g. "Boxing"),
 //               used to exclude other "Fighting" sports like MMA.
+// - preferredTeams: Optional. Team substrings preferred among name matches.
 // - leagueId:   Optional. TheSportsDB league id for the league logo (e.g. "4445").
 // - leagueName: Optional. Human-readable league name (informational).
 //
@@ -79,6 +80,15 @@ class TheSportsDBAthleteProvider extends BaseProvider {
             throw new Error(`League ${league.shortName} is missing TheSportsDB athlete configuration`);
         }
 
+        if (athleteIdentifier.includes('+')) {
+            const athletes = [];
+            for (const name of athleteIdentifier.split('+').map(part => part.trim())) {
+                athletes.push(await this.resolveTeam(league, name));
+            }
+            const { mergeAthletesIntoTeam } = require('../helpers/athleteComposite');
+            return await mergeAthletesIntoTeam(athletes, config.sport);
+        }
+
         try {
             const candidates = await this.fetchCandidates(league, athleteIdentifier);
 
@@ -89,6 +99,7 @@ class TheSportsDBAthleteProvider extends BaseProvider {
 
             let bestMatch = null;
             let bestScore = 0;
+            let bestPreferred = false;
             for (const player of guarded) {
                 const { firstName, lastName } = this.splitName(player.strPlayer);
                 const athleteObj = {
@@ -106,9 +117,12 @@ class TheSportsDBAthleteProvider extends BaseProvider {
                     league.shortName.toLowerCase()
                 );
 
-                if (score > bestScore) {
+                const team = (player.strTeam || '').toLowerCase();
+                const preferred = (config.preferredTeams || []).some(term => team.includes(term.toLowerCase()));
+                if (score > 0 && (score > bestScore || (score === bestScore && preferred && !bestPreferred))) {
                     bestScore = score;
                     bestMatch = player;
+                    bestPreferred = preferred;
                 }
             }
 
