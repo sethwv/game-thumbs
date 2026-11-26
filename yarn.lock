@@ -445,10 +445,10 @@ expand-template@^2.0.3:
   resolved "https://registry.yarnpkg.com/expand-template/-/expand-template-2.0.3.tgz#6e14b3fcee0f3a6340ecb57d2e8918692052a47c"
   integrity sha512-XYfuKMvj4O35f/pOXLObndIRvyQ+/+6AhODh+OKWj9S9498pHHn/IMszH+gt0fBCRWMNfk1ZSp5x3AifmnI2vg==
 
-express-rate-limit@^8.7.4:
-  version "8.7.4"
-  resolved "https://registry.yarnpkg.com/express-rate-limit/-/express-rate-limit-8.7.4.tgz#51513ecb8f069bf9ddce69fc25ec45f707ca3f53"
-  integrity sha512-LKBXzX700wz3zAGNNmVnjRI5mEbYkLv7UbMI4+9Xa+JPcg2UZh6AgY/2CZh9RrJjFM5ttC/N1lD+KzyFoZITCw==
+express-rate-limit@^8.7.5:
+  version "8.7.5"
+  resolved "https://registry.yarnpkg.com/express-rate-limit/-/express-rate-limit-8.7.5.tgz#5064479b76eccea1813995888aca757a2dd6f135"
+  integrity sha512-wi+v38cx2EqD0JnhE/e74o5tFqKWUOAPFJIgyEiqJ8v2MNpoOAA3kI2hXYOI+YM+HE5yqbdAlVxm2GqOIeYOgA==
   dependencies:
     debug "^4.4.3"
     ip-address "^10.2.0"
